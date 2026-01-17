@@ -1,0 +1,67 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@font-face {
+    font-family: 'NectoMono';
+    src: url('$lib/assets/fonts/nectomono/NectoMono-Regular.woff2') format("woff2");
+}
+
+@font-face {
+    font-family: 'FunnelDisplay';
+    src: url('$lib/assets/fonts/funnel/display/FunnelDisplay[wght].woff2') format("woff2");
+}
+
+@font-face {
+    font-family: 'FunnelSans';
+    src: url('$lib/assets/fonts/funnel/sans/FunnelSans[wght].woff2') format("woff2");
+}
+
+@font-face {
+    font-family: 'FrickRegular';
+    src: url('$lib/assets/fonts/frick/Frick0.3-Regular.woff2') format("woff2");
+}
+
+@font-face {
+    font-family: 'FrickCondensed';
+    src: url('$lib/assets/fonts/frick/Frick0.3-Condensed.woff2') format("woff2");
+}
+
+@font-face {
+    font-family: 'ArchivoBold';
+    src: url('$lib/assets/fonts/archivo/Archivo-Bold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoBoldItalic';
+    src: url('$lib/assets/fonts/archivo/Archivo-BoldItalic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoSemiBold';
+    src: url('$lib/assets/fonts/archivo/Archivo-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoSemiBoldItalic';
+    src: url('$lib/assets/fonts/archivo/Archivo-SemiBoldItalic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoRegular';
+    src: url('$lib/assets/fonts/archivo/Archivo-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoItalic';
+    src: url('$lib/assets/fonts/archivo/Archivo-Italic.woff2') format('woff2');
+}
+
+:root {
+    width: 100vw;
+    height: 100vh;
+    min-width: 100%;
+    min-height: 100%;
+
+    background-color: #FFFFF2;
+}
