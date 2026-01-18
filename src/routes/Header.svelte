@@ -1,5 +1,5 @@
 <script lang="ts">
-import {page} from "$app/state";
+import { page } from "$app/state";
 </script>
 
 <section class="bg-light-header dark:bg-dark-header border-b-[0.1em] border-light-header-border dark:border-dark-header-border">
@@ -23,6 +23,7 @@ import {page} from "$app/state";
         <div class="header-links">
             <nav class="text-light-text-primary dark:text-dark-text-primary">
                 <a aria-current={page.url.pathname === '/' ? 'current-page' : undefined} title="Home" href="/">Home</a>
+                <a aria-current={page.url.pathname === '/inventories' ? 'current-page' : undefined} title="Inventories" href="/inventories">Inventories</a>
                 <a aria-current={page.url.pathname === '/categories' ? 'current-page' : undefined} title="Categories" href="/categories">Categories</a>
                 <a aria-current={page.url.pathname === '/about' ? 'current-page' : undefined} title="About" href="/about">About</a>
             </nav>
