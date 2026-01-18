@@ -137,7 +137,7 @@ CAUTION: Do not modify this file unless you know what you are doing.
 	<special-pk-cols indexes="0"/>
 </relationship>
 
-<table name="item_categories" layers="0" collapse-mode="1" max-obj-count="9" z-value="0">
+<table name="item_categories" layers="0" collapse-mode="1" max-obj-count="10" z-value="0">
 	<schema name="public"/>
 	<role name="postgres"/>
 	<position x="1260" y="1100"/>
@@ -147,10 +147,25 @@ CAUTION: Do not modify this file unless you know what you are doing.
 	<column name="category_uuid" not-null="true">
 		<type name="uuid" length="0"/>
 	</column>
+	<column name="inventory_uuid" not-null="true">
+		<type name="uuid" length="0"/>
+	</column>
 	<constraint name="item_categories_pk" type="pk-constr" table="public.item_categories">
 		<columns names="item_uuid,category_uuid" ref-type="src-columns"/>
 	</constraint>
-</table>
+
+	<customidxs object-type="column">
+		<object name="category_uuid_categories" index="5"/>
+		<object name="inventory_uuid_categories" index="6"/>
+		<object name="inventory_uuid_inventories_categories" index="7"/>
+		<object name="inventory_uuid_inventories_items" index="4"/>
+		<object name="inventory_uuid_items" index="3"/>
+		<object name="item_uuid_items" index="2"/>
+	</customidxs>
+	<customidxs object-type="constraint">
+		<object name="categories_fk" index="2"/>
+		<object name="items_fk" index="1"/>
+	</customidxs></table>
 
 <relationship name="items_has_many_item_categories" type="rel1n" layers="0"
 	 src-col-pattern="{sc}_{st}"
