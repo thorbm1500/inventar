@@ -28,10 +28,10 @@ export async function createTableCurrencies(sql: postgres.Sql): Promise<void> {
 export async function createTableInventories(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS inventories
               (
-                  inventory_uuid UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
-                  name           VARCHAR(255) NOT NULL,
-                  description    TEXT                  DEFAULT NULL,
-                  image_path     TEXT UNIQUE           DEFAULT NULL,
+                  inventory_uuid UUID UNIQUE         NOT NULL DEFAULT uuidv7(),
+                  name           VARCHAR(255) UNIQUE NOT NULL,
+                  description    TEXT                         DEFAULT NULL,
+                  image_path     TEXT UNIQUE                  DEFAULT NULL,
                   CONSTRAINT inventories_pkey PRIMARY KEY (inventory_uuid)
               )`;
 }

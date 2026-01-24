@@ -1,4 +1,4 @@
-import sql from "$lib/server/db/db";
+import { sql,Inventories,Categories,Items } from "$lib/server/db/db";
 import * as schema from "$lib/server/db/schema";
 
 /**
@@ -8,6 +8,9 @@ export default async function initializeDatabase(): Promise<void> {
     console.log(`Initializing database...`)
     try {
         await createTables();
+        //console.log("Creating test inventory.")
+        //await Inventories.create("3D Print");
+        //await Inventories.create("Components");
     } catch(error) {
         console.error(error);
     }
