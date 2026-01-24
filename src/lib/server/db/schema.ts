@@ -105,5 +105,3 @@ export async function createTablePendingItemChanges(sql: postgres.Sql): Promise<
                   FOREIGN KEY (item_uuid) REFERENCES items (item_uuid) ON DELETE CASCADE
               )`;
 }
-
-export default {createTableInventories, createTableCategories, createTableCurrencies, createTableItems, createTableItemCategories, createTablePendingItemChanges};
