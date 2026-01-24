@@ -8,13 +8,12 @@ import currencies from "$lib/server/db/currencies";
 export async function createTableCurrencies(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS currencies
               (
-                  code   VARCHAR(3) NOT NULL UNIQUE,
-                  number VARCHAR(3) NOT NULL UNIQUE,
+                  code   VARCHAR(3) UNIQUE NOT NULL,
+                  number VARCHAR(3) UNIQUE NOT NULL,
                   symbol VARCHAR(255) DEFAULT NULL,
                   CONSTRAINT currencies_pkey PRIMARY KEY (code, number)
               )`.then(async (): Promise<void> => {
         for (const index of currencies) {
-            console.log(`INSERTING code: ${index.code} & number: ${index.number}`)
             await sql`INSERT INTO currencies(code, number)
                       VALUES (${index.code}, ${index.number})
                       ON CONFLICT DO NOTHING`;
@@ -29,9 +28,10 @@ export async function createTableCurrencies(sql: postgres.Sql): Promise<void> {
 export async function createTableInventories(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS inventories
               (
-                  inventory_uuid UUID         NOT NULL UNIQUE DEFAULT uuidv7(),
+                  inventory_uuid UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
                   name           VARCHAR(255) NOT NULL,
                   description    TEXT                  DEFAULT NULL,
+                  image_path     TEXT UNIQUE           DEFAULT NULL,
                   CONSTRAINT inventories_pkey PRIMARY KEY (inventory_uuid)
               )`;
 }
@@ -43,11 +43,11 @@ export async function createTableInventories(sql: postgres.Sql): Promise<void> {
 export async function createTableCategories(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS categories
               (
-                  category_uuid  UUID         NOT NULL UNIQUE DEFAULT uuidv7(),
                   inventory_uuid UUID         NOT NULL,
+                  category_uuid  UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
                   name           VARCHAR(255) NOT NULL,
                   description    TEXT                  DEFAULT NULL,
-                  CONSTRAINT categories_pkey PRIMARY KEY (category_uuid, inventory_uuid),
+                  CONSTRAINT categories_pkey PRIMARY KEY (inventory_uuid, category_uuid),
                   FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE
               )`;
 }
@@ -59,17 +59,23 @@ export async function createTableCategories(sql: postgres.Sql): Promise<void> {
 export async function createTableItems(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS items
               (
-                  item_uuid   UUID         NOT NULL UNIQUE DEFAULT uuidv7(),
-                  name        VARCHAR(255) NOT NULL,
-                  description TEXT                  DEFAULT NULL,
-                  url         VARCHAR(255)          DEFAULT NULL,
-                  assets_path VARCHAR(255)          DEFAULT NULL,
-                  price       BIGINT       NOT NULL,
-                  currency    VARCHAR(3)            DEFAULT 'DKK',
-                  amount      BIGINT                DEFAULT 0,
-                  CONSTRAINT items_pkey PRIMARY KEY (item_uuid),
-                  FOREIGN KEY (currency) REFERENCES currencies(code) ON DELETE CASCADE
-              )`;
+                  inventory_uuid UUID           NOT NULL,
+                  item_uuid      UUID UNIQUE    NOT NULL DEFAULT uuidv7(),
+                  name           VARCHAR(255)   NOT NULL,
+                  description    TEXT                    DEFAULT NULL,
+                  amount         BIGINT         NOT NULL DEFAULT 0,
+                  thumbnail_path TEXT UNIQUE             DEFAULT NULL,
+                  url            TEXT                    DEFAULT NULL,
+                  price          NUMERIC(50, 2) NOT NULL DEFAULT 0.0,
+                  currency_code  VARCHAR(3)     NOT NULL DEFAULT 'DKK',
+                  created_at     TIMESTAMP      NOT NULL DEFAULT now(),
+                  last_modified  TIMESTAMP      NOT NULL DEFAULT now(),
+                  CONSTRAINT items_pkey PRIMARY KEY (inventory_uuid, item_uuid),
+                  FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
+                  FOREIGN KEY (currency_code) REFERENCES currencies (code)
+              )`.then(async (): Promise<void> => {
+        await createAndApplyModifiedTimestampFunction(sql)
+    });
 }
 
 /**
@@ -94,14 +100,56 @@ export async function createTableItemCategories(sql: postgres.Sql): Promise<void
  * @param sql The database connection on which to perform the query.
  */
 export async function createTablePendingItemChanges(sql: postgres.Sql): Promise<void> {
-    await sql`CREATE TABLE IF NOT EXISTS pending_item_changes
+    await sql`CREATE TABLE IF NOT EXISTS item_amount_specifications
               (
-                  inventory_uuid UUID NOT NULL,
-                  item_uuid      UUID NOT NULL,
-                  in_order       BIGINT DEFAULT 0,
-                  reserved       BIGINT DEFAULT 0,
+                  inventory_uuid     UUID   NOT NULL,
+                  item_uuid          UUID   NOT NULL,
+                  reserved           BIGINT NOT NULL DEFAULT 0,
+                  pending            BIGINT NOT NULL DEFAULT 0,
+                  pending_expiration TIMESTAMP       DEFAULT NULL,
                   CONSTRAINT pending_item_changes_pkey PRIMARY KEY (inventory_uuid, item_uuid),
                   FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
                   FOREIGN KEY (item_uuid) REFERENCES items (item_uuid) ON DELETE CASCADE
               )`;
+}
+
+/** todo: For later use. Will be implemented if item will have the ability to have multiple images, other than the thumbnail.
+ * Creates the table 'item_assets', if it doesn't already exist.
+ * @param sql The database connection on which to perform the query.
+ */
+export async function createTableItemAssets(sql: postgres.Sql): Promise<void> {
+    await sql`CREATE TABLE IF NOT EXISTS item_assets
+              (
+                  inventory_uuid UUID        NOT NULL,
+                  item_uuid      UUID        NOT NULL,
+                  image_path     TEXT UNIQUE NOT NULL,
+                  CONSTRAINT item_assets_pkey PRIMARY KEY (inventory_uuid, item_uuid, image_path),
+                  FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
+                  FOREIGN KEY (item_uuid) REFERENCES items (item_uuid) ON DELETE CASCADE
+              )`
+}
+
+/**
+ * Creates the function for automatically updating the column 'modified_last',
+ * on the table 'items', and applies the trigger on said table.
+ * @param sql The database connection on which to perform the query.
+ */
+export async function createAndApplyModifiedTimestampFunction(sql: postgres.Sql): Promise<void> {
+    await sql`CREATE OR REPLACE LANGUAGE plpgsql`
+
+    await sql`CREATE OR REPLACE FUNCTION update_modified_last_column()
+        RETURNS TRIGGER AS
+    $$
+    BEGIN
+        NEW.modified_last = now();
+        RETURN NEW;
+    END;
+    $$ language 'plpgsql'`
+
+    await sql`CREATE TRIGGER update_modified_last_trigger
+        AFTER UPDATE
+        ON items
+        FOR EACH ROW
+    EXECUTE PROCEDURE
+        update_modified_last_column();`
 }
