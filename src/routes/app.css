@@ -61,20 +61,29 @@
 
 :root {
     /* Colors */
-    --primary-color: hsl(250, 60%, 65%);
+    --primary-color: oklch(48.8% 0.243 264.376);
     --secondary-color: hsl(from var(--primary-color) h 25% l);
 
     --primary-text-dark: hsl(0, 0%, 95%);
-    --primary-text-light: hsl(240, 4%, 5%);
+    --primary-text-light: hsl(0, 0%, 5%);
+
+    --dark-text-primary: hsl(0, 0%, 95%);
+    --text-primary: hsl(0, 0%, 5%);
 
     --primary-icon-dark: hsl(0, 0%, 95%);
     --primary-icon-light: hsl(240, 4%, 5%);
 
-    --accent-text: hsl(275, 100%, 65%);
+    --accent-text: oklch(62.3% 0.214 259.815);
     --accent-icon: hsl(from var(--accent-text) h s l);
 
     --background-color-dark: #0f0f11;
     --background-color-light: #f2f2f2;
+
+    --dark-container-background: #151518;
+    --dark-container-border: #2E323D;
+
+    --container-background: #EAEAEA;
+    --container-border: #B9C1C9;
 
     --container-color-dark: #151518;
     --container-color-light: #eaeaea;
@@ -88,9 +97,17 @@
     --logo-light: #0d0d0d;
 
     /* Variables */
-    --theme-transition-duration: 200ms;
+    --header-height: 3.5rem;
     --header-icon-gap: 1.5rem;
 
+    /* UI Baseline */
+    --container-full-height: 87.5%;
+    --border-radius: .8rem;
+    --icon-border-radius: .65rem;
+    --border-width: .1em;
+    --form-input-border-radius: .4rem;
+    --form-input-background: #41414b;
+    --form-input-border: #575764;
 
     width: 100vw;
     height: 100vh;
@@ -101,14 +118,11 @@ body {
     height: 100vh;
 }
 
+/* Tailwind Theme Variables */
 @theme {
-    /* Tailwind Theme Variables */
     /* Colors */
     --color-dark-bg: var(--background-color-dark);
     --color-light-bg: var(--background-color-light);
-
-    --color-dark-container: var(--container-color-dark);
-    --color-light-container: var(--container-color-light);
 
     --color-dark-header: var(--header-color-dark);
     --color-light-header: var(--header-color-light);
@@ -118,13 +132,23 @@ body {
     --color-dark-logo: var(--logo-dark);
     --color-light-logo: var(--logo-light);
 
-    --color-dark-text-primary: var(--primary-text-dark);
-    --color-light-text-primary: var(--primary-text-light);
-
     --color-dark-icon-primary: var(--primary-icon-dark);
     --color-light-icon-primary: var(--primary-icon-light);
 
-    /* Variables */
-    --theme-duration: var(--theme-transition-duration);
-    --theme-custom-duration: duration-[var(--theme-duration)] ease-in-out;
+    /* Typography */
+    --color-dark-text-primary: var(--dark-text-primary);
+    --color-text-primary: var(--text-primary);
+
+    /* UI Baseline  */
+    --color-dark-container-background: var(--dark-container-background);
+    --color-dark-container-border: var(--dark-container-border);
+    --color-dark-button-background: #1a1a1e;
+    --color-dark-button-border: #2E323D;
+
+    --color-container-background: var(--container-background);
+    --color-container-border: var(--container-border);
+    --color-button-background: #EAEAEA;
+    --color-button-border: #B9C1C9;
+    --color-input-background: var(--form-input-background);
+    --color-input-border: var(--form-input-border);
 }

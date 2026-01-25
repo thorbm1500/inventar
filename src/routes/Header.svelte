@@ -39,10 +39,9 @@
             </a>
         </div>
         <div class="header-links">
-            <nav class="text-light-text-primary dark:text-dark-text-primary">
+            <nav class="text-text-primary dark:text-dark-text-primary">
                 <a aria-current={page.url.pathname === '/'} title="Home" href="/">Home</a>
                 <a aria-current={page.url.pathname === '/browse'} title="Browse" href="/browse">Browse</a>
-                <a aria-current={page.url.pathname === '/inventory'} title="Inventory" href="/inventory">Inventory</a>
             </nav>
             <div class="header-icons">
                 <div class="header-icon">
@@ -73,7 +72,7 @@
 
 <style>
     section {
-        height: 3.5rem;
+        height: var(--header-height);
 
         padding-left: 15%;
         padding-right: 15%;

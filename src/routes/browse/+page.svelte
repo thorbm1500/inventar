@@ -8,8 +8,7 @@
 <section>
     <ul>
         {#each await getInventories() as { inventory_uuid, name, description, image }}
-            <li>Name: {name}<br>
-            UUID: {inventory_uuid}</li>
+            <li><a href='/inventory/{inventory_uuid}' target='_parent'>Inventory {name}</a></li>
         {/each}
     </ul>
 </section>

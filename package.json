@@ -36,6 +36,8 @@
 	},
 	"dependencies": {
 		"@node-rs/argon2": "^2.0.2",
-		"postgres": "^3.4.8"
+		"postgres": "^3.4.8",
+		"uuid": "^13.0.0",
+		"valibot": "^1.2.0"
 	}
 }

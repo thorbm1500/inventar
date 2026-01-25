@@ -181,6 +181,18 @@ export class Inventories {
                 return undefined;
             })
     }
+
+    static async fetch(id: string): Promise<RowList<any>> {
+        return await Utility.query(`SELECT *
+                                    FROM inventories WHERE inventory_uuid = $1`, [id])
+            .then(result => {
+                return result;
+            })
+            .catch(error => {
+                console.log(`Failed to fetch inventory with ID '${id}'. Error: ${error}`);
+                return undefined;
+            })
+    }
 }
 
 export class Categories {
