@@ -1,5 +1,5 @@
 import {query} from '$app/server';
-import * as db from '$lib/server/db/db'
+import * as db from '$lib/server/db/database'
 import type {RowList} from "postgres";
 
 export const getInventories = query(async (): Promise<RowList<any>> => {
