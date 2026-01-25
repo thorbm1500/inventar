@@ -4,13 +4,16 @@
 
     import {error} from '@sveltejs/kit';
     import {validate} from 'uuid';
-    import {getInventory} from './data.remote.ts';
+    import {getInventory, getItems} from './data.remote.ts';
 
     import ItemCreator from "../components/ItemCreator.svelte";
+    import {it} from "node:test";
 
     if (!page.params.id || !validate(page.params.id)) {
         error(404, 'Inventory ID is required!');
     }
+
+    const inventory = page.params.id;
 
     let {
         inventory_uuid,
@@ -18,12 +21,12 @@
         inventory_description,
         inventory_image,
         inventory_primary
-    } = await getInventory(page.params.id);
+    } = await getInventory(inventory);
 
     let pagination_page = $state(1);
     let items_per_page = $state(15);
 
-    console.log(`Inventory name: ${inventory_name}`)
+    let items = await getItems({id: inventory, amount: items_per_page, order: "NONE"}) || []
 </script>
 
 <Header/>
@@ -51,7 +54,9 @@
 
             </div>
             <div class="item-list">
-
+                {#each items as {item_uuid, name, description, amount, price, currency_code}}
+                    <div class="item">Name {name} Amount: {amount}</div>
+                {/each}
             </div>
             <div class="page-switch-buttons text-text-primary dark:text-dark-text-primary
                         border-transparent border-t-container-border dark:border-t-dark-container-border">

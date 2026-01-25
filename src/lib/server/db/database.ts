@@ -9,6 +9,18 @@ export const sql = postgres({
     password: env.DB_PASSWORD
 });
 
+export enum OrderType {
+    AMOUNT_ASC = "ORDER BY amount ASC",
+    AMOUNT_DESC = "ORDER BY amount DESC",
+    PRICE_ASC = "ORDER BY price ASC",
+    PRICE_DESC = "ORDER BY price DESC",
+    NAME_ASC = "ORDER BY name ASC",
+    NAME_DESC = "ORDER BY name DESC",
+    OLDEST = "ORDER BY creation_date ASC",
+    NEWEST = "ORDER BY creation_date DESC",
+    NONE = ""
+}
+
 /**
  * An internal utility class.
  */
@@ -184,7 +196,35 @@ export class Inventories {
 
     static async fetch(id: string): Promise<RowList<any>> {
         return await Utility.query(`SELECT *
-                                    FROM inventories WHERE inventory_uuid = $1`, [id])
+                                    FROM inventories
+                                    WHERE inventory_uuid = $1`, [id])
+            .then(result => {
+                return result;
+            })
+            .catch(error => {
+                console.log(`Failed to fetch inventory with ID '${id}'. Error: ${error}`);
+                return undefined;
+            })
+    }
+
+    static async fetchItems(id: string, amount: number = 15, order: OrderType | string = "NONE", simple: boolean = false): Promise<RowList<any>> {
+        let query = simple ?
+            `SELECT item_uuid, name, description, amount, price, currency_code
+             FROM items
+             WHERE inventory_uuid = $1
+             LIMIT $2` :
+            `SELECT *
+                     FROM items
+                     WHERE inventory_uuid = $1
+                     LIMIT $2`;
+
+        //todo: Sanitize query.
+        if (order !== "NONE") query += order;
+
+        if (amount < 15) amount = 15;
+        else if (amount > 60) amount = 60;
+
+        return await Utility.query(query, [id, amount.toString()])
             .then(result => {
                 return result;
             })
