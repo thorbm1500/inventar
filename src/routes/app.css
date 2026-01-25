@@ -60,6 +60,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+    /* Colors */
     --primary-color: hsl(250, 60%, 65%);
     --secondary-color: hsl(from var(--primary-color) h 25% l);
 
@@ -86,6 +87,11 @@
     --logo-dark: #FFFFF2;
     --logo-light: #0d0d0d;
 
+    /* Variables */
+    --theme-transition-duration: 200ms;
+    --header-icon-gap: 1.5rem;
+
+
     width: 100vw;
     height: 100vh;
 }
@@ -96,6 +102,8 @@ body {
 }
 
 @theme {
+    /* Tailwind Theme Variables */
+    /* Colors */
     --color-dark-bg: var(--background-color-dark);
     --color-light-bg: var(--background-color-light);
 
@@ -115,4 +123,8 @@ body {
 
     --color-dark-icon-primary: var(--primary-icon-dark);
     --color-light-icon-primary: var(--primary-icon-light);
+
+    /* Variables */
+    --theme-duration: var(--theme-transition-duration);
+    --theme-custom-duration: duration-[var(--theme-duration)] ease-in-out;
 }

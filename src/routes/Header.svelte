@@ -40,29 +40,31 @@
         </div>
         <div class="header-links">
             <nav class="text-light-text-primary dark:text-dark-text-primary">
-                <a aria-current={page.url.pathname === '/' ? 'current-page' : undefined} title="Home" href="/">Home</a>
-                <a aria-current={page.url.pathname === '/browse' ? 'current-page' : undefined} title="Browse" href="/browse">Browse</a>
-                <a aria-current={page.url.pathname === '/inventory' ? 'current-page' : undefined} title="Inventory" href="/inventory">Inventory</a>
+                <a aria-current={page.url.pathname === '/'} title="Home" href="/">Home</a>
+                <a aria-current={page.url.pathname === '/browse'} title="Browse" href="/browse">Browse</a>
+                <a aria-current={page.url.pathname === '/inventory'} title="Inventory" href="/inventory">Inventory</a>
             </nav>
             <div class="header-icons">
-                <button id="dark-light-mode-switcher" onclick={toggleTheme} title="Page Theme Switcher">
-                    {#if theme === 'dark'}
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#0D0D0D" class="size-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>
+                <div class="header-icon">
+                    <button class="page-theme-switch-button" id="dark-light-mode-switcher" onclick={toggleTheme} title="Page Theme Switcher">
+                        <svg class="size-6 stroke-light-icon-primary dark:stroke-dark-icon-primary" fill="none" viewBox="0 0 24 24">
+                            {#if theme === 'dark'}
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>
+                            {:else}
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/>
+                            {/if}
                         </svg>
-                    {:else}
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#FFFFF2" class="size-6">
+                    </button>
+                </div>
+                <div class="header-icon">
+                    <button class="user-profile-button" id="dark-light-mode-switcher" title="User Profile Button">
+                        <svg class="size-6 stroke-light-icon-primary dark:stroke-dark-icon-primary" fill="none" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round"
-                                  d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/>
+                                  d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
                         </svg>
-                    {/if}
-                </button>
-                <div class="user-profile">
-                    <svg class="size-6 stroke-light-icon-primary dark:stroke-dark-icon-primary" fill="none" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                    </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -91,7 +93,6 @@
                 transition-duration: 200ms;
             }
 
-
             .header-links {
                 display: flex;
                 flex-flow: row nowrap;
@@ -100,7 +101,7 @@
                 nav {
                     display: flex;
                     flex-flow: row nowrap;
-                    gap: 1rem;
+                    gap: var(--header-icon-gap);
 
                     font-family: 'FunnelSans', serif;
                     text-align: center;
@@ -128,7 +129,7 @@
                         overflow: hidden;
                     }
 
-                    a[aria-current='current-page'] {
+                    a[aria-current=true] {
                         color: var(--accent-text);
                         font-variation-settings: "wght" 700;
                     }
@@ -137,24 +138,26 @@
                 .header-icons {
                     display: flex;
                     flex-flow: row nowrap;
-                    justify-content: center;
-                    align-items: center;
-                    gap: 1rem;
 
-                    button {
-                        margin-left: 1rem;
+                    .header-icon:first-child {
+                        margin-left: var(--header-icon-gap);
                     }
 
-                    svg {
-                        stroke-width: 1.5;
-                    }
+                    .header-icon {
+                        display: flex;
+                        margin-left: calc(var(--header-icon-gap) * .5);
 
-                    svg:hover {
-                        cursor: pointer;
-                        stroke: var(--accent-text);
-                        stroke-width: 2;
+                        svg {
+                            stroke-width: 1.6;
+                        }
 
-                        transition-duration: 150ms;
+                        svg:hover {
+                            cursor: pointer;
+                            stroke: var(--accent-text);
+                            stroke-width: 1.65;
+
+                            transition-duration: 150ms;
+                        }
                     }
                 }
             }
