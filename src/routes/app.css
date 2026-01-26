@@ -96,6 +96,8 @@
     --logo-dark: #FFFFF2;
     --logo-light: #0d0d0d;
 
+    --browser-offline-background: oklch(58.6% 0.253 17.585);
+
     /* Variables */
     --header-height: 3.5rem;
     --header-icon-gap: 1.5rem;

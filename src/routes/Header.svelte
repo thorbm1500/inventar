@@ -3,6 +3,7 @@
     import {onMount} from 'svelte';
 
     let element: any = undefined;
+    let isOnline = $state(true);
 
     onMount(async () => {
         element = document.getElementsByTagName('body')[0]
@@ -18,6 +19,10 @@
             ? element.classList.add('dark')
             : element.classList.remove('dark')
     }
+
+    setInterval(() => {
+        isOnline = navigator.onLine
+    }, 2500)
 </script>
 
 <section class="bg-light-header dark:bg-dark-header border-b-[0.1em] border-light-header-border dark:border-dark-header-border">
@@ -68,9 +73,54 @@
             </div>
         </div>
     </div>
+    <div class="browser-offline-section" style="opacity: { isOnline ? '0' : '1'} !important;">
+        <div class="offline-text">
+            BROWSER OFFLINE
+        </div>
+        <div class="offline-spinner">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.25" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+            </svg>
+        </div>
+    </div>
 </section>
 
 <style>
+    section .browser-offline-section {
+        position: absolute;
+        top: var(--header-height);
+        left: 0;
+        user-select: none;
+        pointer-events: none;
+        z-index: 10000 !important;
+
+        height: 1.8rem;
+        width: 100%;
+
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: center;
+        align-items: center;
+        align-content: center;
+        gap: .5em;
+
+        font-family: 'ArchivoBold', sans-serif;
+        color: #FFFFF2;
+
+        background: var(--browser-offline-background);
+
+        transition: 300ms ease-in-out;
+
+        .offline-spinner {
+            svg {
+                width: auto;
+                height: 1.35rem;
+            }
+
+            animation: offline-spinner-animation 1500ms infinite linear;
+        }
+    }
+
     section {
         height: var(--header-height);
 
@@ -160,6 +210,24 @@
                     }
                 }
             }
+        }
+    }
+
+    @keyframes offline-spinner-animation {
+        0% {
+            transform: rotate(-17deg);
+        }
+        10% {
+            transform: rotate(17deg);
+        }
+        20%,40%,100% {
+            transform: rotate(0deg);
+        }
+        25% {
+            transform: rotate(-4deg);
+        }
+        30% {
+            transform: rotate(4deg);
         }
     }
 
