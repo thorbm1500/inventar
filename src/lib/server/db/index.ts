@@ -1,4 +1,4 @@
-import { sql,Inventories,Categories,Items } from "$lib/server/db/database";
+import { sql } from "$lib/server/db/database";
 import * as schema from "$lib/server/db/schema";
 
 /**
