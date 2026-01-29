@@ -30,7 +30,7 @@
 <section class="bg-light-header dark:bg-dark-header border-b-[0.1em] border-light-header-border dark:border-dark-header-border">
     <div class="header-container">
         <div class="header-logo">
-            <a href="/">
+            <a href="/" title="inventar header logo">
                 <svg class="fill-light-logo dark:fill-dark-logo" viewBox="0 0 3013.54 659.04">
                     <rect y="18.18" width="205.82" height="205.82"/>
                     <polygon points="71.81 295.81 71.81 573.45 416.45 573.45 416.45 434.81 555.27 434.81 555.27 89.99 277.63 89.99 277.63 295.81 71.81 295.81"/>
@@ -88,41 +88,6 @@
 </section>
 
 <style>
-    section .browser-offline-section {
-        position: absolute;
-        top: var(--header-height);
-        left: 0;
-        user-select: none;
-        pointer-events: none;
-        z-index: 10000 !important;
-
-        height: 1.8rem;
-        width: 100%;
-
-        display: flex;
-        flex-flow: row nowrap;
-        justify-content: center;
-        align-items: center;
-        align-content: center;
-        gap: .5em;
-
-        font-family: 'ArchivoBold', sans-serif;
-        color: #FFFFF2;
-
-        background: var(--browser-offline-background);
-
-        transition: 300ms ease-in-out;
-
-        .offline-spinner {
-            svg {
-                width: auto;
-                height: 1.35rem;
-            }
-
-            animation: offline-spinner-animation 1500ms infinite linear;
-        }
-    }
-
     section {
         height: var(--header-height);
 
@@ -131,6 +96,41 @@
 
         align-content: center;
         justify-content: center;
+
+        .browser-offline-section {
+            position: absolute;
+            top: var(--header-height);
+            left: 0;
+            user-select: none;
+            pointer-events: none;
+            z-index: 10000 !important;
+
+            height: 1.8rem;
+            width: 100%;
+
+            display: flex;
+            flex-flow: row nowrap;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            gap: .5em;
+
+            font-family: 'ArchivoBold', sans-serif;
+            color: #FFFFF2;
+
+            background: var(--browser-offline-background);
+
+            transition: 300ms ease-in-out;
+
+            .offline-spinner {
+                svg {
+                    width: auto;
+                    height: 1.35rem;
+                }
+
+                animation: offline-spinner-animation 1500ms infinite linear;
+            }
+        }
 
         .header-container {
             display: flex;
