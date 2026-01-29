@@ -32,6 +32,7 @@ export async function createTableInventories(sql: postgres.Sql): Promise<void> {
                   name              VARCHAR(255) UNIQUE NOT NULL,
                   description       TEXT                         DEFAULT NULL,
                   image_path        TEXT UNIQUE                  DEFAULT NULL,
+                  item_amount       BIGINT              NOT NULL DEFAULT 0,
                   default_inventory BOOLEAN                      DEFAULT FALSE,
                   CONSTRAINT inventories_pkey PRIMARY KEY (inventory_uuid)
               )`;

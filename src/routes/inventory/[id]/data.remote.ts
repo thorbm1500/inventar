@@ -2,7 +2,6 @@ import {query} from '$app/server';
 import * as db from '$lib/server/db/database'
 import {error} from '@sveltejs/kit';
 import * as v from 'valibot';
-import {OrderType} from "$lib/server/db/database";
 
 export const getInventory = query(v.string(), async (id: string) => {
     const result = await db.Inventories.fetch(id);

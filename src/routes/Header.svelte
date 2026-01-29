@@ -22,7 +22,7 @@
 
     setInterval(() => {
         isOnline = navigator.onLine
-    }, 2500)
+    }, 2000)
 </script>
 
 <section class="bg-light-header dark:bg-dark-header border-b-[0.1em] border-light-header-border dark:border-dark-header-border">

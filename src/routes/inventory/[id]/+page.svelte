@@ -5,9 +5,9 @@
     import {error} from '@sveltejs/kit';
     import {validate} from 'uuid';
     import {getInventory, getItems} from './data.remote.ts';
+    import * as v from 'valibot';
 
     import ItemCreator from "../components/ItemCreator.svelte";
-    import {it} from "node:test";
 
     if (!page.params.id || !validate(page.params.id)) {
         error(404, 'Inventory ID is required!');

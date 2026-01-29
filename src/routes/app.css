@@ -113,6 +113,19 @@
 
     width: 100vw;
     height: 100vh;
+
+    /* Global Light/Dark Variables */
+    --theme-text: #FFFFF2;
+    --theme-text-third: #97999a;
+    --theme-text-accent: oklch(0.625 0.182 258.637);
+    --theme-background: #f2f2f2;
+}
+
+.dark {
+    --theme-text: #0D0D0D;
+    --theme-text-third: #545454;
+    --theme-text-accent: oklch(0.625 0.182 258.637);
+    --theme-background: #0f0f11;
 }
 
 body {
@@ -122,6 +135,15 @@ body {
 
 /* Tailwind Theme Variables */
 @theme {
+    /** Global Light/Dark Theme **/
+    /* Text */
+    --color-theme-text: var(--theme-text);
+    --color-theme-text-third: var(--theme-text-third);
+    --color-theme-text-accent: var(--theme-text-accent);
+
+    /* UI Colors */
+    --color-theme-background: var(--theme-background);
+
     /* Colors */
     --color-dark-bg: var(--background-color-dark);
     --color-light-bg: var(--background-color-light);
