@@ -119,6 +119,7 @@
     --theme-text-third: #97999a;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-background: #f2f2f2;
+    --theme-background-highlight: #eef0f3;
 }
 
 .dark {
@@ -126,6 +127,7 @@
     --theme-text-third: #545454;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-background: #0f0f11;
+    --theme-background-highlight: #18181c;
 }
 
 body {
