@@ -5,11 +5,13 @@
     let element: any = undefined;
     let isOnline = $state(true);
 
+    let isDark = $state(true);
+
     onMount(async () => {
         element = document.getElementsByTagName('body')[0]
+        isDark = document.getElementsByClassName('dark').length > 0
     })
 
-    let isDark = $state(true)
     let theme = $derived(isDark ? 'light' : 'dark');
 
     function toggleTheme() {
