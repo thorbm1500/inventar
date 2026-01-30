@@ -1,4 +1,6 @@
 <script module lang="ts">
+    /* todo Make inventory fetch async, to allow page loading, even if there's no connection to the database, while the browser is online. */
+
     function parseTimestamp(timestamp: string): string {
         const diff = ((Date.now() - Date.parse(timestamp)) / 60) / 60;
         let response: string = "None";
@@ -26,21 +28,16 @@
 <script lang="ts">
     import Header from "../Header.svelte";
     import {getInventories} from './data.remote.ts';
+    import Utility from './utility.ts';
 
     const rawInventories = await getInventories();
     let inventories = $state(rawInventories);
 
+    let currentPage = $state(1);
+
     let nameFilter = $state("DEFAULT");
     let itemsFilter = $state("DEFAULT");
     let latestChangeFilter = $state("DEFAULT");
-
-    function getFilterSymbol(filter: string): string {
-        if (filter === "DESC") {
-            return "m19.5 8.25-7.5 7.5-7.5-7.5";
-        } else if (filter === "ASC") {
-            return "m4.5 15.75 7.5-7.5 7.5 7.5";
-        } else return "M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5";
-    }
 
     function updateFilterState(filter: string) {
         if (filter === "NAME") {
@@ -82,7 +79,7 @@
                     <p>Name</p>
                     <button class="{ nameFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" id="name-filter-button" title="Filter by name" onclick={() => updateFilterState("NAME")}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="{getFilterSymbol(nameFilter)}"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(nameFilter)}"/>
                         </svg>
                     </button>
                 </div>
@@ -91,7 +88,7 @@
                     <button class="{ latestChangeFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" id="latest-change-filter-button" title="Filter by latest change"
                             onclick={() => updateFilterState("LATEST_CHANGE")}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="{getFilterSymbol(latestChangeFilter)}"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(latestChangeFilter)}"/>
                         </svg>
                     </button>
                 </div>
@@ -99,7 +96,7 @@
                     <p>Items</p>
                     <button class="{ itemsFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" id="items-filter-button" title="Filter by item amount" onclick={() => updateFilterState("ITEMS")}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="{getFilterSymbol(itemsFilter)}"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(itemsFilter)}"/>
                         </svg>
                     </button>
                 </div>
@@ -139,9 +136,28 @@
                 {/each}
             {:else}
                 <div class="empty-inventory-list">
-                    <span class="text-theme-text-third">No inventories found. Create your first inventory now!</span>
+                    <span class="text-theme-text-third">{ navigator.onLine ?
+                        'No inventories found. Create your first inventory now!' :
+                        'No internet found. Reconnect to browse inventories.' }</span>
                 </div>
             {/if}
+        </div>
+        <div class="inventory-footer border-t-container-border dark:border-t-dark-container-border">
+            <div class="inventory-footer-items">
+                <p class="pagination-back-button">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                </p>
+                <p class="pagination-current-page">
+                    {currentPage}
+                </p>
+                <p class="pagination-forward-button">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                </p>
+            </div>
         </div>
     </div>
 </section>
@@ -152,8 +168,9 @@
 
         .inventory-list-container {
             width: 80vw;
-            margin: 10vh auto;
-            height: calc(80vh - var(--header-height));
+            height: 42rem;
+
+            margin: calc(var(--header-height) + 2rem) auto;
             border-width: var(--border-width);
             border-radius: var(--border-radius);
 
@@ -162,6 +179,7 @@
                 border-bottom-color: inherit;
                 border-width: var(--border-width);
                 width: 100%;
+                height: 3rem !important;
 
                 .header-items {
                     display: flex;
@@ -220,7 +238,7 @@
                 display: flex;
                 flex-flow: column nowrap;
                 justify-content: flex-start;
-                height: 100%;
+                height: 36rem;
 
                 overflow-y: scroll;
                 overflow-x: hidden;
@@ -232,9 +250,9 @@
                     align-content: center;
                     align-items: center;
                     justify-content: center;
+                    height: 36rem;
 
                     span {
-                        height: 100%;
                         margin: auto;
                         font-size: 1.05rem;
                     }
@@ -242,8 +260,7 @@
 
                 .inventory-list-entry {
                     width: 100%;
-                    height: 10%;
-                    min-height: 7.25rem !important;
+                    height: 6rem !important;
 
                     display: flex;
                     flex-flow: row nowrap;
@@ -338,6 +355,37 @@
                 .inventory-item-amount {
                     flex: 1 0 25%;
                     justify-content: center;
+                }
+            }
+
+            .inventory-footer {
+                border-color: transparent;
+                border-top-color: inherit;
+                border-width: var(--border-width);
+                width: 100%;
+                height: 3rem !important;
+
+                .inventory-footer-items {
+                    display: flex;
+                    flex-flow: row nowrap;
+                    align-content: center;
+                    justify-content: center;
+                    gap: 1rem;
+
+                    margin-top: .75em;
+                    margin-bottom: .75em;
+
+                    font-family: 'Funnel Sans', sans-serif;
+
+                    .pagination-back-button {
+                        transform: rotate(90deg);
+                    }
+
+                    .pagination-current-page {}
+
+                    .pagination-forward-button {
+                        transform: rotate(-90deg);
+                    }
                 }
             }
         }
