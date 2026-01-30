@@ -164,13 +164,14 @@
 
 <style>
     section {
+        overflow: auto;
         user-select: none !important;
 
         .inventory-list-container {
             width: 80vw;
             height: 42rem;
 
-            margin: calc(var(--header-height) + 2rem) auto;
+            margin: calc(50vh - (21rem + (var(--header-height) / 2))) auto;
             border-width: var(--border-width);
             border-radius: var(--border-radius);
 
