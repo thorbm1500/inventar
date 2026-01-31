@@ -71,8 +71,7 @@
 <Header/>
 
 <section>
-    <div class="inventory-list-container bg-container-background dark:bg-dark-container-background
-                border-container-border dark:border-dark-container-border text-text-primary dark:text-dark-text-primary">
+    <div class="inventory-list-container ui-container">
         <div class="inventory-header border-b-container-border dark:border-b-dark-container-border">
             <div class="header-items">
                 <div class="header-item name-filter">

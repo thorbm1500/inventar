@@ -115,19 +115,31 @@
     height: 100vh;
 
     /* Global Light/Dark Variables */
-    --theme-text: #FFFFF2;
+    --theme-text: #0D0D0D;
     --theme-text-third: #97999a;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-background: #f2f2f2;
     --theme-background-highlight: #eef0f3;
+    --theme-background-container: #EAEAEA;
+    --theme-border-container: #B9C1C9;
 }
 
 .dark {
-    --theme-text: #0D0D0D;
+    --theme-text: #FFFFF2;
     --theme-text-third: #545454;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-background: #0f0f11;
     --theme-background-highlight: #18181c;
+    --theme-background-container: #151518;
+    --theme-border-container: #2E323D;
+}
+
+.ui-container {
+    border-color: var(--theme-border-container);
+    border-width: var(--border-width);
+    border-radius: var(--border-radius);
+    background: var(--theme-background-container);
+    color: var(--theme-text);
 }
 
 body {

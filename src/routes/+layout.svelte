@@ -1,7 +1,12 @@
 <script lang="ts">
 	import './app.css';
+    import {getContext, setContext} from "svelte";
 
-	let { children } = $props();
+	let { children,data } = $props();
+
+    const user = data.user;
+
+    setContext('user', user);
 </script>
 
 <svelte:head>
