@@ -28,21 +28,27 @@
         </svg>
     </div>
     <div class="login-form">
-        <form method="post" action="?/login" use:enhance>
-            <label for="Email">
-                <input type="text" name="email" placeholder="Email" class="email-input"/>
+        <form method="post" action="?/register" use:enhance>
+            <label for="username">
+                <input type="text" id="username" name="username" placeholder="Username" class="username-input"/>
             </label>
-            <label for="Password">
-                <input type="password" name="password" placeholder="Password" class="password-input"/>
+            <label for="email">
+                <input type="text" id="email" name="email" placeholder="Email" class="email-input"/>
+            </label>
+            <label for="password">
+                <input type="password" id="password" name="password" placeholder="Password" class="password-input"/>
+            </label>
+            <label for="repeat-password">
+                <input type="password" id="repeat-password" name="password" placeholder="Repeat Password" class="password-input"/>
             </label>
             <div class="login-form-buttons">
-                <button class="login-button">Login</button>
-                <a href="/register">
-                    <button class="">Register</button>
-                </a>
+                <button type="submit" class="register-button">Register</button>
             </div>
         </form>
-        <a class="forgot-password" href="/reset-password">Forgot password?</a>
+        <div class="back-to-sign-in">
+            <p>Already got an account?</p>
+            <a class="sign-in" href="/login">Sign in.</a>
+        </div>
         <p style='color: red'>{form?.message ?? ''}</p>
     </div>
 </section>
@@ -76,6 +82,26 @@
             justify-content: center;
             align-content: center;
             align-items: center;
+
+            .back-to-sign-in {
+                display: flex;
+                flex-flow: row nowrap;
+                gap: .35rem;
+
+                p,.sign-in {
+                    user-select: none;
+                    margin-top: 1rem;
+                    color: #51565b;
+
+                    transition: 400ms 125ms ease;
+                }
+
+                .sign-in:hover {
+                    color: #FFFFF2;
+
+                    transition: 50ms ease;
+                }
+            }
         }
 
         form {
@@ -131,21 +157,12 @@
                     border: .12em solid oklch(0.375 0.013 267.193);
                     filter: drop-shadow(0 0 1em rgba(255, 255, 242, 0.04));
                 }
+                .register-button:hover {
+                    background: oklch(62.3% 0.214 259.815);
+                    border: .12em solid oklch(74.6% 0.16 232.661);
+                    filter: drop-shadow(0 0 1em rgba(from oklch(62.3% 0.214 259.815) r g b / 0.10));
+                }
             }
-        }
-
-        .forgot-password {
-            user-select: none;
-            margin-top: 1rem;
-            color: #51565b;
-
-            transition: 400ms 125ms ease;
-        }
-
-        .forgot-password:hover {
-            color: #FFFFF2;
-
-            transition: 50ms ease;
         }
     }
 </style>

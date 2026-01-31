@@ -2,6 +2,8 @@
     import {enhance} from '$app/forms';
     import type {ActionData} from './$types';
 
+    // todo: Implement password reset.
+
     let {form}: { form: ActionData } = $props();
     let isLoginAllowed = $state(false);
 </script>
@@ -28,21 +30,17 @@
         </svg>
     </div>
     <div class="login-form">
-        <form method="post" action="?/login" use:enhance>
+        <form method="post" action="?/reset-password" use:enhance>
             <label for="Email">
                 <input type="text" name="email" placeholder="Email" class="email-input"/>
             </label>
-            <label for="Password">
-                <input type="password" name="password" placeholder="Password" class="password-input"/>
-            </label>
-            <div class="login-form-buttons">
-                <button class="login-button">Login</button>
-                <a href="/register">
-                    <button class="">Register</button>
+            <div class="reset-form-buttons">
+                <a href="/login">
+                    <button class="back-button">Back</button>
                 </a>
+                <button class="reset-button">Request reset</button>
             </div>
         </form>
-        <a class="forgot-password" href="/reset-password">Forgot password?</a>
         <p style='color: red'>{form?.message ?? ''}</p>
     </div>
 </section>
@@ -108,44 +106,38 @@
                     border-color: oklch(64.5% 0.246 16.439);
                 }
             }
-
-            .login-form-buttons {
-                user-select: none;
-
-                button {
-                    width: fit-content;
-                    margin-left: .25em;
-                    margin-right: .25em;
-                    margin-top: 1.5rem;
-                    padding: .35rem .8rem;
-                    background: oklch(0.233 0.015 279.523);
-                    border: .12em solid oklch(0.302 0.011 271.028);
-                    border-radius: .6em;
-                    color: #FFFFF2;
-                }
-
-                button:hover {
-                    cursor: pointer;
-
-                    background: oklch(0.281 0.02 280.925);
-                    border: .12em solid oklch(0.375 0.013 267.193);
-                    filter: drop-shadow(0 0 1em rgba(255, 255, 242, 0.04));
-                }
-            }
         }
 
-        .forgot-password {
+        .reset-form-buttons {
             user-select: none;
-            margin-top: 1rem;
-            color: #51565b;
-
-            transition: 400ms 125ms ease;
         }
 
-        .forgot-password:hover {
+        .reset-form-buttons button, .back-button {
+            width: fit-content;
+            margin-left: .5em;
+            margin-right: .5em;
+            margin-top: 2.5rem;
+            padding: .35rem .8rem;
+            background: oklch(0.233 0.015 279.523);
+            border: .12em solid oklch(0.302 0.011 271.028);
+            border-radius: .6em;
             color: #FFFFF2;
+        }
 
-            transition: 50ms ease;
+        .reset-form-buttons .back-button:hover {
+            cursor: pointer;
+
+            background: oklch(0.281 0.02 280.925);
+            border: .12em solid oklch(0.375 0.013 267.193);
+            filter: drop-shadow(0 0 1em rgba(255, 255, 242, 0.04));
+        }
+
+        .reset-form-buttons .reset-button:hover {
+            cursor: pointer;
+
+            background: oklch(62.3% 0.214 259.815);
+            border: .12em solid oklch(74.6% 0.16 232.661);
+            filter: drop-shadow(0 0 1em rgba(from oklch(62.3% 0.214 259.815) r g b / 0.10));
         }
     }
 </style>

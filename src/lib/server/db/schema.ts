@@ -77,7 +77,6 @@ export async function createTableItems(sql: postgres.Sql): Promise<void> {
                   FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
                   FOREIGN KEY (currency_code) REFERENCES currencies (code)
               )`.then(async (): Promise<void> => {
-        await createAndApplyModifiedTimestampFunction(sql)
     });
 }
 
@@ -133,26 +132,35 @@ export async function createTableItemAssets(sql: postgres.Sql): Promise<void> {
 }
 
 /**
- * Creates the function for automatically updating the column 'modified_last',
- * on the table 'items', and applies the trigger on said table.
+ * Creates the table 'users', if it doesn't already exist.
  * @param sql The database connection on which to perform the query.
  */
-export async function createAndApplyModifiedTimestampFunction(sql: postgres.Sql): Promise<void> {
-    await sql`CREATE OR REPLACE LANGUAGE plpgsql`
+export async function createTableUsers(sql: postgres.Sql): Promise<void> {
+    await sql`CREATE TABLE IF NOT EXISTS users
+              (
+                  uuid            UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
+                  email           varchar(255) NOT NULL,
+                  password_hash   TEXT         NOT NULL,
+                  username        varchar(255) NOT NULL,
+                  profile_picture TEXT                  DEFAULT NULL,
+                  reset_token     TEXT                  DEFAULT NULL,
+                  created_at      TIMESTAMP    NOT NULL DEFAULT now(),
+                  last_login      TIMESTAMP    NOT NULL DEFAULT now(),
+                  CONSTRAINT users_pkey PRIMARY KEY (uuid)
+              )`;
+}
 
-    await sql`CREATE OR REPLACE FUNCTION update_modified_last_column()
-        RETURNS TRIGGER AS
-    $$
-    BEGIN
-        NEW.modified_last = now();
-        RETURN NEW;
-    END;
-    $$ language 'plpgsql'`
-
-    await sql`CREATE TRIGGER update_modified_last_trigger
-        AFTER UPDATE
-        ON items
-        FOR EACH ROW
-    EXECUTE PROCEDURE
-        update_modified_last_column();`
+/**
+ * Creates the table 'sessions', if it doesn't already exist.
+ * @param sql The database connection on which to perform the query.
+ */
+export async function createTableSessions(sql: postgres.Sql): Promise<void> {
+    await sql`CREATE TABLE IF NOT EXISTS sessions
+              (
+                  uuid       UUID UNIQUE NOT NULL,
+                  session_id TEXT UNIQUE NOT NULL,
+                  expires    BIGINT      NOT NULL,
+                  CONSTRAINT sessions_pkey PRIMARY KEY (uuid),
+                  FOREIGN KEY (uuid) REFERENCES users (uuid)
+              )`;
 }

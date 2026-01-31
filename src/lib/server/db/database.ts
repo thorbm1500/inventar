@@ -106,7 +106,7 @@ export class Inventories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to delete inventory with UUID '${uuid}'. Error: ${error}`);
+                console.error(`Failed to delete inventory with UUID '${uuid}'. Error: ${error}`);
                 return false;
             })
     }
@@ -120,7 +120,7 @@ export class Inventories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to rename inventory with UUID '${uuid}' to '${name}'. Error: ${error}`);
+                console.error(`Failed to rename inventory with UUID '${uuid}' to '${name}'. Error: ${error}`);
                 return false;
             })
     }
@@ -134,7 +134,7 @@ export class Inventories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to update the description of inventory with UUID '${uuid}' to '${description}'. Error: ${error}`);
+                console.error(`Failed to update the description of inventory with UUID '${uuid}' to '${description}'. Error: ${error}`);
                 return false;
             })
     }
@@ -149,7 +149,7 @@ export class Inventories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to updated image of inventory with UUID '${uuid}' to '${path}'. Error: ${error}`);
+                console.error(`Failed to updated image of inventory with UUID '${uuid}' to '${path}'. Error: ${error}`);
                 return false;
             })
     }
@@ -163,7 +163,7 @@ export class Inventories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to remove the description of inventory with UUID '${uuid}'. Error: ${error}`);
+                console.error(`Failed to remove the description of inventory with UUID '${uuid}'. Error: ${error}`);
                 return false;
             })
     }
@@ -177,7 +177,7 @@ export class Inventories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to remove the image of inventory with UUID '${uuid}'. Error: ${error}`);
+                console.error(`Failed to remove the image of inventory with UUID '${uuid}'. Error: ${error}`);
                 return false;
             })
     }
@@ -189,7 +189,7 @@ export class Inventories {
                 return result;
             })
             .catch(error => {
-                console.log(`Failed to fetch all inventories. Error: ${error}`);
+                console.error(`Failed to fetch all inventories. Error: ${error}`);
                 return undefined;
             })
     }
@@ -202,7 +202,7 @@ export class Inventories {
                 return result;
             })
             .catch(error => {
-                console.log(`Failed to fetch inventory with ID '${id}'. Error: ${error}`);
+                console.error(`Failed to fetch inventory with ID '${id}'. Error: ${error}`);
                 return undefined;
             })
     }
@@ -214,9 +214,9 @@ export class Inventories {
              WHERE inventory_uuid = $1
              LIMIT $2` :
             `SELECT *
-                     FROM items
-                     WHERE inventory_uuid = $1
-                     LIMIT $2`;
+             FROM items
+             WHERE inventory_uuid = $1
+             LIMIT $2`;
 
         //todo: Sanitize query.
         if (order !== "NONE") query += order;
@@ -229,7 +229,7 @@ export class Inventories {
                 return result;
             })
             .catch(error => {
-                console.log(`Failed to fetch inventory with ID '${id}'. Error: ${error}`);
+                console.error(`Failed to fetch inventory with ID '${id}'. Error: ${error}`);
                 return undefined;
             })
     }
@@ -269,7 +269,7 @@ export class Categories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to delete category with UUID '${uuid}'. Error: ${error}`);
+                console.error(`Failed to delete category with UUID '${uuid}'. Error: ${error}`);
                 return false;
             })
     }
@@ -283,7 +283,7 @@ export class Categories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to rename category with UUID '${uuid}' to '${name}'. Error: ${error}`);
+                console.error(`Failed to rename category with UUID '${uuid}' to '${name}'. Error: ${error}`);
                 return false;
             })
     }
@@ -297,7 +297,7 @@ export class Categories {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to update the description of category with UUID '${uuid}' to '${description}'. Error: ${error}`);
+                console.error(`Failed to update the description of category with UUID '${uuid}' to '${description}'. Error: ${error}`);
                 return false;
             })
     }
@@ -309,13 +309,14 @@ export class Categories {
                 return result;
             })
             .catch(error => {
-                console.log(`Failed to fetch all categories. Error: ${error}`);
+                console.error(`Failed to fetch all categories. Error: ${error}`);
                 return undefined;
             })
     }
 }
 
 export class Items {
+    /* Add categories to itemCategories table */
     static async create(inventory: string, name: string, description?: string,
                         amount: bigint = 0n, categories: [] = [], image?: string,
                         url?: string, price: number = 0, currency?: string): Promise<void> {
@@ -402,7 +403,7 @@ export class Items {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to delete item with UUID '${uuid}'. Error: ${error}`);
+                console.error(`Failed to delete item with UUID '${uuid}'. Error: ${error}`);
                 return false;
             })
     }
@@ -416,7 +417,7 @@ export class Items {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to rename item with UUID '${uuid}' to '${name}'. Error: ${error}`);
+                console.error(`Failed to rename item with UUID '${uuid}' to '${name}'. Error: ${error}`);
                 return false;
             })
     }
@@ -430,7 +431,7 @@ export class Items {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to update the description of item with UUID '${uuid}' to '${description}'. Error: ${error}`);
+                console.error(`Failed to update the description of item with UUID '${uuid}' to '${description}'. Error: ${error}`);
                 return false;
             })
     }
@@ -444,7 +445,7 @@ export class Items {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to update the amount of item with UUID '${uuid}' to '${amount.toString()}'. Error: ${error}`);
+                console.error(`Failed to update the amount of item with UUID '${uuid}' to '${amount.toString()}'. Error: ${error}`);
                 return false;
             })
     }
@@ -458,7 +459,7 @@ export class Items {
                 return true;
             })
             .catch(error => {
-                console.log(`Failed to update the price of item with UUID '${uuid}' to '${amount.toString()}'. Error: ${error}`);
+                console.error(`Failed to update the price of item with UUID '${uuid}' to '${amount.toString()}'. Error: ${error}`);
                 return false;
             })
     }
@@ -469,3 +470,163 @@ export class Items {
     //todo: Change reserved amount
     //todo: Update pending amount
 }
+
+export interface User {
+    uuid: string,
+    email: string,
+    username: string,
+    profile_picture: string,
+    created_at: string,
+    last_login: string
+}
+
+export class Users {
+    static async create(email: string, username: string, password_hash: string): Promise<User | undefined> {
+        return await Utility.query(`INSERT INTO users (email, username, password_hash)
+                                    VALUES ($1, $2, $3)`, [email, username, password_hash])
+            .then(async () => {
+                return await this.getFromUsername(username) ?? undefined;
+            })
+            .catch(error => {
+                console.error(`Failed to create new user with username '${username}' and email '${email}'. Error: ${error}`);
+                return undefined;
+            })
+    }
+
+    static async getFromUuid(uuid: string): Promise<User | undefined> {
+        return await Utility.query(`SELECT *
+                                    FROM users
+                                    WHERE uuid = $1`, [uuid])
+            .then(result => {
+                return result[0] ?? undefined;
+            })
+            .catch(error => {
+                console.error(`Failed to get user with uuid '${uuid}'. Error: ${error}`);
+                return undefined;
+            })
+    }
+
+    static async getFromUsername(username: string): Promise<User | undefined> {
+        return await Utility.query(`SELECT *
+                                    FROM users
+                                    WHERE username = $1`, [username])
+            .then(result => {
+                return result[0] ?? undefined;
+            })
+            .catch(error => {
+                console.error(`Failed to get user with username '${username}'. Error: ${error}`);
+                return undefined;
+            })
+    }
+
+    static async getFromEmail(email: string): Promise<User | undefined> {
+        return await Utility.query(`SELECT *
+                                    FROM users
+                                    WHERE email = $1`, [email])
+            .then(result => {
+                return result[0] ?? undefined;
+            })
+            .catch(error => {
+                console.error(`Failed to get user with email '${email}'. Error: ${error}`);
+                return undefined;
+            });
+    }
+
+    static async getPasswordHash(uuid: string): Promise<String | undefined> {
+        return await Utility.query(`SELECT password_hash
+                                    FROM users
+                                    WHERE uuid = $1`, [uuid])
+            .then(result => {
+                return result[0].password_hash ?? undefined;
+            })
+            .catch(error => {
+                console.error(`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`);
+                return undefined;
+            });
+    }
+
+    static async delete(email: string): Promise<boolean> {
+        return await Utility.query(`DELETE
+                                    FROM users
+                                    WHERE email = $1`, [email])
+            .then(() => {
+                return true;
+            })
+            .catch(error => {
+                console.error(`Failed to delete user with email '${email}'. Error: ${error}`);
+                return false;
+            })
+    }
+}
+
+export interface Session {
+    uuid: string,
+    session_id: string,
+    expires: number
+}
+
+export class Sessions {
+    /**
+     * Creates a new session in the database.
+     * @param session Session to cache.
+     */
+    static async new(session: Session): Promise<RowList<any>> {
+        return await Utility.query(`INSERT INTO sessions (uuid, session_id, expires)
+                                    VALUES ($1, $2, $3)
+                                    ON CONFLICT (uuid) DO UPDATE
+                                        SET session_id = $2,
+                                            expires    = $3`, [session.uuid, session.session_id, String(session.expires)])
+            .catch(error => {
+                console.error(`Failed to create a new session for user with uuid '${session.uuid}' with id '${session.session_id}'. Error: ${error}`);
+                return false;
+            });
+    }
+
+    /**
+     * Gets an existing session.
+     * @param session_id Id of session to retrieve.
+     */
+    static async get(session_id: string): Promise<any> {
+        return await Utility.query(`SELECT *
+                             FROM sessions
+                             WHERE session_id = $1`, [session_id])
+            .then(result => {
+                return {uuid: result[0].uuid, session_id: result[0].session_id, expires: result[0].expires};
+            })
+            .catch(error => {
+                console.error(`Failed to retrieve session with id '${session_id}'. Error: ${error}`);
+                return undefined;
+            });
+    }
+
+    /**
+     * Renews an existing session, preventing the user from having to log in again too fast.
+     * @param session_id Id of session to renew.
+     * @param expires New expiration date.
+     */
+    static async renew(session_id: string, expires: number): Promise<void> {
+        await Utility.query(`UPDATE sessions
+                             SET expires = $1
+                             WHERE session_id = $2`, [String(expires), session_id])
+            .catch(error => {
+                console.error(`Failed to invalidate session with id '${session_id}'. Error: ${error}`);
+                return false;
+            });
+    }
+
+    /**
+     * Invalidates the session, forcing the user to login again.
+     * @param session_id Id of session to invalidate.
+     */
+    static async invalidate(session_id: string): Promise<void> {
+        await Utility.query(`DELETE
+                             FROM sessions
+                             WHERE session_id = $1`, [session_id])
+            .catch(error => {
+                console.error(`Failed to invalidate session with id '${session_id}'. Error: ${error}`);
+                return false;
+            });
+    }
+}
+
+export default {Inventories, Categories, Items, Users, Sessions};
