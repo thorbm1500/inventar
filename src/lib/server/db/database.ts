@@ -1,6 +1,6 @@
 import postgres, {type RowList} from 'postgres';
 import {env} from "$env/dynamic/private";
-import type {Inventory} from "$lib/server/db/schema";
+import type {Inventory, Session, User} from "$lib/server/db/schema";
 
 export const sql = postgres({
     host: env.DB_HOST,
@@ -499,16 +499,6 @@ export class Items {
     //todo: Update pending amount
 }
 
-export interface User {
-    uuid: string,
-    email: string,
-    username: string,
-    profile_picture: string,
-    created_at: string,
-    last_login: string,
-    superuser: boolean
-}
-
 export class Users {
     static async create(email: string, username: string, password_hash: string): Promise<User | undefined> {
         return await Utility.query(`INSERT INTO users (email, username, password_hash)
@@ -586,12 +576,6 @@ export class Users {
                 return false;
             })
     }
-}
-
-export interface Session {
-    uuid: string,
-    session_id: string,
-    expires: number
 }
 
 export class Sessions {

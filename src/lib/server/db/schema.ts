@@ -156,6 +156,16 @@ export async function createTableItemAssets(sql: postgres.Sql): Promise<void> {
               )`
 }
 
+export interface User {
+    uuid: string,
+    email: string,
+    username: string,
+    profile_picture: string,
+    created_at: string,
+    last_login: string,
+    superuser: boolean
+}
+
 /**
  * Creates the table 'users', if it doesn't already exist.
  * @param sql The database connection on which to perform the query.
@@ -173,6 +183,12 @@ export async function createTableUsers(sql: postgres.Sql): Promise<void> {
                   last_login      TIMESTAMP    NOT NULL DEFAULT now(),
                   CONSTRAINT users_pkey PRIMARY KEY (uuid)
               )`;
+}
+
+export interface Session {
+    uuid: string,
+    session_id: string,
+    expires: number
 }
 
 /**
