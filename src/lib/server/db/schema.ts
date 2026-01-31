@@ -1,24 +1,49 @@
 import postgres from "postgres";
 import currencies from "$lib/server/db/currencies";
 
+function isValidError(error: any): boolean {
+    if (!error) return false;
+
+    return !(error.severity && error.severity == "NOTICE");
+}
+
 /**
  * Creates the table 'currencies', if it doesn't already exist.
  * @param sql The database connection on which to perform the query.
  */
 export async function createTableCurrencies(sql: postgres.Sql): Promise<void> {
-    await sql`CREATE TABLE IF NOT EXISTS currencies
+    try {
+        await sql`CREATE TABLE IF NOT EXISTS currencies
               (
                   code   VARCHAR(3) UNIQUE NOT NULL,
                   number VARCHAR(3) UNIQUE NOT NULL,
                   symbol VARCHAR(255) DEFAULT NULL,
                   CONSTRAINT currencies_pkey PRIMARY KEY (code, number)
               )`.then(async (): Promise<void> => {
-        for (const index of currencies) {
-            await sql`INSERT INTO currencies(code, number)
+            for (const index of currencies) {
+                await sql`INSERT INTO currencies(code, number)
                       VALUES (${index.code}, ${index.number})
                       ON CONFLICT DO NOTHING`;
+            }
+        })
+    } catch (error) {
+        if (isValidError(error)) {
+            console.log("TRUE");
+            console.error(error);
+        } else {
+            console.log("FALSE");
         }
-    })
+    }
+}
+
+export interface Inventory {
+    inventory_uuid: string,
+    name: string,
+    description: string | null,
+    image_path: string | null,
+    item_amount: number,
+    last_update: Date | string,
+    default_inventory: boolean
 }
 
 /**

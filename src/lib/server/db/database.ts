@@ -1,12 +1,15 @@
 import postgres, {type RowList} from 'postgres';
 import {env} from "$env/dynamic/private";
+import type {Inventory} from "$lib/server/db/schema";
 
 export const sql = postgres({
     host: env.DB_HOST,
     port: Number.parseInt(env.DB_PORT ?? 'NONE'),
     database: env.DB_DATABASE,
     username: env.DB_USER,
-    password: env.DB_PASSWORD
+    password: env.DB_PASSWORD,
+    onnotice: notice => {
+    }
 });
 
 export enum OrderType {
@@ -182,7 +185,7 @@ export class Inventories {
             })
     }
 
-    static async fetchAll(): Promise<RowList<any>> {
+    static async fetchAll(): Promise<Inventory[]> {
         return await Utility.query(`SELECT *
                                     FROM inventories`, [])
             .then(result => {
@@ -190,20 +193,45 @@ export class Inventories {
             })
             .catch(error => {
                 console.error(`Failed to fetch all inventories. Error: ${error}`);
-                return undefined;
+                return [];
             })
     }
 
-    static async fetch(id: string): Promise<RowList<any>> {
+    static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<any[]> {
+        return await sql`select *
+                         from inventories
+                         ${ order_by === '' ? `` : sql`order by ${sql(order_by)} ${order === 'ASC' ? sql`ASC` : sql`DESC`}` }
+                         LIMIT ${amount} OFFSET ${offset}`
+            .then(result => {
+                return result;
+            })
+            .catch(() => {
+                return [];
+            });
+    }
+
+    static async fetchTotalInventoryCount(): Promise<number> {
+        return await Utility.query(`SELECT COUNT(inventory_uuid) AS amount
+                                    FROM inventories`, [])
+            .then(result => {
+                return result[0].amount;
+            })
+            .catch(error => {
+                console.error(`Failed to fetch total inventory count. Error: ${error}`);
+                return 1;
+            })
+    }
+
+    static async fetchInventoryByUuid(uuid: string): Promise<Inventory[]> {
         return await Utility.query(`SELECT *
                                     FROM inventories
-                                    WHERE inventory_uuid = $1`, [id])
+                                    WHERE inventory_uuid = $1`, [uuid])
             .then(result => {
                 return result;
             })
             .catch(error => {
-                console.error(`Failed to fetch inventory with ID '${id}'. Error: ${error}`);
-                return undefined;
+                console.error(`Failed to remove the image of inventory with UUID '${uuid}'. Error: ${error}`);
+                return [];
             })
     }
 
@@ -477,7 +505,8 @@ export interface User {
     username: string,
     profile_picture: string,
     created_at: string,
-    last_login: string
+    last_login: string,
+    superuser: boolean
 }
 
 export class Users {
@@ -588,8 +617,8 @@ export class Sessions {
      */
     static async get(session_id: string): Promise<any> {
         return await Utility.query(`SELECT *
-                             FROM sessions
-                             WHERE session_id = $1`, [session_id])
+                                    FROM sessions
+                                    WHERE session_id = $1`, [session_id])
             .then(result => {
                 return {uuid: result[0].uuid, session_id: result[0].session_id, expires: result[0].expires};
             })

@@ -7,9 +7,22 @@ import * as schema from "$lib/server/db/schema";
 export default async function initializeDatabase(): Promise<void> {
     console.log(`Initializing database...`)
     try {
+        await applySettings();
         await createTables();
     } catch (error) {
         console.error(error);
+    }
+}
+
+async function applySettings(): Promise<void> {
+    console.log(`Initializing default settings...`)
+    try {
+        await sql.begin(async (): Promise<void> => {
+            await sql`SET timezone='Europe/Copenhagen'`
+        })
+    } catch (error: any | {severity_local: string, severity: string, code: string, message: string, file: string, line: string, routine: string}) {
+        console.error(`Failed to apply default settings. Error: ${error}`);
+        return;
     }
 }
 
@@ -32,7 +45,6 @@ async function createTables(): Promise<void> {
             console.error(`Failed to create table 'inventories': ${error}`);
         }))
     } catch (error: any | {severity_local: string, severity: string, code: string, message: string, file: string, line: string, routine: string}) {
-        console.log(`TEST: ${error.code}`)
         console.error(`Failed to create tables. Error: ${error}`);
         return;
     }

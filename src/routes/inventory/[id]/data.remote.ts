@@ -2,18 +2,14 @@ import {query} from '$app/server';
 import * as db from '$lib/server/db/database'
 import {error} from '@sveltejs/kit';
 import * as v from 'valibot';
+import util from "$lib/server/utilities";
+import type {Inventory} from "$lib/server/db/schema";
 
-export const getInventory = query(v.string(), async (id: string) => {
-    const result = await db.Inventories.fetch(id);
+export const getInventory = query(v.string(), async (id: string): Promise<Inventory> => {
+    const result: Inventory[] = await db.Inventories.fetchInventoryByUuid(id);
     if (!result) error(500, "Failed to fetch inventory.");
 
-    return {
-        'inventory_uuid': result[0]['inventory_uuid'] ?? 'UuidUndefined',
-        'inventory_name': result[0]['name'] ?? 'NameUndefined',
-        'inventory_description': result[0]['description'] ?? undefined,
-        'inventory_image': result[0]['image'] ?? undefined,
-        'inventory_primary': result[0]['primary'] ?? false
-    };
+    return result[0];
 });
 
 const itemsObj = v.object({
@@ -23,6 +19,10 @@ const itemsObj = v.object({
 });
 
 export const getItems = query(itemsObj, async (data) => {
+    if (util.isOffline(true)) {
+        return [];
+    }
+
     const result = await db.Inventories.fetchItems(data.id,data.amount,data.order,true);
     if (!result) error(500, `Failed to fetch items for inventory '${data.id}'.`);
 

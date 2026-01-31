@@ -1,13 +1,19 @@
 <script module lang="ts">
+    import Header from "../Header.svelte";
+    import {getInventories, getTotalInventoryCount} from './data.remote.ts';
+    import Utility from './utility.ts';
+    import type {Inventory} from "$lib/server/db/schema";
+
     /* todo Make inventory fetch async, to allow page loading, even if there's no connection to the database, while the browser is online. */
 
     function parseTimestamp(timestamp: string): string {
-        const diff = ((Date.now() - Date.parse(timestamp)) / 60) / 60;
+        const diff = (Date.now() - Date.parse(timestamp)) / 1000;
+
         let response: string = "None";
 
         if (diff < 86400) {
             if (diff < 60) {
-                response = `${diff} seconds ago`;
+                response = `${Math.round(diff)} seconds ago`;
             } else if (diff < 3600) {
                 response = `${Math.round(diff / 60)} minutes ago`;
             } else if (diff < 7200) {
@@ -26,44 +32,66 @@
 </script>
 
 <script lang="ts">
-    import Header from "../Header.svelte";
-    import {getInventories} from './data.remote.ts';
-    import Utility from './utility.ts';
-
-    const rawInventories = await getInventories();
-    let inventories = $state(rawInventories);
-
+    let order_by = $state('name');
+    let order = $state('');
     let currentPage = $state(1);
 
-    let nameFilter = $state("DEFAULT");
-    let itemsFilter = $state("DEFAULT");
-    let latestChangeFilter = $state("DEFAULT");
+    let inventories: Inventory[] = $state.raw([]);
+    await refresh();
 
-    function updateFilterState(filter: string) {
-        if (filter === "NAME") {
-            if (nameFilter === "DEFAULT") {
-                nameFilter = "DESC";
-            } else if (nameFilter === "DESC") {
-                nameFilter = "ASC";
-            } else nameFilter = "DEFAULT";
-            itemsFilter = "DEFAULT";
-            latestChangeFilter = "DEFAULT";
-        } else if (filter === "ITEMS") {
-            if (itemsFilter === "DEFAULT") {
-                itemsFilter = "DESC";
-            } else if (itemsFilter === "DESC") {
-                itemsFilter = "ASC";
-            } else itemsFilter = "DEFAULT"
-            nameFilter = "DEFAULT";
-            latestChangeFilter = "DEFAULT";
-        } else if (filter === "LATEST_CHANGE") {
-            if (latestChangeFilter === "DEFAULT") {
-                latestChangeFilter = "DESC";
-            } else if (latestChangeFilter === "DESC") {
-                latestChangeFilter = "ASC";
-            } else latestChangeFilter = "DEFAULT"
-            nameFilter = "DEFAULT";
-            itemsFilter = "DEFAULT";
+    let inventoryCount: number = await getTotalInventoryCount() ?? 0;
+
+    let totalPages = Math.ceil(inventoryCount / 6);
+
+    let nameFilter = $state('DEFAULT');
+    let itemsFilter = $state('DEFAULT');
+    let latestChangeFilter = $state('DEFAULT');
+
+    async function refresh(pageChange: number = 0) {
+        currentPage += pageChange;
+        const offset = 6 * (currentPage - 1);
+
+        const newInventories = await getInventories({amount: 6, order_by ,order, offset });
+        inventories = newInventories;
+    }
+
+    async function updateFilter(filter: string, current: string) {
+        const next = getNextState(current);
+
+        if (next != 'DEFAULT') {
+            order = next;
+        }
+
+        if (filter == 'name') {
+            nameFilter = next;
+            order_by = 'name';
+
+            itemsFilter = 'DEFAULT';
+            latestChangeFilter = 'DEFAULT';
+        }
+        else if (filter == 'item_amount') {
+            itemsFilter = next;
+            order_by = 'item_amount';
+
+            nameFilter = 'DEFAULT';
+            latestChangeFilter = 'DEFAULT';
+        }
+        else if (filter == 'last_update') {
+            latestChangeFilter = next;
+            order_by = 'last_update';
+
+            nameFilter = 'DEFAULT';
+            itemsFilter = 'DEFAULT';
+        }
+
+        await refresh();
+    }
+
+    function getNextState(currentState: string) {
+        switch (currentState) {
+            case 'DESC': return 'ASC';
+            case 'ASC': return 'DEFAULT';
+            case 'DEFAULT': return 'DESC';
         }
     }
 </script>
@@ -75,26 +103,27 @@
         <div class="inventory-header border-b-container-border dark:border-b-dark-container-border">
             <div class="header-items">
                 <div class="header-item name-filter">
-                    <p>Name</p>
-                    <button class="{ nameFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" id="name-filter-button" title="Filter by name" onclick={() => updateFilterState("NAME")}>
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
+                    <button id="name-filter-button" title="Filter by name"
+                            onclick={async () => await updateFilter("name",nameFilter)}>
+                        Name
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { nameFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }">
                             <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(nameFilter)}"/>
                         </svg>
                     </button>
                 </div>
                 <div class="header-item latest-change-filter">
-                    <p>Latest update</p>
-                    <button class="{ latestChangeFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" id="latest-change-filter-button" title="Filter by latest change"
-                            onclick={() => updateFilterState("LATEST_CHANGE")}>
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
+                    <button id="latest-change-filter-button" title="Filter by latest change"
+                            onclick={async () => await updateFilter("last_update",latestChangeFilter)}>
+                        Latest update
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { latestChangeFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }">
                             <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(latestChangeFilter)}"/>
                         </svg>
                     </button>
                 </div>
                 <div class="header-item items-filter">
-                    <p>Items</p>
-                    <button class="{ itemsFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" id="items-filter-button" title="Filter by item amount" onclick={() => updateFilterState("ITEMS")}>
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
+                    <button id="items-filter-button" title="Filter by item amount" onclick={async () => await updateFilter("item_amount",itemsFilter)}>
+                        Items
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { itemsFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }">
                             <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(itemsFilter)}"/>
                         </svg>
                     </button>
@@ -143,19 +172,21 @@
         </div>
         <div class="inventory-footer border-t-container-border dark:border-t-dark-container-border">
             <div class="inventory-footer-items">
-                <p class="pagination-back-button">
-                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
+                        onclick={async () => { await refresh(-1); } }>
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/>
                     </svg>
-                </p>
+                </button>
                 <p class="pagination-current-page">
                     {currentPage}
                 </p>
-                <p class="pagination-forward-button">
-                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
+                        onclick={async () => { await refresh(1); } }>
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
                     </svg>
-                </p>
+                </button>
             </div>
         </div>
     </div>
@@ -168,6 +199,8 @@
 
         .inventory-list-container {
             width: 80vw;
+            min-width: 54rem !important;
+            max-width: 105rem !important;
             height: 42rem;
 
             margin: calc(50vh - (21rem + (var(--header-height) / 2))) auto;
@@ -206,13 +239,11 @@
                             transition: 450ms 200ms ease-in-out;
                         }
 
-                        .auto-hide-filter-icon:hover {
-                            opacity: 1;
-
-                            transition: 100ms ease-in-out;
-                        }
-
                         button {
+                            display: flex;
+                            flex-flow: row nowrap;
+                            justify-content: flex-end;
+
                             cursor: pointer;
 
                             svg {
@@ -221,6 +252,7 @@
                                 stroke-width: 2;
                                 transition: 125ms ease-in-out;
                                 position: fixed;
+                                transform: translateX(1.5rem);
                             }
                         }
 
@@ -228,6 +260,12 @@
                             svg {
                                 stroke-width: 2.5;
                                 transition: 125ms ease-in-out;
+                            }
+
+                            .auto-hide-filter-icon {
+                                opacity: 1;
+
+                                transition: 100ms ease-in-out;
                             }
                         }
                     }
@@ -378,13 +416,27 @@
                     font-family: 'Funnel Sans', sans-serif;
 
                     .pagination-back-button {
-                        transform: rotate(90deg);
                     }
 
-                    .pagination-current-page {}
+                    .pagination-current-page {
+                    }
 
                     .pagination-forward-button {
-                        transform: rotate(-90deg);
+                    }
+
+                    .pagination-button {
+                        cursor: pointer;
+                        color: var(--theme-text);
+                    }
+
+                    .pagination-button:hover {
+                        color: var(--theme-text-accent);
+                    }
+
+                    .pagination-button.disabled {
+                        cursor: initial;
+                        color: var(--theme-text-third);
+                        pointer-events: none;
                     }
                 }
             }

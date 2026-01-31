@@ -1,7 +1,15 @@
 import {query} from '$app/server';
 import * as db from '$lib/server/db/database'
-import type {RowList} from "postgres";
 import util from '$lib/server/utilities';
+import type {Inventory} from "$lib/server/db/schema";
+import * as v from "valibot";
+
+const inventoriesObj = v.object({
+    amount: v.number(),
+    order_by: v.string(),
+    order: v.string(),
+    offset: v.number()
+});
 
 /**
  * Get a list of all inventories from the database.
@@ -15,12 +23,22 @@ import util from '$lib/server/utilities';
  *   - <strong>primary_inventory</strong> <i>as boolean</i>
  * @return Array
  */
-export const getInventories = query(async (): Promise<RowList<any>> => {
-    if (util.isOffline(true)) {
+export const getInventories = query(inventoriesObj, async (data): Promise<Inventory[]> => {
+    if (util.isOffline(false)) {
         return [];
     }
     else {
-        const result = await db.Inventories.fetchAll();
+        const result = await db.Inventories.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+        return result;
+    }
+});
+
+export const getTotalInventoryCount = query(async (): Promise<number> => {
+    if (util.isOffline(false)) {
+        return 1;
+    }
+    else {
+        const result = await db.Inventories.fetchTotalInventoryCount();
         return result;
     }
 });
