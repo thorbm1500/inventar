@@ -360,7 +360,7 @@ export class Items {
     /* Add categories to itemCategories table */
     static async create(inventory: string, name: string, description?: string,
                         amount: number = 0, categories: [] = [], image?: string,
-                        url?: string, price: number = 0, currency?: string): Promise<{failed: boolean, error: string, id: any}> {
+                        url?: string, price: number = 0, currency?: string): Promise<{ failed: boolean, error: string, id: any }> {
         let query: string = "INSERT INTO items (inventory_uuid,name";
         let values: string = ") VALUES ($1,$2";
         let params: string[] = [inventory, name]
@@ -407,6 +407,37 @@ export class Items {
                 console.error(`Failed to create item '${name}'. Error: ${error}`);
                 return {failed: true, error: error, id: undefined};
             });
+    }
+
+    static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<any[]> {
+        return await sql`select *
+                         from items
+                         where inventory_uuid=${inventory}
+                             ${order_by === '' ? `` : sql`order by
+                             ${sql(order_by)}
+                             ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
+                         LIMIT ${amount} OFFSET ${offset}`
+            .then(result => {
+                return result;
+            })
+            .catch(error => {
+                console.log(inventory)
+                console.log(error)
+                return [];
+            });
+    }
+
+    static async fetchTotalItemCount(inventory_uuid: string): Promise<number> {
+        return await Utility.query(`SELECT COUNT(item_uuid) AS amount
+                                    FROM items
+                                    WHERE inventory_uuid = $1`, [inventory_uuid])
+            .then(result => {
+                return result[0].amount;
+            })
+            .catch(error => {
+                console.error(`Failed to fetch total item count. Error: ${error}`);
+                return 1;
+            })
     }
 
     static async addCategory(inventory: string, item: string, categories: string[]): Promise<void> {

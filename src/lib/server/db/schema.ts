@@ -20,16 +20,16 @@ export interface Currency {
 export async function createTableCurrencies(sql: postgres.Sql): Promise<void> {
     try {
         await sql`CREATE TABLE IF NOT EXISTS currencies
-              (
-                  code   VARCHAR(3) UNIQUE NOT NULL,
-                  number VARCHAR(3) UNIQUE NOT NULL,
-                  symbol VARCHAR(255) DEFAULT NULL,
-                  CONSTRAINT currencies_pkey PRIMARY KEY (code, number)
-              )`.then(async (): Promise<void> => {
+                  (
+                      code   VARCHAR(3) UNIQUE NOT NULL,
+                      number VARCHAR(3) UNIQUE NOT NULL,
+                      symbol VARCHAR(255) DEFAULT NULL,
+                      CONSTRAINT currencies_pkey PRIMARY KEY (code, number)
+                  )`.then(async (): Promise<void> => {
             for (const index of currencies) {
                 await sql`INSERT INTO currencies(code, number)
-                      VALUES (${index.code}, ${index.number})
-                      ON CONFLICT DO NOTHING`;
+                          VALUES (${index.code}, ${index.number})
+                          ON CONFLICT DO NOTHING`;
             }
         })
     } catch (error) {
@@ -58,12 +58,12 @@ export interface Inventory {
 export async function createTableInventories(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS inventories
               (
-                  inventory_uuid    UUID UNIQUE         NOT NULL DEFAULT uuidv7(),
-                  name              VARCHAR(255) UNIQUE NOT NULL,
-                  description       TEXT                         DEFAULT NULL,
-                  image_path        TEXT UNIQUE                  DEFAULT NULL,
-                  item_amount       BIGINT              NOT NULL DEFAULT 0,
-                  last_update       TIMESTAMP           NOT NULL DEFAULT now(),
+                  inventory_uuid UUID UNIQUE         NOT NULL DEFAULT uuidv7(),
+                  name           VARCHAR(255) UNIQUE NOT NULL,
+                  description    TEXT                         DEFAULT NULL,
+                  image_path     TEXT UNIQUE                  DEFAULT NULL,
+                  item_amount    BIGINT              NOT NULL DEFAULT 0,
+                  last_update    TIMESTAMP           NOT NULL DEFAULT now(),
                   CONSTRAINT inventories_pkey PRIMARY KEY (inventory_uuid)
               )`;
 }
@@ -84,6 +84,20 @@ export async function createTableCategories(sql: postgres.Sql): Promise<void> {
               )`;
 }
 
+export interface Item {
+    inventory_uuid: string,
+    item_uuid: string,
+    name: string,
+    description: string | null,
+    amount: number,
+    thumbnail_path: string | null,
+    url: string | null,
+    price: number,
+    currency_code: string,
+    created_at: Date | string,
+    last_modified: Date | string
+}
+
 /**
  * Creates the table 'items', if it doesn't already exist.
  * @param sql The database connection on which to perform the query.
@@ -96,7 +110,7 @@ export async function createTableItems(sql: postgres.Sql): Promise<void> {
                   name           VARCHAR(255)   NOT NULL,
                   description    TEXT                    DEFAULT NULL,
                   amount         BIGINT         NOT NULL DEFAULT 0,
-                  thumbnail_path TEXT UNIQUE             DEFAULT NULL,
+                  thumbnail_path TEXT                    DEFAULT NULL,
                   url            TEXT                    DEFAULT NULL,
                   price          NUMERIC(50, 2) NOT NULL DEFAULT 0.0,
                   currency_code  VARCHAR(3)     NOT NULL DEFAULT 'DKK',
@@ -105,8 +119,7 @@ export async function createTableItems(sql: postgres.Sql): Promise<void> {
                   CONSTRAINT items_pkey PRIMARY KEY (inventory_uuid, item_uuid),
                   FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
                   FOREIGN KEY (currency_code) REFERENCES currencies (code)
-              )`.then(async (): Promise<void> => {
-    });
+              )`;
 }
 
 /**

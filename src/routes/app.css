@@ -118,6 +118,9 @@
     --theme-form-input-background-dark: #1f2023;
     --theme-form-input-border-dark: .122em solid #464b65;
 
+    --theme-header-color: #ececea;
+    --theme-header-secondary-color: #eaeae9;
+
     /* Toasts */
     --theme-toast-success-background: oklch(0.887 0.228 144.721);
     --theme-toast-success-border: oklch(0.561 0.166 143.968);
@@ -145,6 +148,9 @@
 
     --theme-form-input-background-dark: #1f2023;
     --theme-form-input-border-dark: .122em solid #464b65;
+
+    --theme-header-color: #111113;
+    --theme-header-secondary-color: #121215;
 
     /* Toasts */
     --theme-toast-success-background: oklch(0.475 0.112 144.968);
@@ -334,7 +340,7 @@
 body {
     width: 100vw;
     height: 100vh;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 /* Tailwind Theme Variables */

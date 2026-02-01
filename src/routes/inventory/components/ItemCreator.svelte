@@ -73,8 +73,8 @@
         height: 40rem;
         width: 64rem;
 
-        background: rgba(from var(--theme-background-container) r g b / .4);
-        backdrop-filter: blur(4px);
+        background: rgba(from var(--theme-background-container) r g b / .9);
+        backdrop-filter: blur(6px);
         border-color: var(--theme-border-container);
         border-width: var(--border-width);
         border-radius: var(--border-radius);

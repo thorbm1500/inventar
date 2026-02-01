@@ -3,32 +3,9 @@
     import {getInventories, getTotalInventoryCount} from './data.remote.ts';
     import Utility from './utility.ts';
     import type {Inventory} from "$lib/server/db/schema";
+    import {parseTimestamp} from "$lib/utilities";
 
     /* todo Make inventory fetch async, to allow page loading, even if there's no connection to the database, while the browser is online. */
-
-    function parseTimestamp(timestamp: string): string {
-        const diff = (Date.now() - Date.parse(timestamp)) / 1000;
-
-        let response: string = "None";
-
-        if (diff < 86400) {
-            if (diff < 60) {
-                response = `${Math.round(diff)} seconds ago`;
-            } else if (diff < 3600) {
-                response = `${Math.round(diff / 60)} minutes ago`;
-            } else if (diff < 7200) {
-                response = `1 hour ago`;
-            } else response = `${Math.round((diff / 60) / 60)} hours ago`
-        } else {
-            if (diff < 172800) {
-                response = `1 day ago`;
-            } else {
-                response = `${Math.round(((diff / 60) / 60) / 24)} days ago`;
-            }
-        }
-
-        return response;
-    }
 </script>
 
 <script lang="ts">
@@ -56,7 +33,7 @@
     }
 
     async function updateFilter(filter: string, current: string) {
-        const next = getNextState(current);
+        const next = String(getNextState(current));
 
         if (next != 'DEFAULT') {
             order = next;
@@ -133,7 +110,7 @@
         </div>
         <div class="inventory-list">
             {#if inventories.length > 0 }
-                {#each inventories as {inventory_uuid, name, description, image, item_amount, last_update, primary_inventory}}
+                {#each inventories as {inventory_uuid, name, description, image_path, item_amount, last_update}}
                     <a href='/inventory/{inventory_uuid}' target='_parent' class="inventory-list-entry
                                 border-t-container-border dark:border-t-dark-container-border
                                 border-b-container-border dark:border-b-dark-container-border">
@@ -155,7 +132,7 @@
                             </div>
                         </div>
                         <div class="entry-item inventory-item-last_change">
-                            {parseTimestamp(last_update)}
+                            {parseTimestamp(String(last_update))}
                         </div>
                         <div class="entry-item inventory-item-amount">
                             {item_amount}

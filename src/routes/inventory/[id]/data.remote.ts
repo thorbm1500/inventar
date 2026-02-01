@@ -3,7 +3,7 @@ import * as db from '$lib/server/db/database'
 import {error} from '@sveltejs/kit';
 import * as v from 'valibot';
 import util from "$lib/server/utilities";
-import type {Currency, Inventory} from "$lib/server/db/schema";
+import type {Currency, Inventory, Item} from "$lib/server/db/schema";
 
 export const getInventory = query(v.string(), async (id: string): Promise<Inventory> => {
     const result: Inventory[] = await db.Inventories.fetchInventoryByUuid(id);
@@ -13,26 +13,11 @@ export const getInventory = query(v.string(), async (id: string): Promise<Invent
 });
 
 const itemsObj = v.object({
-    id: v.string(),
+    inventory_uuid: v.string(),
     amount: v.number(),
-    order: v.string()
-});
-
-export const getItems = query(itemsObj, async (data) => {
-    if (util.isOffline()) {
-        return [];
-    }
-
-    const result = await db.Inventories.fetchItems(data.id,data.amount,data.order,true);
-    if (!result) error(500, `Failed to fetch items for inventory '${data.id}'.`);
-
-    let item_list = []
-
-    for (const item of result) {
-        item_list.push(item);
-    }
-
-    return item_list;
+    order_by: v.string(),
+    order: v.string(),
+    offset: v.number()
 });
 
 export const getCurrencies = query(async (): Promise<Currency[]> => {
@@ -40,4 +25,24 @@ export const getCurrencies = query(async (): Promise<Currency[]> => {
     if (!result) error(500, "Failed to fetch currencies.");
 
     return result;
+});
+
+export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
+    if (util.isOffline()) {
+        return [];
+    }
+    else {
+        const result = await db.Items.fetch(data.inventory_uuid,data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+        return result;
+    }
+});
+
+export const getTotalItemCount = query(v.string(), async (id: string): Promise<number> => {
+    if (util.isOffline()) {
+        return 1;
+    }
+    else {
+        const result = await db.Items.fetchTotalItemCount(id);
+        return result;
+    }
 });

@@ -20,6 +20,6 @@
     .main-container {
         height: 100vh;
         width: 100vw;
-        overflow: hidden;
+        scrollbar-width: none;
     }
 </style>
