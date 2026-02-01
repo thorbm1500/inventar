@@ -3,7 +3,7 @@ import * as db from '$lib/server/db/database'
 import {error} from '@sveltejs/kit';
 import * as v from 'valibot';
 import util from "$lib/server/utilities";
-import type {Inventory} from "$lib/server/db/schema";
+import type {Currency, Inventory} from "$lib/server/db/schema";
 
 export const getInventory = query(v.string(), async (id: string): Promise<Inventory> => {
     const result: Inventory[] = await db.Inventories.fetchInventoryByUuid(id);
@@ -19,7 +19,7 @@ const itemsObj = v.object({
 });
 
 export const getItems = query(itemsObj, async (data) => {
-    if (util.isOffline(true)) {
+    if (util.isOffline()) {
         return [];
     }
 
@@ -33,4 +33,11 @@ export const getItems = query(itemsObj, async (data) => {
     }
 
     return item_list;
+});
+
+export const getCurrencies = query(async (): Promise<Currency[]> => {
+    const result: Currency[] = await db.getCurrencies();
+    if (!result) error(500, "Failed to fetch currencies.");
+
+    return result;
 });

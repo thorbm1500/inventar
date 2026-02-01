@@ -7,6 +7,12 @@ function isValidError(error: any): boolean {
     return !(error.severity && error.severity == "NOTICE");
 }
 
+export interface Currency {
+    code: string,
+    number: string,
+    symbol: string | null
+}
+
 /**
  * Creates the table 'currencies', if it doesn't already exist.
  * @param sql The database connection on which to perform the query.
@@ -42,8 +48,7 @@ export interface Inventory {
     description: string | null,
     image_path: string | null,
     item_amount: number,
-    last_update: Date | string,
-    default_inventory: boolean
+    last_update: Date | string
 }
 
 /**
@@ -59,7 +64,6 @@ export async function createTableInventories(sql: postgres.Sql): Promise<void> {
                   image_path        TEXT UNIQUE                  DEFAULT NULL,
                   item_amount       BIGINT              NOT NULL DEFAULT 0,
                   last_update       TIMESTAMP           NOT NULL DEFAULT now(),
-                  default_inventory BOOLEAN                      DEFAULT FALSE,
                   CONSTRAINT inventories_pkey PRIMARY KEY (inventory_uuid)
               )`;
 }
@@ -160,10 +164,11 @@ export interface User {
     uuid: string,
     email: string,
     username: string,
-    profile_picture: string,
+    profile_picture: string | null,
     created_at: string,
     last_login: string,
-    superuser: boolean
+    superuser: boolean,
+    primary_inventory: string | null
 }
 
 /**
@@ -173,15 +178,17 @@ export interface User {
 export async function createTableUsers(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS users
               (
-                  uuid            UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
-                  email           varchar(255) NOT NULL,
-                  password_hash   TEXT         NOT NULL,
-                  username        varchar(255) NOT NULL,
-                  profile_picture TEXT                  DEFAULT NULL,
-                  reset_token     TEXT                  DEFAULT NULL,
-                  created_at      TIMESTAMP    NOT NULL DEFAULT now(),
-                  last_login      TIMESTAMP    NOT NULL DEFAULT now(),
-                  CONSTRAINT users_pkey PRIMARY KEY (uuid)
+                  uuid              UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
+                  email             varchar(255) NOT NULL,
+                  password_hash     TEXT         NOT NULL,
+                  username          varchar(255) NOT NULL,
+                  profile_picture   TEXT                  DEFAULT NULL,
+                  reset_token       TEXT                  DEFAULT NULL,
+                  created_at        TIMESTAMP    NOT NULL DEFAULT now(),
+                  last_login        TIMESTAMP    NOT NULL DEFAULT now(),
+                  primary_inventory UUID                  DEFAULT NULL,
+                  CONSTRAINT users_pkey PRIMARY KEY (uuid),
+                  FOREIGN KEY (primary_inventory) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE
               )`;
 }
 
@@ -202,6 +209,6 @@ export async function createTableSessions(sql: postgres.Sql): Promise<void> {
                   session_id TEXT UNIQUE NOT NULL,
                   expires    BIGINT      NOT NULL,
                   CONSTRAINT sessions_pkey PRIMARY KEY (uuid),
-                  FOREIGN KEY (uuid) REFERENCES users (uuid)
+                  FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
               )`;
 }

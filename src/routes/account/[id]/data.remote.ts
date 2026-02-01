@@ -4,7 +4,7 @@ import * as db from "$lib/server/db/database";
 import * as v from "valibot";
 
 export const getUser = query(v.string(), async (id: string): Promise<any> => {
-    if (util.isOffline(true)) {
+    if (util.isOffline()) {
         return undefined;
     }
     else {

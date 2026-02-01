@@ -1,11 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100..900;1,100..900&family=Unbounded:wght@200..900&display=swap');
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
-
-@font-face {
-    font-family: 'NectoMono';
-    src: url('$lib/assets/fonts/nectomono/NectoMono-Regular.woff2') format("woff2");
-}
 
 @font-face {
     font-family: 'FunnelDisplay';
@@ -15,16 +11,6 @@
 @font-face {
     font-family: 'FunnelSans';
     src: url('$lib/assets/fonts/funnel/sans/FunnelSans[wght].woff2') format("woff2");
-}
-
-@font-face {
-    font-family: 'FrickRegular';
-    src: url('$lib/assets/fonts/frick/Frick0.3-Regular.woff2') format("woff2");
-}
-
-@font-face {
-    font-family: 'FrickCondensed';
-    src: url('$lib/assets/fonts/frick/Frick0.3-Condensed.woff2') format("woff2");
 }
 
 @font-face {
@@ -111,11 +97,14 @@
     --form-input-background: #41414b;
     --form-input-border: #575764;
 
-    width: 100vw;
-    height: 100vh;
+    --theme-border-radius: .8rem;
+
+    --theme-max-container-height: 42rem;
+    --theme-max-page-height: calc(100vh - var(--header-height));
 
     /* Global Light/Dark Variables */
     --theme-text: #0D0D0D;
+    --theme-text-secondary: #363636;
     --theme-text-third: #97999a;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-text-danger: oklch(0.641 0.228 19.02);
@@ -123,17 +112,50 @@
     --theme-background-highlight: #eef0f3;
     --theme-background-container: #EAEAEA;
     --theme-border-container: #B9C1C9;
+    --theme-border-button: #B9C1C9;
+    --theme-button-idle-background: #232428;
+
+    --theme-form-input-background-dark: #1f2023;
+    --theme-form-input-border-dark: .122em solid #464b65;
+
+    /* Toasts */
+    --theme-toast-success-background: oklch(0.887 0.228 144.721);
+    --theme-toast-success-border: oklch(0.561 0.166 143.968);
+    --theme-toast-success-glow: oklch(0.887 0.228 144.721);
+
+    --theme-toast-error-background: oklch(0.21 0.013 18.24);
+    --theme-toast-error-border: oklch(70.4% 0.191 22.216);
+    --theme-toast-error-glow: oklch(0.632 0.254 29.988);
+
+    --error-page-icon-color: rgba(from var(--theme-text) r g b / .075);
 }
 
 .dark {
     --theme-text: #FFFFF2;
+    --theme-text-secondary: #c0c4cc;
     --theme-text-third: #545454;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-text-danger: oklch(0.641 0.228 19.02);
     --theme-background: #0f0f11;
     --theme-background-highlight: #18181c;
     --theme-background-container: #151518;
+    --theme-background-button: #151518;
     --theme-border-container: #2E323D;
+    --theme-border-button: #2E323D;
+
+    --theme-form-input-background-dark: #1f2023;
+    --theme-form-input-border-dark: .122em solid #464b65;
+
+    /* Toasts */
+    --theme-toast-success-background: oklch(0.475 0.112 144.968);
+    --theme-toast-success-border: oklch(0.887 0.228 144.721);
+    --theme-toast-success-glow: rgba(from oklch(0.887 0.228 144.721) r g b / .25);
+
+    --theme-toast-error-background: oklch(0.213 0.043 21.379);
+    --theme-toast-error-border: oklch(0.676 0.212 24.001);
+    --theme-toast-error-glow: rgba(from oklch(0.632 0.254 29.988) r g b / .25);
+
+    --error-page-icon-color: rgba(from var(--theme-text) r g b / .02);
 }
 
 .ui-container {
@@ -144,9 +166,175 @@
     color: var(--theme-text);
 }
 
+.generic-toast-parent-class {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    backdrop-filter: blur(2px);
+    visibility: hidden;
+
+    * {
+        user-select: none;
+    }
+}
+
+.generic-toast-child-class {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+
+    width: fit-content;
+    max-width: 26rem;
+
+    border-width: .18em;
+    border-radius: 1.2rem;
+
+    .generic-toast-child-inner-container {
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+
+        gap: .75rem;
+
+        margin: 1.4rem 1.75rem;
+
+        width: fit-content;
+
+        font-family: 'Unbounded', sans-serif !important;
+        font-optical-sizing: auto;
+        font-style: normal;
+        font-weight: 450;
+        font-size: .95rem;
+
+        p,span {
+            padding: 0;
+            margin: 0;
+        }
+
+        svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke-width: 2;
+            padding: 0;
+            margin: 0;
+        }
+    }
+}
+
+.generic-toast-parent-class.play-animation {
+    transform: scale(0);
+    opacity: 0;
+
+    animation: toast-animation 15s;
+    animation-iteration-count: 1;
+
+    .error-toast-section {
+        animation: toast-shake linear 250ms;
+        animation-iteration-count: 1;
+        animation-delay: 150ms;
+    }
+}
+
+@keyframes toast-animation {
+    0% {
+        visibility: visible;
+        transform: scale(0);
+        opacity: 0;
+        animation-timing-function: linear;
+    }
+    0.35% {
+        transform: scale(.35);
+        opacity: .1;
+        animation-timing-function: ease-out;
+    }
+    1.25% {
+        transform: scale(1);
+        opacity: 1;
+        animation-timing-function: ease-in-out;
+    }
+    1.75% {
+        transform: scale(1.01);
+        animation-timing-function: linear;
+    }
+    2.5% {
+        transform: scale(.998);
+        animation-timing-function: ease-in;
+    }
+    3.5% {
+        transform: scale(1);
+        animation-timing-function: linear;
+    }
+    94.5% {
+        transform: scale(1);
+        opacity: 1;
+        animation-timing-function: ease-in;
+    }
+    97% {
+        transform: scale(1.035);
+        opacity: 1;
+        animation-timing-function: ease-in;
+    }
+    97.5% {
+        transform: scale(.85);
+        opacity: .7;
+        animation-timing-function: linear;
+    }
+    98.25% {
+        transform: scale(.35);
+        opacity: 0.26;
+        animation-timing-function: ease-out;
+    }
+    100% {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes toast-shake {
+    0% {
+        transform: translate(-.175em,0);
+    }
+    10% {
+        transform: translate(.225em,0);
+    }
+    20% {
+        transform: translate(-.275em,0);
+    }
+    30% {
+        transform: translate(.275em,0);
+    }
+    40% {
+        transform: translate(-.250em,0);
+    }
+    50% {
+        transform: translate(.225em,0);
+    }
+    60% {
+        transform: translate(-.175em,0);
+    }
+    70% {
+        transform: translate(.125em,0);
+    }
+    80% {
+        transform: translate(-.1em,0);
+    }
+    90% {
+        transform: translate(.075em,0);
+    }
+    100% {
+        transform: translate(0,0);
+        animation-timing-function: ease-out;
+    }
+}
+
 body {
     width: 100vw;
     height: 100vh;
+    overflow: hidden;
 }
 
 /* Tailwind Theme Variables */

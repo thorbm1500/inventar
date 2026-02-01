@@ -2,7 +2,7 @@ import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
 import * as auth from '$lib/server/auth';
 import * as db from '$lib/server/db/database'
 import initializeDatabase from '$lib/server/db/index';
-import type {User} from "$lib/server/db/database";
+import type {User} from "$lib/server/db/schema";
 import {sessionCookieName} from "$lib/server/auth";
 
 /**

@@ -6,7 +6,9 @@
 </script>
 
 <script lang="ts">
-    const user = getContext('user');
+    import type {User} from "$lib/server/db/schema";
+
+    const user: User = getContext('user');
 
     let element: any = undefined;
     let isOnline = $state(true);
@@ -55,11 +57,16 @@
             <nav class="text-text-primary dark:text-dark-text-primary">
                 <a aria-current={page.url.pathname === '/'} title="Home" href="/">Home</a>
                 <a aria-current={page.url.pathname === '/browse'} title="Browse" href="/browse">Browse</a>
+                {#if (user.primary_inventory !== null) }
+                    <a aria-current={page.url.pathname === '/inventory/'+user.primary_inventory} title="Browse" href="/inventory/{user.primary_inventory}">Inventory</a>
+                {/if}
+                <a aria-current={page.url.pathname === '/projects'} title="Projects" href="/projects">Projects</a>
             </nav>
             <div class="header-icons">
                 <div class="header-icon">
                     <svg class="size-6 stroke-light-icon-primary dark:stroke-dark-icon-primary" fill="none" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/>
                     </svg>
                 </div>
                 <div class="header-icon">
@@ -89,7 +96,8 @@
         </div>
         <div class="offline-spinner">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.25" stroke="currentColor" class="size-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z"/>
             </svg>
         </div>
     </div>
@@ -165,8 +173,11 @@
                     gap: var(--header-icon-gap);
 
                     font-family: 'FunnelSans', serif;
-                    text-align: center;
                     align-self: center;
+                    align-content: center;
+                    text-align: center;
+
+                    justify-content: space-between;
 
                     a {
                         font-variation-settings: "wght" 400;
@@ -179,15 +190,6 @@
                         color: var(--accent-text);
 
                         transition-duration: 150ms;
-                    }
-
-                    a::after {
-                        display: block;
-                        content: attr(title);
-                        height: 0;
-                        font-variation-settings: "wght" 700;
-                        opacity: 0;
-                        overflow: hidden;
                     }
 
                     a[aria-current=true] {
@@ -239,7 +241,7 @@
         10% {
             transform: rotate(17deg);
         }
-        20%,40%,100% {
+        20%, 40%, 100% {
             transform: rotate(0deg);
         }
         25% {

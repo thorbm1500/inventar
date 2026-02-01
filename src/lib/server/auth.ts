@@ -2,7 +2,7 @@ import type {RequestEvent} from '@sveltejs/kit';
 import {sha256} from '@oslojs/crypto/sha2';
 import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
 import * as db from "$lib/server/db/database";
-import type {Session} from "$lib/server/db/database";
+import type {Session} from "$lib/server/db/schema";
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 

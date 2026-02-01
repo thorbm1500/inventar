@@ -112,7 +112,7 @@
                     </button>
                 </div>
                 <div class="header-item latest-change-filter">
-                    <button id="latest-change-filter-button" title="Filter by latest change"
+                    <button id="latest-change-filter-button" title="Filter by latest update"
                             onclick={async () => await updateFilter("last_update",latestChangeFilter)}>
                         Latest update
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { latestChangeFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }">
@@ -121,7 +121,8 @@
                     </button>
                 </div>
                 <div class="header-item items-filter">
-                    <button id="items-filter-button" title="Filter by item amount" onclick={async () => await updateFilter("item_amount",itemsFilter)}>
+                    <button id="items-filter-button" title="Filter by item amount"
+                            onclick={async () => await updateFilter("item_amount",itemsFilter)}>
                         Items
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { itemsFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }">
                             <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(itemsFilter)}"/>
@@ -131,8 +132,7 @@
             </div>
         </div>
         <div class="inventory-list">
-            <!-- todo: Change to length check. -->
-            {#if inventories }
+            {#if inventories.length > 0 }
                 {#each inventories as {inventory_uuid, name, description, image, item_amount, last_update, primary_inventory}}
                     <a href='/inventory/{inventory_uuid}' target='_parent' class="inventory-list-entry
                                 border-t-container-border dark:border-t-dark-container-border
@@ -173,7 +173,7 @@
         <div class="inventory-footer border-t-container-border dark:border-t-dark-container-border">
             <div class="inventory-footer-items">
                 <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
-                        onclick={async () => { await refresh(-1); } }>
+                        onclick={async () => { await refresh(-1); } } title="Switch to previous page">
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/>
                     </svg>
@@ -182,7 +182,7 @@
                     {currentPage}
                 </p>
                 <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
-                        onclick={async () => { await refresh(1); } }>
+                        onclick={async () => { await refresh(1); } } title="Switch to next page">
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
                     </svg>
@@ -236,7 +236,7 @@
                         .auto-hide-filter-icon {
                             opacity: 0;
 
-                            transition: 450ms 200ms ease-in-out;
+                            transition: 1750ms 500ms ease-in-out;
                         }
 
                         button {
@@ -245,6 +245,8 @@
                             justify-content: flex-end;
 
                             cursor: pointer;
+
+                            transition: 400ms 100ms ease-in-out;
 
                             svg {
                                 height: 1.25rem;

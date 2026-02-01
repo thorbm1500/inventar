@@ -24,7 +24,7 @@ const inventoriesObj = v.object({
  * @return Array
  */
 export const getInventories = query(inventoriesObj, async (data): Promise<Inventory[]> => {
-    if (util.isOffline(false)) {
+    if (util.isOffline()) {
         return [];
     }
     else {
@@ -34,7 +34,7 @@ export const getInventories = query(inventoriesObj, async (data): Promise<Invent
 });
 
 export const getTotalInventoryCount = query(async (): Promise<number> => {
-    if (util.isOffline(false)) {
+    if (util.isOffline()) {
         return 1;
     }
     else {

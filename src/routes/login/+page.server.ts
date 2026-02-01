@@ -4,7 +4,7 @@ import * as auth from '$lib/server/auth';
 import * as db from "$lib/server/db/database";
 import type {Actions, PageServerLoad} from './$types';
 import {validateEmail,validatePassword} from "$lib/server/auth";
-import type {Session, User} from "$lib/server/db/database";
+import type {Session, User} from "$lib/server/db/schema";
 
 export const load: PageServerLoad = async (event) => {
     if (event.locals.user) {

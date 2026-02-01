@@ -1,6 +1,6 @@
 import postgres, {type RowList} from 'postgres';
 import {env} from "$env/dynamic/private";
-import type {Inventory, Session, User} from "$lib/server/db/schema";
+import type {Currency, Inventory, Session, User} from "$lib/server/db/schema";
 
 export const sql = postgres({
     host: env.DB_HOST,
@@ -22,6 +22,18 @@ export enum OrderType {
     OLDEST = "ORDER BY creation_date ASC",
     NEWEST = "ORDER BY creation_date DESC",
     NONE = ""
+}
+
+export async function getCurrencies(): Promise<Currency[]> {
+    return await Utility.query(`SELECT *
+                                FROM currencies`, [])
+        .then(result => {
+            return result;
+        })
+        .catch(error => {
+            console.error(`Failed to fetch currencies. Error: ${error}`);
+            return [];
+        })
 }
 
 /**
@@ -199,8 +211,9 @@ export class Inventories {
 
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<any[]> {
         return await sql`select *
-                         from inventories
-                         ${ order_by === '' ? `` : sql`order by ${sql(order_by)} ${order === 'ASC' ? sql`ASC` : sql`DESC`}` }
+                         from inventories ${order_by === '' ? `` : sql`order by
+                         ${sql(order_by)}
+                         ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
                          LIMIT ${amount} OFFSET ${offset}`
             .then(result => {
                 return result;
@@ -346,10 +359,10 @@ export class Categories {
 export class Items {
     /* Add categories to itemCategories table */
     static async create(inventory: string, name: string, description?: string,
-                        amount: bigint = 0n, categories: [] = [], image?: string,
-                        url?: string, price: number = 0, currency?: string): Promise<void> {
-        let query: string = "INSERT INTO" + " items (inventory_uuid,name";
-        let values: string = ") VALUES ($1";
+                        amount: number = 0, categories: [] = [], image?: string,
+                        url?: string, price: number = 0, currency?: string): Promise<{failed: boolean, error: string, id: any}> {
+        let query: string = "INSERT INTO items (inventory_uuid,name";
+        let values: string = ") VALUES ($1,$2";
         let params: string[] = [inventory, name]
 
         if (description) {
@@ -357,7 +370,7 @@ export class Items {
             params.push(description);
             values += ",$" + params.length;
         }
-        if (amount != 0n) {
+        if (!Number.isNaN(amount)) {
             query += ",amount";
             params.push(amount.toString());
             values += ",$" + params.length;
@@ -372,13 +385,13 @@ export class Items {
             params.push(url);
             values += ",$" + params.length;
         }
-        if (price != 0) {
+        if (!Number.isNaN(price) && price > 0) {
             query += ",price";
             params.push(price.toString());
             values += ",$" + params.length;
         }
         if (currency) {
-            query += ",currency";
+            query += ",currency_code";
             params.push(currency);
             values += ",$" + params.length;
         }
@@ -389,10 +402,10 @@ export class Items {
             .then(result => {
                 const id = result[0]['item_uuid'];
                 console.log(`Item '${name}' has been created, and has received ID '${id}'`);
-                return id;
+                return {failed: false, error: '', id: id};
             }).catch((error) => {
                 console.error(`Failed to create item '${name}'. Error: ${error}`);
-                return undefined;
+                return {failed: true, error: error, id: undefined};
             });
     }
 

@@ -1,6 +1,6 @@
 const BROWSER_OFFLINE_RESPONSE = "Error! The browser is offline.";
 
-function isOffline(logOnFailure?: boolean|undefined): boolean {
+function isOffline(logOnFailure: boolean = false): boolean {
     const browserConnectionState = navigator.onLine;
 
     if(logOnFailure && !browserConnectionState) {

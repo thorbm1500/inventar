@@ -1,38 +1,65 @@
-<script>
+<script module lang="ts">
+    import {getCurrencies} from "../[id]/data.remote.ts";
+    import {enhance} from '$app/forms';
+
+    const currencies = await getCurrencies();
+</script>
+<script lang="ts">
+    import {onMount} from "svelte";
+    import {page} from "$app/state";
+
+    let {creatorScale = $bindable()} = $props();
+
+    onMount(() => {
+        document.getElementById('create-item-container-exit-button')?.addEventListener('click', () => creatorScale.target = 0)
+        document.getElementById('item-creator-form')?.addEventListener('submit', () => {
+            creatorScale.target = 0;
+            document.getElementById('item-creator-form-reset-button')?.click();
+        })
+    });
 </script>
 
-<div class="create-item-container
-    bg-container-background dark:bg-dark-container-background border-container-border dark:border-dark-container-border rounded-(--border-radius)">
-    <form class="text-text-primary dark:text-dark-text-primary" autocomplete="off">
-        <label for="item-name">Item Name</label>
-        <input type="text" id="item-name" name="item-name" placeholder="Name"
-               class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)" autofocus required/>
-        <label for="description">Description</label>
-        <input type="text" id="description" name="description" placeholder="Description"
-               class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
-        <label for="amount">Amount</label>
-        <input type="number" id="amount" name="amount" value=0
-               class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)" required/>
-        <div class="price-section">
+<div class="create-item-container" id="create-item-container">
+    <button type="reset" class="create-item-container-exit-button" id="create-item-container-exit-button" title="Close Item Creator">
+    </button>
+    <form method="POST" action="?/createItem" id="item-creator-form" class="item-creator-form" autocomplete="off" use:enhance>
+        <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
+        <input type="text" name="inventory_uuid" value="{page.params?.id}" hidden required/>
+        <div class="option-container">
+            <label for="item-name">Item Name</label>
+            <input type="text" id="item-name" name="name" placeholder="Name" required/>
+        </div>
+        <div class="option-container">
+            <label for="description">Description</label>
+            <input type="text" id="description" name="description" placeholder="Description"/>
+        </div>
+        <div class="option-container">
+            <label for="amount">Amount</label>
+            <input type="number" id="amount" name="amount" value=0 required/>
+        </div>
+        <div class="option-container price-section">
             <div class="price-section-input">
                 <label for="price">Price</label>
-                <input type="number" id="price" name="price" placeholder="0" min="0" value="0"
-                       class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
+                <input type="number" id="price" name="price" placeholder="0" min="0" value="0"/>
             </div>
             <div class="price-section-input">
-                <label for="currency">Currency</label>
-                <input type="text" id="currency" name="currency" placeholder="EUR"
-                       class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
+                <label for="currencies">Currency</label>
+                <select id="currencies" name="currency">
+                    {#each currencies as currency}
+                        {#if (currency.code === "DKK") }
+                            <option value="{currency.code}" selected>{currency.code}</option>
+                        {/if}
+                        <option value="{currency.code}">{currency.code}</option>
+                    {/each}
+                </select>
             </div>
         </div>
-        <label for="external">External</label>
-        <input type="url" id="external" name="external" placeholder="URL"
-               class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
+        <div class="option-container">
+            <label for="external">External</label>
+            <input type="url" id="external" name="external" placeholder="URL"
+                   class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
+        </div>
         <div class="item-creation-buttons">
-            <button type="" class="item-cancel-creation-button bg-button-background dark:bg-dark-button-background border-button-border dark:border-dark-button-border
-                rounded-(--border-radius) text-text-primary dark:text-dark-text-primary">
-                Cancel
-            </button>
             <button type="submit" class="item-confirm-creation-button bg-button-background dark:bg-dark-button-background border-button-border dark:border-dark-button-border
                 rounded-(--border-radius) text-text-primary dark:text-dark-text-primary">
                 Create
@@ -43,19 +70,60 @@
 
 <style>
     .create-item-container {
-        height: var(--container-full-height);
-        width: 65vw;
-        border-width: var(--border-width);
+        height: 40rem;
+        width: 64rem;
 
-        margin: 0 auto;
+        background: rgba(from var(--theme-background-container) r g b / .4);
+        backdrop-filter: blur(4px);
+        border-color: var(--theme-border-container);
+        border-width: var(--border-width);
+        border-radius: var(--border-radius);
+
+        .create-item-container-exit-button {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.25rem;
+
+            width: 1rem;
+            height: 1rem;
+
+            background: var(--theme-button-idle-background);
+            border-radius: 100%;
+
+            overflow: hidden;
+        }
+
+        .create-item-container-exit-button:hover {
+            background: oklch(0.621 0.199 17.537);
+        }
 
         form {
             display: flex;
             flex-flow: column wrap;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            height: 100%;
 
-            margin: 4rem;
+            font-family: 'Funnel Sans', sans-serif;
 
-            font-family: 'ArchivoRegular', sans-serif;
+            label {
+                color: var(--theme-text);
+            }
+
+            input, option, select {
+                background: var(--theme-form-input-background-dark);
+                border: var(--theme-form-input-border-dark);
+                border-radius: var(--form-input-border-radius);
+                color: var(--theme-text);
+            }
+
+            .option-container {
+                display: flex;
+                flex-flow: column nowrap;
+
+                width: 80%;
+            }
 
             #description {
                 height: 3rem;
@@ -75,6 +143,19 @@
                     flex-flow: column nowrap;
                     align-items: center;
                     flex-grow: 0;
+
+                    #currencies, #currencies * {
+                        background: var(--theme-form-input-background-dark);
+                        border: var(--theme-form-input-border-dark);
+                        border-radius: 0.5rem;
+
+                        scroll-behavior: smooth;
+                        scrollbar-width: none;
+                    }
+
+                    select option {
+                        color: var(--theme-text);
+                    }
                 }
             }
 
