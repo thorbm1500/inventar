@@ -2,6 +2,8 @@ import postgres, {type RowList} from 'postgres';
 import {env} from "$env/dynamic/private";
 import type {Currency, Inventory, Session, User} from "$lib/server/db/schema";
 
+//todo Fix unsafe queries
+
 export const sql = postgres({
     host: env.DB_HOST,
     port: Number.parseInt(env.DB_PORT ?? 'NONE'),
@@ -218,7 +220,8 @@ export class Inventories {
             .then(result => {
                 return result;
             })
-            .catch(() => {
+            .catch(error => {
+                console.error(`Failed to fetch items. Error: ${error}`);
                 return [];
             });
     }
@@ -412,7 +415,7 @@ export class Items {
     static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<any[]> {
         return await sql`select *
                          from items
-                         where inventory_uuid=${inventory}
+                         where inventory_uuid = ${inventory}
                              ${order_by === '' ? `` : sql`order by
                              ${sql(order_by)}
                              ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
@@ -421,8 +424,7 @@ export class Items {
                 return result;
             })
             .catch(error => {
-                console.log(inventory)
-                console.log(error)
+                console.error(`Failed to fetch items. Error: ${error}`);
                 return [];
             });
     }

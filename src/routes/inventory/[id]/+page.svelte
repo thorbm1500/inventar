@@ -47,7 +47,7 @@
 
     let itemCount: number = await getTotalItemCount(String(page.params.id)) ?? 0;
 
-    let totalPages = Math.ceil(itemCount / 15);
+    let totalPages = Math.ceil(itemCount / 5);
 
     let nameFilter = $state('DEFAULT');
     let itemsFilter = $state('DEFAULT');
@@ -55,37 +55,44 @@
 
     async function refresh(pageChange: number = 0) {
         currentPage += pageChange;
-        const offset = 15 * (currentPage - 1);
+        const offset = 5 * (currentPage - 1);
 
-        const newItems = await getItems({inventory_uuid: String(page.params.id), amount: 15, order_by, order, offset}) || [];
+        const newItems = await getItems({inventory_uuid: String(page.params.id), amount: 5, order_by, order, offset}) || [];
         items = newItems;
     }
 
     async function updateFilter(filter: string, current: string) {
         const next = String(getNextState(current));
 
-        if (next != 'DEFAULT') {
-            order = next;
-        }
-
-        if (filter == 'name') {
-            nameFilter = next;
+        if (next === 'DEFAULT') {
+            order = '';
             order_by = 'name';
 
-            itemsFilter = 'DEFAULT';
-            latestChangeFilter = 'DEFAULT';
-        } else if (filter == 'item_amount') {
-            itemsFilter = next;
-            order_by = 'item_amount';
-
-            nameFilter = 'DEFAULT';
-            latestChangeFilter = 'DEFAULT';
-        } else if (filter == 'last_update') {
-            latestChangeFilter = next;
-            order_by = 'last_update';
-
             nameFilter = 'DEFAULT';
             itemsFilter = 'DEFAULT';
+            latestChangeFilter = 'DEFAULT';
+        } else {
+            order = next;
+
+            if (filter == 'name') {
+                nameFilter = next;
+                order_by = 'name';
+
+                itemsFilter = 'DEFAULT';
+                latestChangeFilter = 'DEFAULT';
+            } else if (filter == 'amount') {
+                itemsFilter = next;
+                order_by = 'amount';
+
+                nameFilter = 'DEFAULT';
+                latestChangeFilter = 'DEFAULT';
+            } else if (filter == 'last_modified') {
+                latestChangeFilter = next;
+                order_by = 'last_modified';
+
+                nameFilter = 'DEFAULT';
+                itemsFilter = 'DEFAULT';
+            }
         }
 
         await refresh();
@@ -184,7 +191,7 @@
                                 </div>
                                 <div class="header-item latest-change-filter">
                                     <button id="latest-change-filter-button" title="Filter by latest update"
-                                            onclick={async () => await updateFilter("last_update",latestChangeFilter)}>
+                                            onclick={async () => await updateFilter("last_modified",latestChangeFilter)}>
                                         Latest update
                                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { latestChangeFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }"
                                              style="opacity:0;">
@@ -194,7 +201,7 @@
                                 </div>
                                 <div class="header-item items-filter">
                                     <button id="items-filter-button" title="Filter by item amount"
-                                            onclick={async () => await updateFilter("item_amount",itemsFilter)}>
+                                            onclick={async () => await updateFilter("amount",itemsFilter)}>
                                         Items
                                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { itemsFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(itemsFilter)}"/>
@@ -232,6 +239,7 @@
                                         <div class="entry-item inventory-item-amount">
                                             {item.amount}
                                         </div>
+
                                     </a>
                                 {/each}
                             {:else}
@@ -246,8 +254,10 @@
                             <div class="inventory-footer-items">
                                 <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
                                         onclick={async () => { await refresh(-1); } } title="Switch to previous page">
-                                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/>
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <path fill="currentColor"
+                                              d="M9.857 15.962a.5.5 0 0 0 .243.68l9.402 4.193c1.496.667 3.047-.814 2.306-2.202l-3.152-5.904c-.245-.459-.245-1 0-1.458l3.152-5.904c.741-1.388-.81-2.87-2.306-2.202l-3.524 1.572a2 2 0 0 0-.975.932z"/>
+                                        <path fill="currentColor" d="M8.466 15.39a.5.5 0 0 1-.65.233l-4.823-2.15c-1.324-.59-1.324-2.355 0-2.945L11.89 6.56a.5.5 0 0 1 .651.68z" opacity="0.5"/>
                                     </svg>
                                 </button>
                                 <p class="pagination-current-page">
@@ -255,8 +265,10 @@
                                 </p>
                                 <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
                                         onclick={async () => { await refresh(1); } } title="Switch to next page">
-                                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/>
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <path fill="currentColor"
+                                              d="M14.143 15.962a.5.5 0 0 1-.244.68l-9.402 4.193c-1.495.667-3.047-.814-2.306-2.202l3.152-5.904c.245-.459.245-1 0-1.458L2.191 5.367c-.74-1.388.81-2.87 2.306-2.202l3.525 1.572a2 2 0 0 1 .974.932z"/>
+                                        <path fill="currentColor" d="M15.533 15.39a.5.5 0 0 0 .651.233l4.823-2.15c1.323-.59 1.323-2.355 0-2.945L12.109 6.56a.5.5 0 0 0-.651.68z" opacity="0.5"/>
                                     </svg>
                                 </button>
                             </div>
