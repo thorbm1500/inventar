@@ -4,11 +4,13 @@ import * as db from '$lib/server/db/database'
 import initializeDatabase from '$lib/server/db/index';
 import type {User} from "$lib/server/db/schema";
 import {sessionCookieName} from "$lib/server/auth";
+import {env} from '$env/dynamic/private'
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
 export const init: ServerInit = async (): Promise<void> => {
+	if (env.NODE_ENV === 'development' && env.INIT_DB !== 'true') return;
 	await initializeDatabase()
 }
 
@@ -40,7 +42,7 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 		auth.deleteSessionTokenCookie(event);
 	}
 
-	const user: User | undefined = await db.Users.getFromUuid(uuid);
+	const user = await db.Users.getFromUuid(uuid);
 
 	if (!user) {
 		return redirect(302, '/login')

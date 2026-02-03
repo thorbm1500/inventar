@@ -31,6 +31,12 @@
 
     const user: User = getContext('user');
 
+    //todo: Add option to save filters, and make them persistent for the user.
+    let filters = $state({
+        price: true,
+        last_updated: true
+    });
+
     const rawInventory = await getInventory(page.params.id);
     let inventory: Inventory = $state(rawInventory);
 
@@ -42,7 +48,6 @@
     let itemCreatorOpacity = $derived(creatorScale.current);
     let isItemCreatorOpen: boolean = $derived(itemCreatorOpacity !== 0);
     let isFilterContainerOpen: boolean = $state(false);
-    let isPricesShown: boolean = $state(true);
 
     /* Item Container*/
     let order_by = $state('name');
@@ -211,13 +216,17 @@
                 </section>
                 <div class="inventory-filter-container"
                      style="{isFilterContainerOpen?'transform:translateY(0);visibility:visible;margin-top:2rem;height:fit-content;opacity:1;':'transform:translateY(-5rem);visibility:hidden;margin-top:-6.5rem;opacity:0;'}">
-                    <button class="filter" onclick={() => isPricesShown = !isPricesShown}>
-                        <svg width="24" height="24" viewBox="0 0 24 24">
-                            <!-- Placeholder icon till a proper one has been found -->
-                            <path fill="currentColor"
-                                  d="M10 12c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2M6 8c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0 8c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m12-8c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2m-4 8c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m4-4c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m-4-4c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m-4-4c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2"/>
-                        </svg>
+                    <button class="filter" onclick={() => filters.price = !filters.price}>
+                        <div class="filter-state-icon {filters.price ? 'on' : 'off'}">
+                            <div class="inner-circle"></div>
+                        </div>
                         Prices
+                    </button>
+                    <button class="filter" onclick={() => filters.last_updated = !filters.last_updated}>
+                        <div class="filter-state-icon {filters.last_updated ? 'on' : 'off'}">
+                            <div class="inner-circle"></div>
+                        </div>
+                        Last Updated
                     </button>
                 </div>
                 <section class="inventory-body-section">
@@ -233,17 +242,19 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <div class="header-item latest-change-filter">
-                                    <button id="latest-change-filter-button" title="Filter by latest update"
-                                            onclick={async () => await updateFilter("last_modified",latestChangeFilter)}>
-                                        Latest update
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { latestChangeFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }"
-                                             style="opacity:0;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(latestChangeFilter)}"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                                {#if (isPricesShown) }
+                                {#if (filters.last_updated)}
+                                    <div class="header-item latest-change-filter">
+                                        <button id="latest-change-filter-button" title="Filter by latest update"
+                                                onclick={async () => await updateFilter("last_modified",latestChangeFilter)}>
+                                            Latest update
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { latestChangeFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }"
+                                                 style="opacity:0;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(latestChangeFilter)}"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                {/if}
+                                {#if (filters.price) }
                                     <div class="header-item price-filter">
                                         <button id="price-filter-button" title="Filter by item price"
                                                 onclick={async () => await updateFilter("price",priceFilter)}>
@@ -288,10 +299,12 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        <div class="entry-item inventory-item-last_change">
-                                            {parseTimestamp(String(item.last_modified))}
-                                        </div>
-                                        {#if (isPricesShown) }
+                                        {#if (filters.last_updated) }
+                                            <div class="entry-item inventory-item-last_change">
+                                                {parseTimestamp(String(item.last_modified))}
+                                            </div>
+                                        {/if}
+                                        {#if (filters.price) }
                                             <div class="entry-item inventory-item-price">
                                                 {item.price}
                                             </div>
@@ -506,6 +519,12 @@
         }
 
         .inventory-filter-container {
+            display:flex;
+            flex-flow: row wrap;
+            align-items: center;
+            justify-content: flex-start;
+            gap: .75rem;
+
             width: 90rem;
             opacity: 0;
             margin-top: 0;
@@ -529,6 +548,51 @@
                 background: var(--theme-background-button);
                 border: var(--border-width) solid var(--theme-border-button);
                 border-radius: var(--theme-border-radius);
+
+                .filter-state-icon {
+                    display: flex;
+                    flex-flow: row nowrap;
+                    align-items: center;
+                    justify-content: center;
+
+                    width: 1.75rem;
+                    height: .85rem;
+                    background: white;
+                    border-radius: 1rem;
+
+                    margin-right: .5rem;
+                    overflow: visible;
+
+                    .inner-circle {
+                        height: .7rem;
+                        width: .7rem;
+                        background: black;
+                        border-radius: 100%;
+                        transform: translateY(.5em);
+                    }
+                }
+
+                .filter-state-icon.on,.filter-state-icon.off {
+                    .inner-circle {
+                        transition: 250ms ease-in-out;
+                    }
+                }
+
+                .filter-state-icon.on {
+                    background: #FFFFF2;
+                    .inner-circle {
+                        transform: translateX(-.39em);
+                        background: var(--accent-text);
+                    }
+                }
+
+                .filter-state-icon.off {
+                    background: #d7dadc;
+                    .inner-circle {
+                        transform: translateX(.37em);
+                        background: var(--theme-text-third);
+                    }
+                }
             }
 
             .filter:hover {
