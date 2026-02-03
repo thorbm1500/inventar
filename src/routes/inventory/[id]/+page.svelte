@@ -10,6 +10,16 @@
     import GenericErrorToast from "../../../components/Toasts/GenericError.svelte";
     import {parseTimestamp} from '$lib/utilities'
 
+    const imageModules = import.meta.glob(
+        '$lib/assets/uploads/item-images/*.{avif,gif,heif,jpeg,jpg,png,tiff,webp}',
+        {
+            eager: true,
+            query: {
+                enhanced: false
+            }
+        }
+    )
+
     /*
     * <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><g fill="currentColor"><circle cx="5" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="15" cy="10" r="2"/></g></svg>
     *<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><path fill="currentColor" fill-rule="evenodd" d="M4 5.543V4.25H3a1 1 0 0 0-1 1v3.5a1 1 0 0 0 1 1h1a1 1 0 1 1 0 2H3a3 3 0 0 1-3-3v-3.5a3 3 0 0 1 3-3h1V.957a.5.5 0 0 1 .854-.353l2.292 2.292a.5.5 0 0 1 0 .708L4.854 5.896A.5.5 0 0 1 4 5.543m6 6.207v1.293a.5.5 0 0 1-.854.354l-2.292-2.293a.5.5 0 0 1 0-.708l2.292-2.292a.5.5 0 0 1 .854.353V9.75h1a1 1 0 0 0 1-1v-3.5a1 1 0 0 0-1-1h-1a1 1 0 1 1 0-2h1a3 3 0 0 1 3 3v3.5a3 3 0 0 1-3 3z" clip-rule="evenodd"/></svg>
@@ -28,14 +38,16 @@
     }
 
     let {form}: PageProps = $props();
-
     const user: User = getContext('user');
 
     //todo: Add option to save filters, and make them persistent for the user.
     let filters = $state({
+        column_size: 15,
         price: true,
         last_updated: true
     });
+
+    const initialFilters = $state(filters);
 
     const rawInventory = await getInventory(page.params.id);
     let inventory: Inventory = $state(rawInventory);
@@ -59,7 +71,7 @@
 
     let itemCount: number = await getTotalItemCount(String(page.params.id)) ?? 0;
 
-    let totalPages = Math.ceil(itemCount / 15);
+    let totalPages = $state(Math.ceil(itemCount / filters.column_size));
 
     let nameFilter = $state('DEFAULT');
     let latestChangeFilter = $state('DEFAULT');
@@ -82,9 +94,9 @@
     }
 
     async function refresh() {
-        const offset = 15 * (currentPage - 1);
+        const offset = filters.column_size * (currentPage - 1);
 
-        const newItems = await getItems({inventory_uuid: String(page.params.id), amount: 15, order_by, order, offset}) || [];
+        const newItems: Item[] = await getItems({inventory_uuid: String(page.params.id), amount: filters.column_size, order_by, order, offset}) || [];
         items = newItems;
     }
 
@@ -157,7 +169,7 @@
 {#if form && form.failed }
     <div class="item-creation-failed-toast generic-toast-parent-class play-animation">
         {#if form.error }
-            <GenericErrorToast error={form.error}/>
+            <GenericErrorToast error={String(form.error)}/>
         {:else}
             <GenericErrorToast/>
         {/if}
@@ -214,21 +226,50 @@
                         </div>
                     </div>
                 </section>
-                <div class="inventory-filter-container"
-                     style="{isFilterContainerOpen?'transform:translateY(0);visibility:visible;margin-top:2rem;height:fit-content;opacity:1;':'transform:translateY(-5rem);visibility:hidden;margin-top:-6.5rem;opacity:0;'}">
-                    <button class="filter" onclick={() => filters.price = !filters.price}>
-                        <div class="filter-state-icon {filters.price ? 'on' : 'off'}">
-                            <div class="inner-circle"></div>
+                {#if (isFilterContainerOpen) }
+                    <div class="inventory-filter-container"
+                         style="{isFilterContainerOpen?'padding:1.75rem 2.5rem;visibility:visible;margin-top:2rem;height:fit-content;opacity:1;':'visibility:hidden;margin-top:0;opacity:0;'}">
+                        <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
+                            <h1>Filters</h1>
+                            <button class="filters-save-button {filters===initialFilters?'default':'new'}" title="Save Filters">
+                                <svg width="24" height="24" viewBox="0 0 24 24">
+                                    <path fill="currentColor" d="M13 15.4c0-2.074 0-3.111.659-3.756S15.379 11 17.5 11s3.182 0 3.841.644C22 12.29 22 13.326 22 15.4v2.2c0 2.074 0 3.111-.659 3.756S19.621 22 17.5 22s-3.182 0-3.841-.644C13 20.71 13 19.674 13 17.6z" opacity="0.5"/>
+                                    <path fill="currentColor" d="M2 8.6c0 2.074 0 3.111.659 3.756S4.379 13 6.5 13s3.182 0 3.841-.644C11 11.71 11 10.674 11 8.6V6.4c0-2.074 0-3.111-.659-3.756S8.621 2 6.5 2s-3.182 0-3.841.644C2 3.29 2 4.326 2 6.4zm11-3.1c0-1.087 0-1.63.171-2.06a2.3 2.3 0 0 1 1.218-1.262C14.802 2 15.327 2 16.375 2h2.25c1.048 0 1.573 0 1.986.178c.551.236.99.69 1.218 1.262c.171.43.171.973.171 2.06s0 1.63-.171 2.06a2.3 2.3 0 0 1-1.218 1.262C20.198 9 19.673 9 18.625 9h-2.25c-1.048 0-1.573 0-1.986-.178a2.3 2.3 0 0 1-1.218-1.262C13 7.13 13 6.587 13 5.5"/>
+                                    <path fill="currentColor" d="M2 18.5c0 1.087 0 1.63.171 2.06a2.3 2.3 0 0 0 1.218 1.262c.413.178.938.178 1.986.178h2.25c1.048 0 1.573 0 1.986-.178c.551-.236.99-.69 1.218-1.262c.171-.43.171-.973.171-2.06s0-1.63-.171-2.06a2.3 2.3 0 0 0-1.218-1.262C9.198 15 8.673 15 7.625 15h-2.25c-1.048 0-1.573 0-1.986.178c-.551.236-.99.69-1.218 1.262C2 16.87 2 17.413 2 18.5" opacity="0.5"/>
+                                </svg>
+                            </button>
                         </div>
-                        Prices
-                    </button>
-                    <button class="filter" onclick={() => filters.last_updated = !filters.last_updated}>
-                        <div class="filter-state-icon {filters.last_updated ? 'on' : 'off'}">
-                            <div class="inner-circle"></div>
-                        </div>
-                        Last Updated
-                    </button>
-                </div>
+                        <section class="filters">
+                            <button class="filter" onclick={() => filters.price = !filters.price}>
+                                <div class="filter-state-icon {filters.price ? 'on' : 'off'}">
+                                    <div class="inner-circle"></div>
+                                </div>
+                                Prices
+                            </button>
+                            <button class="filter" onclick={() => filters.last_updated = !filters.last_updated}>
+                                <div class="filter-state-icon {filters.last_updated ? 'on' : 'off'}">
+                                    <div class="inner-circle"></div>
+                                </div>
+                                Last Updated
+                            </button>
+                            <div class="filter column-sizes" style="display:flex;flex-flow:column nowrap">
+                                <div style="display:flex;flex-flow:row nowrap">
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <path fill="currentColor" d="M8 5.5h8a3 3 0 0 0 3-3a.5.5 0 0 0-.5-.5h-13a.5.5 0 0 0-.5.5a3 3 0 0 0 3 3m8 13H8a3 3 0 0 0-3 3a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5a3 3 0 0 0-3-3" opacity="0.5"/>
+                                        <path fill="currentColor" d="M5 11.5c0-1.886 0-2.828.586-3.414S7.114 7.5 9 7.5h6c1.886 0 2.828 0 3.414.586S19 9.614 19 11.5v1c0 1.886 0 2.828-.586 3.414S16.886 16.5 15 16.5H9c-1.886 0-2.828 0-3.414-.586S5 14.386 5 12.5z"/>
+                                    </svg>
+                                    Column Size
+                                </div>
+                                <div style="display:flex;flex-flow:row nowrap;gap:.35rem;">
+                                    <button onclick={() => filters.column_size = 15} class="column-size {filters.column_size === 15 ? 'selected' : ''}">15</button>
+                                    <button onclick={() => filters.column_size = 30} class="column-size {filters.column_size === 30 ? 'selected' : ''}">30</button>
+                                    <button onclick={() => filters.column_size = 45} class="column-size {filters.column_size === 45 ? 'selected' : ''}">45</button>
+                                    <button onclick={() => filters.column_size = 60} class="column-size {filters.column_size === 60 ? 'selected' : ''}">60</button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                {/if}
                 <section class="inventory-body-section">
                     <div class="inventory-list-container ui-container">
                         <div class="inventory-header border-b-container-border dark:border-b-dark-container-border">
@@ -284,9 +325,13 @@
                                 border-b-container-border dark:border-b-dark-container-border">
                                         <div class="entry-item inventory-meta">
                                             <div class="inventory-image">
-                                                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
-                                                </svg>
+                                                {#if (item.thumbnail_path) }
+                                                    <img src='/src/lib/assets/uploads/item-images/{item.thumbnail_path}' alt="Item Thumbnail">
+                                                {:else }
+                                                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
+                                                    </svg>
+                                                {/if}
                                             </div>
                                             <div class="inventory-name-and-description">
                                                 <h1 class="inventory-name">{item.name}</h1>
@@ -519,89 +564,141 @@
         }
 
         .inventory-filter-container {
-            display:flex;
-            flex-flow: row wrap;
-            align-items: center;
+            display: flex;
+            flex-flow: column wrap;
             justify-content: flex-start;
-            gap: .75rem;
 
             width: 90rem;
             opacity: 0;
             margin-top: 0;
-            padding: 2.5rem;
+            height: 0;
 
-            transition: 325ms ease-in-out,
-            margin-top 250ms ease-in-out;
+            transition: 125ms ease-in-out;
 
             background: var(--theme-header-secondary-color);
             border-color: var(--theme-border-container);
             border-width: var(--border-width);
             border-radius: var(--theme-border-radius);
 
-            .filter {
+            .header {
+                h1 {
+                    font-size: 1.6rem;
+                    font-family: 'FunnelSans', sans-serif;
+                    font-weight: 650;
+                    color: var(--theme-text);
+                    margin-bottom: .75rem;
+                }
+
+                .filters-save-button {
+                    cursor: pointer;
+                    svg {
+                        width: 1.75rem;
+                        height: 1.75rem;
+                    }
+                }
+
+                .filters-save-button.default {
+                    color: var(--theme-text-accent);
+                }
+
+                .filters-save-button.new {
+                    color: var(--theme-text);
+                }
+            }
+
+            .filters {
                 display: flex;
-                flex-flow: row nowrap;
+                flex-flow: row wrap;
                 align-items: center;
-                color: var(--theme-text);
+                justify-content: flex-start;
+                gap: .75rem;
+                width: 100%;
+                height: fit-content;
 
-                padding: .9rem 1.25rem;
-                background: var(--theme-background-button);
-                border: var(--border-width) solid var(--theme-border-button);
-                border-radius: var(--theme-border-radius);
-
-                .filter-state-icon {
-                    display: flex;
-                    flex-flow: row nowrap;
+                .filter {
+                    flex: 1;
                     align-items: center;
-                    justify-content: center;
+                    color: var(--theme-text);
 
-                    width: 1.75rem;
-                    height: .85rem;
-                    background: white;
-                    border-radius: 1rem;
+                    .filter-state-icon {
+                        display: flex;
+                        flex-flow: row nowrap;
+                        align-items: center;
+                        justify-content: center;
 
-                    margin-right: .5rem;
-                    overflow: visible;
+                        width: 1.75rem;
+                        height: .85rem;
+                        background: white;
+                        border-radius: 1rem;
 
-                    .inner-circle {
-                        height: .7rem;
-                        width: .7rem;
-                        background: black;
-                        border-radius: 100%;
-                        transform: translateY(.5em);
+                        margin-right: .5rem;
+                        overflow: visible;
+
+                        .inner-circle {
+                            height: .7rem;
+                            width: .7rem;
+                            background: black;
+                            border-radius: 100%;
+                            transform: translateY(.5em);
+                        }
+                    }
+
+                    .filter-state-icon.on, .filter-state-icon.off {
+                        .inner-circle {
+                            transition: 250ms ease-in-out;
+                        }
+                    }
+
+                    .filter-state-icon.on {
+                        background: #FFFFF2;
+
+                        .inner-circle {
+                            transform: translateX(.39em);
+                            background: var(--accent-text);
+                        }
+                    }
+
+                    .filter-state-icon.off {
+                        background: #d7dadc;
+
+                        .inner-circle {
+                            transform: translateX(-.37em);
+                            background: var(--theme-text-third);
+                        }
                     }
                 }
 
-                .filter-state-icon.on,.filter-state-icon.off {
-                    .inner-circle {
-                        transition: 250ms ease-in-out;
+                .filter.column-sizes {
+                    gap: .25rem;
+                    font-family: 'Google Sans', sans-serif;
+                    font-weight: 600;
+                    align-items: flex-start;
+                    justify-content: flex-start;
+                    font-size: 1.05rem;
+
+                    .column-size {
+                        background: var(--theme-background-button);
+                        color: var(--theme-text);
+                        border: var(--theme-form-input-border-dark);
+                        border-radius: 1.25rem;
+                        padding: .75rem 1.5rem;
+                        user-select: none;
+                        font-size: 1rem;
+                    }
+
+                    .column-size.selected {
+                        background: #1F2023FF;
+                    }
+
+                    .column-size:hover {
+                        cursor: pointer;
+                        background: var(--theme-background-button-hover);
+                    }
+
+                    .column-size:active {
+                        transform: scale(0.975);
                     }
                 }
-
-                .filter-state-icon.on {
-                    background: #FFFFF2;
-                    .inner-circle {
-                        transform: translateX(-.39em);
-                        background: var(--accent-text);
-                    }
-                }
-
-                .filter-state-icon.off {
-                    background: #d7dadc;
-                    .inner-circle {
-                        transform: translateX(.37em);
-                        background: var(--theme-text-third);
-                    }
-                }
-            }
-
-            .filter:hover {
-                cursor: pointer;
-                background: var(--theme-background-button-hover);
-            }
-
-            .filter:active {
-                transform: scale(0.975);
             }
         }
 
@@ -712,7 +809,7 @@
 
                     .inventory-list-entry {
                         width: 100%;
-                        height: 6rem !important;
+                        height: 7rem !important;
 
                         display: flex;
                         flex-flow: row nowrap;
@@ -736,19 +833,37 @@
                             flex: 1 10%;
                         }
 
-                        svg {
-                            width: 2.25rem;
-                            height: 2.25rem;
-                            transition: 450ms 100ms ease-in-out;
-                        }
-
                         .inventory-meta {
                             display: flex;
                             flex-flow: row nowrap;
                             align-items: center;
 
                             .inventory-image {
-                                padding: 0 1.15rem;
+                                margin: 0 1rem;
+                                width: 5rem;
+                                height: 5rem;
+
+                                svg {
+                                    width: 4rem;
+                                    height: 4rem;
+                                    margin: .5rem .5rem;
+                                    transition: 450ms 100ms ease-in-out;
+                                }
+
+                                img {
+                                    width: 100%;
+                                    height: 100%;
+                                    border-radius: .75em;
+
+                                    transition: 400ms 100ms ease-in-out;
+                                }
+
+                                img:hover {
+                                    transform: scale(1.75);
+                                    border-radius: .2em;
+
+                                    transition: 125ms ease-in-out;
+                                }
                             }
 
                             .inventory-name-and-description {

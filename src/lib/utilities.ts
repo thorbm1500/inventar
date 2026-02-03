@@ -1,3 +1,5 @@
+export const DAY_IN_MS = 1000 * 60 * 60 * 24;
+
 export function parseTimestamp(timestamp: string): string {
     const diff = (Date.now() - Date.parse(timestamp)) / 1000;
 

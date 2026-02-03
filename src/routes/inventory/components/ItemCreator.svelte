@@ -22,7 +22,7 @@
 <div class="create-item-container" id="create-item-container">
     <button type="reset" class="create-item-container-exit-button" id="create-item-container-exit-button" title="Close Item Creator">
     </button>
-    <form method="POST" action="?/createItem" id="item-creator-form" class="item-creator-form" autocomplete="off" use:enhance>
+    <form method="POST" action="?/createItem" id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data" use:enhance>
         <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
         <input type="text" name="inventory_uuid" value="{page.params?.id}" hidden required/>
         <div class="option-container">
@@ -53,6 +53,11 @@
                     {/each}
                 </select>
             </div>
+        </div>
+        <div class="option-container">
+            <label for="image">Image</label>
+            <input type="file" id="image" name="image"
+                   class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
         </div>
         <div class="option-container">
             <label for="external">External</label>

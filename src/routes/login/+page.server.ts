@@ -7,7 +7,7 @@ import {validateEmail,validatePassword} from "$lib/server/auth";
 import type {Session, User} from "$lib/server/db/schema";
 
 export const load: PageServerLoad = async (event) => {
-    if (event.locals.user) {
+    if (event.locals.session_id && event.locals.user) {
         return redirect(302, '/');
     }
     return {};

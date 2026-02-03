@@ -1,6 +1,6 @@
 import postgres, {type RowList} from 'postgres';
 import {env} from "$env/dynamic/private";
-import type {Currency, Session} from "$lib/server/db/schema";
+import type {Currency, Session, User} from "$lib/server/db/schema";
 
 export const sql = postgres({
     host: env.DB_HOST,
@@ -289,7 +289,7 @@ export class Items {
             thumbnail_path: image ?? null,
             url: url ?? null,
             price: price,
-            currency: currency,
+            currency_code: currency,
         }
 
         return await sql`INSERT INTO items ${sql(item)}
@@ -458,11 +458,11 @@ export class Users {
                          FROM users
                          WHERE uuid = ${uuid}`
             .then(result => {
-                return result[0] ?? undefined;
+                const [res] = result;
+                return res as User;
             })
             .catch(error => {
                 console.error(`Failed to get user with uuid '${uuid}'. Error: ${error}`);
-                return undefined;
             })
     }
 
@@ -484,7 +484,8 @@ export class Users {
                          FROM users
                          WHERE email = ${email}`
             .then(result => {
-                return result[0] ?? undefined;
+                const [res] = result;
+                return res as User;
             })
             .catch(error => {
                 console.error(`Failed to get user with email '${email}'. Error: ${error}`);

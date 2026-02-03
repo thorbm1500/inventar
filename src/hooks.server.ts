@@ -4,8 +4,7 @@ import * as db from '$lib/server/db/database'
 import initializeDatabase from '$lib/server/db/index';
 import type {User} from "$lib/server/db/schema";
 import {sessionCookieName} from "$lib/server/auth";
-import {env} from '$env/dynamic/private'
-
+import {env} from "$env/dynamic/private";
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
@@ -27,6 +26,7 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 		event.locals.uuid = null;
 		event.locals.session_id = null;
 
+		// Allow public access
 		if (!public_paths.includes(event.url.pathname)){
 			return redirect(302, '/login')
 		} else {
@@ -42,7 +42,7 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 		auth.deleteSessionTokenCookie(event);
 	}
 
-	const user = await db.Users.getFromUuid(uuid);
+	const user: User | void = await db.Users.getFromUuid(uuid);
 
 	if (!user) {
 		return redirect(302, '/login')

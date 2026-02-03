@@ -3,8 +3,7 @@ import {sha256} from '@oslojs/crypto/sha2';
 import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
 import * as db from "$lib/server/db/database";
 import type {Session} from "$lib/server/db/schema";
-
-const DAY_IN_MS = 1000 * 60 * 60 * 24;
+import { DAY_IN_MS } from '../utilities';
 
 export const sessionCookieName = 'auth-session';
 
