@@ -52,7 +52,7 @@ const handleAuth: Handle = async ({event, resolve}) => {
         auth.deleteSessionTokenCookie(event);
         return redirect(302, '/login');
     } else {
-        auth.setSessionTokenCookie(event, sessionToken, expires);
+        auth.setSessionTokenCookie(sessionToken, expires);
     }
 
     const user: User | undefined = await db.Users.getFromUuid(uuid);

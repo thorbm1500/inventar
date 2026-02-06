@@ -134,6 +134,10 @@
 </section>
 
 <style>
+    * {
+        user-select: none !important;
+    }
+
     section {
         height: var(--header-height);
 

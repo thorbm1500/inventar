@@ -1,10 +1,7 @@
 <script lang='ts'>
-    import {enhance} from '$app/forms';
-    import type {ActionData} from '../../../../.svelte-kit/types/src/routes';
-
-    let {form}: { form: ActionData } = $props();
-    let isLoginAllowed = $state(false);
+    import {login} from "../data.remote";
 </script>
+
 <section>
     <div class="inventar-logo">
         <svg id="a" xmlns="http://www.w3.org/2000/svg" width="3013.54" height="659.04" viewBox="0 0 3013.54 659.04">
@@ -28,22 +25,24 @@
         </svg>
     </div>
     <div class="login-form">
-        <form method="post" action="?/login" use:enhance>
-            <label for="Email">
-                <input type="text" name="email" placeholder="Email" class="email-input" autocomplete="email" required/>
+        <form {...login}>
+            <label>
+                <input {...login.fields.email.as('text')} placeholder="Email" class="email-input" autocomplete="email" required/>
             </label>
-            <label for="Password">
-                <input type="password" name="password" placeholder="Password" class="password-input" autocomplete="current-password" required/>
+            <label>
+                <input {...login.fields._password.as('password')} placeholder="Password" class="password-input" autocomplete="current-password" required/>
             </label>
             <div class="login-form-buttons">
-                <button class="login-button">Login</button>
+                <button type="submit" class="login-button">Login</button>
                 <a href="/register">
                     <button class="">Register</button>
                 </a>
             </div>
         </form>
         <a class="forgot-password" href="/reset-password">Forgot password?</a>
-        <p style='color: red'>{form?.message ?? ''}</p>
+        {#if login.result}
+            <p style='color: red'>{login.result.message ?? ''}</p>
+        {/if}
     </div>
 </section>
 

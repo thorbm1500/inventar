@@ -1,4 +1,5 @@
-import type {RequestEvent} from '@sveltejs/kit';
+import { getRequestEvent } from '$app/server';
+import type {Cookies, RequestEvent} from '@sveltejs/kit';
 import {sha256} from '@oslojs/crypto/sha2';
 import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
 import * as db from "$lib/server/db/database";
@@ -71,17 +72,19 @@ export async function invalidateSession(session_id: string): Promise<void> {
     await db.Auth.invalidateSession(session_id);
 }
 
-export function setSessionTokenCookie(event: RequestEvent, token: string, expires: number): void {
+export function setSessionTokenCookie(token: string, expires: number, event: RequestEvent | undefined = undefined): void {
+    const cookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
     const expiration = new Date();
     expiration.setTime(expires);
-    event.cookies.set(sessionCookieName, token, {
+    cookies.set(sessionCookieName, token, {
         expires: expiration,
         path: '/'
     });
 }
 
-export function deleteSessionTokenCookie(event: RequestEvent) {
-    event.cookies.delete(sessionCookieName, {
+export function deleteSessionTokenCookie(event: RequestEvent | undefined = undefined): void {
+    const cookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
+    cookies.delete(sessionCookieName, {
         path: '/'
     });
 }

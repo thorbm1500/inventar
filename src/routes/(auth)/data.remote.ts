@@ -2,11 +2,11 @@ import * as v from 'valibot';
 import * as auth from "$lib/server/auth";
 import * as db from "$lib/server/db/database";
 import {form} from '$app/server';
-import type {ResetRequest, User} from "$lib/server/db/schema";
+import type {ResetRequest, Session, User} from "$lib/server/db/schema";
 import {sendPasswordResetLink} from "$lib/server/mail";
 import {sha256} from "@oslojs/crypto/sha2";
 import {encodeHexLowerCase} from "@oslojs/encoding";
-import {hash} from "@node-rs/argon2";
+import {hash, verify} from "@node-rs/argon2";
 import {redirect} from "@sveltejs/kit";
 
 export const requestReset = form(
@@ -75,3 +75,51 @@ export const resetPassword = form(
 
         return {success: false, message: 'This password reset link has expired.'}
     });
+
+export const login = form(
+    v.object({
+        email: v.pipe(v.string(), v.nonEmpty()),
+        _password: v.pipe(v.string(), v.nonEmpty())
+    }),
+    async ({email,_password}) => {
+    if (!auth.validateEmail(email)) {
+        console.error(`Login failed: Invalid email (min 3, max 31 characters, alphanumeric only)`);
+        return {success: false, message: 'Invalid email (min 3, max 31 characters, alphanumeric only)'};
+    }
+    if (!auth.validatePassword(_password)) {
+        console.error(`Login failed: Invalid password (min 32, max 255 characters)`);
+        return {success: false, message: 'Invalid password (min 32, max 255 characters)'};
+    }
+
+    const user: User | undefined = await db.Users.getFromEmail(email);
+
+    if (!user) {
+        console.error(`Login failed: No user exists with the email '${email}'.`);
+        return {success: false, message: 'Incorrect username or password'};
+    }
+
+    const passwordHash: String | undefined = await db.Users.getPasswordHash(user.uuid);
+
+    if (!passwordHash) {
+        console.error(`Login failed: No password found in the database for user with email '${email}'.`);
+        return {success: false, message: 'Incorrect username or password'};
+    }
+
+    const validPassword = await verify(passwordHash.valueOf(), _password, {
+        memoryCost: 19456,
+        timeCost: 5,
+        outputLen: 32,
+        parallelism: 1,
+    });
+
+    if (!validPassword) {
+        console.error(`Login failed: Password invalid.`);
+        return {success: false, message: 'Incorrect username or password'};
+    }
+
+    const sessionToken: string = auth.generateSessionToken();
+    const session: Session = await auth.createSession(sessionToken, user.uuid);
+    auth.setSessionTokenCookie(sessionToken, session.expires);
+
+    return redirect(302, '/');
+});
