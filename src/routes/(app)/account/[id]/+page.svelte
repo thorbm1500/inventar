@@ -3,8 +3,7 @@
     import {validate} from "uuid";
     import {error} from "@sveltejs/kit";
     import {getContext} from "svelte";
-    import Header from "../../Header.svelte";
-    import {getUser} from "./data.remote";
+    import {getUser} from "./data.remote.ts";
     import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
 </script>
 
@@ -22,8 +21,6 @@
     const user = getContext('user');
 
 </script>
-
-<Header/>
 
 <section class="profile-page-content">
     <div class="profile-page-container ui-container">

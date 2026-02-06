@@ -2,7 +2,7 @@ import {verify} from '@node-rs/argon2';
 import {fail, redirect} from '@sveltejs/kit';
 import * as auth from '$lib/server/auth';
 import * as db from "$lib/server/db/database";
-import type {Actions, PageServerLoad} from './$types';
+import type {Actions, PageServerLoad} from '../../../../.svelte-kit/types/src/routes';
 import type {Session, User} from "$lib/server/db/schema";
 
 export const load: PageServerLoad = async (event) => {

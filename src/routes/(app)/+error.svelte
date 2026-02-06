@@ -1,9 +1,6 @@
 <script lang="ts">
-import Header from "./Header.svelte";
 import { page } from '$app/state';
 </script>
-
-<Header/>
 
 <section class="error-page-section">
     <h1>{page.status}</h1>

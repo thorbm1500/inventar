@@ -1,8 +1,5 @@
 <script lang="ts">
-    import Header from './Header.svelte';
 </script>
-
-<Header/>
 
 <section class="text-text-primary dark:text-dark-text-primary">
     <div id="placeholder-box" class="border-light-header-border dark:border-dark-header-border border-[0.1rem] bg-light-container dark:bg-dark-container fill-light-container dark:fill-dark-container"></div>

@@ -1,9 +1,5 @@
-<script lang="ts">
-    import {enhance} from '$app/forms';
-    import type {ActionData} from "../../../../.svelte-kit/types/src/routes/reset-password/$types";
-    import {page} from "$app/state";
-
-    let {form}: { form: ActionData } = $props();
+<script lang='ts'>
+    import {requestReset} from "../data.remote";
 </script>
 
 <section>
@@ -29,20 +25,19 @@
         </svg>
     </div>
     <div class="login-form">
-        <form method="post" action="?/reset" use:enhance>
-            <input type="hidden" name="token" value="{page.params.token ?? ''}" required/>
-            <label for="Password">
-                <input type="password" name="password" placeholder="New Password" class="password-input" autocomplete="new-password" required/>
+        <form {...requestReset}>
+            <label>
+                <input {...requestReset.fields.email.as('text')} placeholder="Email"/>
             </label>
             <div class="reset-form-buttons">
                 <a href="/login">
                     <button class="back-button">Back</button>
                 </a>
-                <button type="{form && form.success ? 'button' : 'submit'}" class="reset-button">Confirm</button>
+                <button class="reset-button {requestReset.result && requestReset.result.success ? 'disabled' : ''}">Request reset</button>
             </div>
         </form>
-        {#if form}
-            <p class="form-message {form.success ? 'success' : 'error'}">{form.message ?? 'Internal Error.'}</p>
+        {#if requestReset.result}
+            <p class="form-message {requestReset.result.success ? 'success' : 'error'}">{requestReset.result.message ?? 'Internal Error.'}</p>
         {/if}
     </div>
 </section>

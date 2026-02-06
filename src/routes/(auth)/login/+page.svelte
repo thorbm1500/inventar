@@ -1,6 +1,6 @@
 <script lang='ts'>
     import {enhance} from '$app/forms';
-    import type {ActionData} from './$types';
+    import type {ActionData} from '../../../../.svelte-kit/types/src/routes';
 
     let {form}: { form: ActionData } = $props();
     let isLoginAllowed = $state(false);

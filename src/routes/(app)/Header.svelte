@@ -12,7 +12,7 @@
     let element: any = undefined;
     let isOnline = $state(true);
     let isDark = $state(true);
-    let accountHoverBoxOpen = $state(true);
+    let accountHoverBoxOpen = $state(false);
 
     onMount(() => {
         user = getContext('user');
@@ -88,7 +88,7 @@
                     </svg>
                 </div>
                 <div class="header-icon">
-                    <a class="user-profile-button" id="account-button" href="/account/{user ? user.uuid : 'loading'}">
+                    <a class="user-profile-button" id="account-button" href="/(app)/account/{user ? user.uuid : 'loading'}">
                         <img src="{user && user.profile_picture ? user.profile_picture : DefaultProfilePicture}" alt="User profile button">
                     </a>
                     {#if ($state.eager(accountHoverBoxOpen)) }

@@ -1,5 +1,4 @@
 <script module lang="ts">
-    import Header from "../Header.svelte";
     import {getInventories, getTotalInventoryCount} from './data.remote.ts';
     import Utility from './utility.ts';
     import type {Inventory} from "$lib/server/db/schema";
@@ -73,8 +72,6 @@
     }
 </script>
 
-<Header/>
-
 <section>
     <div class="inventory-list-container ui-container">
         <div class="inventory-header border-b-container-border dark:border-b-dark-container-border">
@@ -111,7 +108,7 @@
         <div class="inventory-list">
             {#if inventories.length > 0 }
                 {#each inventories as {inventory_uuid, name, description, image_path, item_amount, last_update}}
-                    <a href='/inventory/{inventory_uuid}' target='_parent' class="inventory-list-entry
+                    <a href='/(app)/inventory/{inventory_uuid}' target='_parent' class="inventory-list-entry
                                 border-t-container-border dark:border-t-dark-container-border
                                 border-b-container-border dark:border-b-dark-container-border">
                         <div class="entry-item inventory-meta">

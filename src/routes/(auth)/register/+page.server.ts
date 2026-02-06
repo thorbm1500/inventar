@@ -1,4 +1,4 @@
-import type {Actions} from "../../../.svelte-kit/types/src/routes/register/$types";
+import type {Actions} from "../../../../.svelte-kit/types/src/routes/register/$types";
 import {fail, redirect} from "@sveltejs/kit";
 import {hash} from "@node-rs/argon2";
 import * as db from "$lib/server/db/database";

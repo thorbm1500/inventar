@@ -1,13 +1,5 @@
 <script lang="ts">
-	import './app.css';
-    import {setContext} from "svelte";
-    import type {User} from "$lib/server/db/schema";
-
-	let { children,data } = $props();
-
-    const user: User | undefined = $derived(data.user);
-
-    setContext('user',user);
+    let { children } = $props();
 </script>
 
 <svelte:head>

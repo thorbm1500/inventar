@@ -1,15 +1,14 @@
 <script module lang="ts">
-    import Header from "../../Header.svelte";
     import {error} from '@sveltejs/kit';
     import {validate} from 'uuid';
     import type {Inventory} from "$lib/server/db/schema";
-    import type {PageProps} from "../../../../.svelte-kit/types/src/routes/inventory/[id]/$types";
+    import type {PageProps} from "../../../../../.svelte-kit/types/src/routes/(app)/inventory/[id]/$types";
     import type {Item, User} from "$lib/server/db/schema";
     import ItemCreator from "../components/ItemCreator.svelte";
-    import ItemCreationSuccessfulToast from "../../../components/Toasts/ItemCreationSuccessful.svelte";
-    import GenericErrorToast from "../../../components/Toasts/GenericError.svelte";
+    import ItemCreationSuccessfulToast from "../../../../components/Toasts/ItemCreationSuccessful.svelte";
+    import GenericErrorToast from "../../../../components/Toasts/GenericError.svelte";
     import {parseTimestamp} from '$lib/utilities'
-    import FilterSettings from "./utilities.svelte";
+    import FilterSettings from "./utilities.svelte.js";
     import {getInventory, getItems, getTotalItemCount} from './data.remote.ts';
     import {Spring} from "svelte/motion";
 
@@ -188,9 +187,6 @@
 </div>
 
 <div class="page-content">
-    <div class="header-section">
-        <Header/>
-    </div>
     <div class="body-section">
         <section class="inventory-outer-section">
             <section class="inventory-section">
@@ -352,7 +348,7 @@
                             {#if inventory }
                                 {#if items.length > 0 }
                                     {#each items as item}
-                                        <a href='/' target='_parent' style="height:{filterSettings.rowHeight / 10}rem !important;"
+                                        <a href='/static' target='_parent' style="height:{filterSettings.rowHeight / 10}rem !important;"
                                            class="inventory-list-entry
                                 border-t-container-border dark:border-t-dark-container-border
                                 border-b-container-border dark:border-b-dark-container-border">
