@@ -1,11 +1,10 @@
-import type {Actions} from "../../../.svelte-kit/types/src/routes/demo/lucia/login/$types";
+import type {Actions} from "../../../.svelte-kit/types/src/routes/register/$types";
 import {fail, redirect} from "@sveltejs/kit";
 import {hash} from "@node-rs/argon2";
 import * as db from "$lib/server/db/database";
 import * as auth from "$lib/server/auth";
 import type {PageServerLoad} from "../../../.svelte-kit/types/src/routes/login/$types";
-import {validateUsername,validateEmail,validatePassword} from "$lib/server/auth";
-import type {Session,User} from "$lib/server/db/database";
+import type {Session,User} from "$lib/server/db/schema";
 
 export const load: PageServerLoad = async (event) => {
     if (event.locals.user) {
@@ -21,15 +20,15 @@ export const actions: Actions = {
         const email = formData.get('email');
         const password = formData.get('password');
 
-        if (!validateUsername(username)) {
+        if (!auth.validateUsername(username)) {
             return fail(400, { message: 'Invalid username' });
         }
 
-        if (!validateEmail(email)) {
+        if (!auth.validateEmail(email)) {
             return fail(400, { message: 'Invalid email' });
         }
 
-        if (!validatePassword(password)) {
+        if (!auth.validatePassword(password)) {
             return fail(400, { message: 'Invalid password' });
         }
 

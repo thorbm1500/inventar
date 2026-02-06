@@ -1,6 +1,6 @@
-import postgres, {type RowList} from 'postgres';
+import postgres, {type Row, type RowList} from 'postgres';
 import {env} from "$env/dynamic/private";
-import type {Currency, Session, User} from "$lib/server/db/schema";
+import type {Currency, ResetRequest, Session, User} from "$lib/server/db/schema";
 
 export const sql = postgres({
     host: env.DB_HOST,
@@ -453,7 +453,7 @@ export class Users {
             })
     }
 
-    static async getFromUuid(uuid: string) {
+    static async getFromUuid(uuid: string): Promise<User | undefined> {
         return await sql`SELECT *
                          FROM users
                          WHERE uuid = ${uuid}`
@@ -463,6 +463,7 @@ export class Users {
             })
             .catch(error => {
                 console.error(`Failed to get user with uuid '${uuid}'. Error: ${error}`);
+                return undefined;
             })
     }
 
@@ -471,7 +472,7 @@ export class Users {
                          FROM users
                          WHERE username = ${username}`
             .then(result => {
-                return result[0] ?? undefined;
+                return result[0] as User ?? undefined;
             })
             .catch(error => {
                 console.error(`Failed to get user with username '${username}'. Error: ${error}`);
@@ -506,13 +507,22 @@ export class Users {
             });
     }
 
+    static async setPasswordHash(uuid: string, passwordHash: string): Promise<boolean> {
+        return await sql`UPDATE users
+                         SET password_hash = ${passwordHash}
+                         WHERE uuid = ${uuid}`
+            .then(() => true)
+            .catch(error => {
+                console.error(`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`);
+                return false;
+            });
+    }
+
     static async delete(email: string): Promise<boolean> {
         return await sql`DELETE
                          FROM users
                          WHERE email = ${email}`
-            .then(() => {
-                return true;
-            })
+            .then(() => true)
             .catch(error => {
                 console.error(`Failed to delete user with email '${email}'. Error: ${error}`);
                 return false;
@@ -520,17 +530,18 @@ export class Users {
     }
 }
 
-export class Sessions {
+export class Auth {
     /**
      * Creates a new session in the database.
      * @param session Session to cache.
      */
-    static async new(session: Session): Promise<RowList<any>> {
+    static async newSession(session: Session): Promise<boolean> {
         return await sql`INSERT INTO sessions (uuid, session_id, expires)
                          VALUES (${session.uuid}, ${session.session_id}, ${session.expires})
                          ON CONFLICT (uuid) DO UPDATE
                              SET session_id = $2,
                                  expires    = $3`
+            .then(() => true)
             .catch(error => {
                 console.error(`Failed to create a new session for user with uuid '${session.uuid}' with id '${session.session_id}'. Error: ${error}`);
                 return false;
@@ -541,12 +552,12 @@ export class Sessions {
      * Gets an existing session.
      * @param session_id Id of session to retrieve.
      */
-    static async get(session_id: string): Promise<any> {
+    static async getSession(session_id: string): Promise<any> {
         return await sql`SELECT *
                          FROM sessions
                          WHERE session_id = ${session_id}`
             .then(result => {
-                return {uuid: result[0].uuid, session_id: result[0].session_id, expires: result[0].expires};
+                return {uuid: result[0].uuid ?? undefined, session_id: result[0].session_id ?? undefined, expires: result[0].expires ?? undefined};
             })
             .catch(error => {
                 console.error(`Failed to retrieve session with id '${session_id}'. Error: ${error}`);
@@ -559,7 +570,7 @@ export class Sessions {
      * @param session_id Id of session to renew.
      * @param expires New expiration date.
      */
-    static async renew(session_id: string, expires: number): Promise<void> {
+    static async renewSession(session_id: string, expires: number): Promise<void> {
         await sql`UPDATE sessions
                   SET expires = ${expires}
                   WHERE session_id = ${session_id}`
@@ -573,7 +584,7 @@ export class Sessions {
      * Invalidates the session, forcing the user to login again.
      * @param session_id Id of session to invalidate.
      */
-    static async invalidate(session_id: string): Promise<void> {
+    static async invalidateSession(session_id: string): Promise<void> {
         await sql`DELETE
                   FROM sessions
                   WHERE session_id = ${session_id}`
@@ -582,6 +593,58 @@ export class Sessions {
                 return false;
             });
     }
+
+    static async getResetToken(token: string): Promise<ResetRequest | undefined> {
+        return await sql`SELECT *
+                         FROM reset_tokens
+                         WHERE token = ${token}`
+            .then(result => {
+                const [res] = result;
+                return res as ResetRequest || undefined;
+            })
+            .catch(error => {
+                console.error(`Failed to get reset token '${token}'. Error: ${error}`);
+                return undefined;
+            });
+    }
+
+    static async getResetTokenFromUuid(uuid: string): Promise<ResetRequest | undefined> {
+        return await sql`SELECT *
+                         FROM reset_tokens
+                         WHERE uuid = ${uuid}`
+            .then(result => {
+                const [res] = result;
+                return res as ResetRequest || undefined;
+            })
+            .catch(error => {
+                console.error(`Failed to get reset token of user '${uuid}'. Error: ${error}`);
+                return undefined;
+            });
+    }
+
+    static async setResetToken(uuid: string, token: string, expires: number): Promise<boolean> {
+        return await sql`INSERT INTO reset_tokens(uuid, token, expires)
+                         VALUES (${uuid}, ${token}, ${expires})
+                         ON CONFLICT (uuid) DO UPDATE
+                             SET token   = $2,
+                                 expires = $3`
+            .then(() => true)
+            .catch(error => {
+                console.error(`Failed to set/update reset token for user with uuid '${uuid}'. Error: ${error}`);
+                return false;
+            });
+    }
+
+    static async deleteResetToken(token: string): Promise<boolean> {
+        return await sql`DELETE
+                         FROM reset_tokens
+                         WHERE token = ${token}`
+            .then(() => true)
+            .catch(error => {
+                console.error(`Failed to delete reset token '${token}'. Error: ${error}`);
+                return false;
+            });
+    }
 }
 
-export default {Inventories, Categories, Items, Users, Sessions};
+export default {Inventories, Categories, Items, Users, Auth};

@@ -225,3 +225,24 @@ export async function createTableSessions(sql: postgres.Sql): Promise<void> {
                   FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
               )`;
 }
+
+export interface ResetRequest {
+    uuid: string,
+    token: string,
+    expires: number
+}
+
+/**
+ * Creates the table 'reset_tokens', if it doesn't already exist.
+ * @param sql The database connection on which to perform the query.
+ */
+export async function createTableResetTokens(sql: postgres.Sql): Promise<void> {
+    await sql`CREATE TABLE IF NOT EXISTS reset_tokens
+              (
+                  uuid    UUID UNIQUE NOT NULL,
+                  token   TEXT UNIQUE NOT NULL,
+                  expires BIGINT      NOT NULL,
+                  CONSTRAINT reset_tokens_pkey PRIMARY KEY (uuid),
+                  FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
+              )`;
+}

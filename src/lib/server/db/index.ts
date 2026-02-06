@@ -80,7 +80,7 @@ async function createTables(): Promise<void> {
     }
     try {
         await sql.begin(async (): Promise<void> => await schema.createTableItemAssets(sql).catch(error => {
-            console.error(`Failed to create table 'pending_item_changes': ${error}`);
+            console.error(`Failed to create table 'item_assets': ${error}`);
         }))
     } catch (error: any | {severity_local: string, severity: string, code: string, message: string, file: string, line: string, routine: string}) {
         console.error(`Failed to create tables. Error: ${error}`);
@@ -88,7 +88,7 @@ async function createTables(): Promise<void> {
     }
     try {
         await sql.begin(async (): Promise<void> => await schema.createTableUsers(sql).catch(error => {
-            console.error(`Failed to create table 'pending_item_changes': ${error}`);
+            console.error(`Failed to create table 'users': ${error}`);
         }))
     } catch (error: any | {severity_local: string, severity: string, code: string, message: string, file: string, line: string, routine: string}) {
         console.error(`Failed to create tables. Error: ${error}`);
@@ -96,7 +96,15 @@ async function createTables(): Promise<void> {
     }
     try {
         await sql.begin(async (): Promise<void> => await schema.createTableSessions(sql).catch(error => {
-            console.error(`Failed to create table 'pending_item_changes': ${error}`);
+            console.error(`Failed to create table 'sessions': ${error}`);
+        }))
+    } catch (error: any | {severity_local: string, severity: string, code: string, message: string, file: string, line: string, routine: string}) {
+        console.error(`Failed to create tables. Error: ${error}`);
+        return;
+    }
+    try {
+        await sql.begin(async (): Promise<void> => await schema.createTableResetTokens(sql).catch(error => {
+            console.error(`Failed to create table 'reset_tokens': ${error}`);
         }))
     } catch (error: any | {severity_local: string, severity: string, code: string, message: string, file: string, line: string, routine: string}) {
         console.error(`Failed to create tables. Error: ${error}`);

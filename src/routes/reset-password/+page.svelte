@@ -1,12 +1,12 @@
 <script lang='ts'>
     import {enhance} from '$app/forms';
     import type {ActionData} from './$types';
-
-    // todo: Implement password reset.
+    import {getContext, onMount} from "svelte";
+    import type {User} from "$lib/server/db/schema";
 
     let {form}: { form: ActionData } = $props();
-    let isLoginAllowed = $state(false);
 </script>
+
 <section>
     <div class="inventar-logo">
         <svg id="a" xmlns="http://www.w3.org/2000/svg" width="3013.54" height="659.04" viewBox="0 0 3013.54 659.04">
@@ -30,18 +30,20 @@
         </svg>
     </div>
     <div class="login-form">
-        <form method="post" action="?/reset-password" use:enhance>
+        <form method="post" action="?/request" use:enhance>
             <label for="Email">
-                <input type="text" name="email" placeholder="Email" class="email-input"/>
+                <input type="text" name="email" placeholder="Email" class="email-input" required/>
             </label>
             <div class="reset-form-buttons">
                 <a href="/login">
                     <button class="back-button">Back</button>
                 </a>
-                <button class="reset-button">Request reset</button>
+                <button class="reset-button {form && form.success ? 'disabled' : ''}">Request reset</button>
             </div>
         </form>
-        <p style='color: red'>{form?.message ?? ''}</p>
+        {#if form}
+            <p class="form-message {form.success ? 'success' : 'error'}">{form.message ?? 'Internal Error.'}</p>
+        {/if}
     </div>
 </section>
 
@@ -55,7 +57,7 @@
         flex-flow: column nowrap;
         justify-content: center;
         align-items: center;
-        gap: 2rem;
+        gap: 1rem;
 
         .inventar-logo {
             margin: 0 0 1.5rem 0;
@@ -74,6 +76,18 @@
             justify-content: center;
             align-content: center;
             align-items: center;
+
+            .form-message {
+                margin-top: 1.25rem;
+            }
+
+            .form-message.success {
+                color: greenyellow;
+            }
+
+            .form-message.error {
+                color: red;
+            }
         }
 
         form {
@@ -94,6 +108,7 @@
                     font-weight: 400;
                     background: #1f2023;
                     border: .122em solid #464b65;
+                    outline: none;
                     color: #FFFFF2;
                     accent-color: var(--theme-text-accent);
                 }
@@ -116,7 +131,7 @@
             width: fit-content;
             margin-left: .5em;
             margin-right: .5em;
-            margin-top: 2.5rem;
+            margin-top: 1.5rem;
             padding: .35rem .8rem;
             background: oklch(0.233 0.015 279.523);
             border: .12em solid oklch(0.302 0.011 271.028);
@@ -138,6 +153,11 @@
             background: oklch(62.3% 0.214 259.815);
             border: .12em solid oklch(74.6% 0.16 232.661);
             filter: drop-shadow(0 0 1em rgba(from oklch(62.3% 0.214 259.815) r g b / 0.10));
+        }
+
+        .reset-button.disabled {
+            pointer-events: none;
+            cursor: pointer !important;
         }
     }
 </style>

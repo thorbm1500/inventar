@@ -2,18 +2,35 @@
     import {page} from "$app/state";
     import {getContext, onMount} from 'svelte';
     import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
-
 </script>
 
 <script lang="ts">
     import type {User} from "$lib/server/db/schema";
 
-    const user: User = getContext('user');
+    let user: User | undefined = $state();
 
     let element: any = undefined;
     let isOnline = $state(true);
-
     let isDark = $state(true);
+    let accountHoverBoxOpen = $state(true);
+
+    onMount(() => {
+        user = getContext('user');
+
+        document.getElementById('account-button')?.addEventListener('mouseenter', () => {
+            if (accountHoverBoxOpen) {
+                accountHoverBoxOpen = false;
+                return;
+            }
+
+            accountHoverBoxOpen = true;
+            addEventListener('pointermove', () => {
+                document.getElementById('account-hover-box')?.addEventListener('mouseleave', () => {
+                    accountHoverBoxOpen = false;
+                })
+            })
+        });
+    })
 
     onMount(async () => {
         element = document.getElementsByTagName('body')[0]
@@ -33,6 +50,7 @@
     setInterval(() => {
         isOnline = navigator.onLine
     }, 2000)
+
 </script>
 
 <section class="bg-light-header dark:bg-dark-header border-b-[0.1em] border-light-header-border dark:border-dark-header-border z-99999">
@@ -57,7 +75,7 @@
             <nav class="text-text-primary dark:text-dark-text-primary">
                 <a aria-current={page.url.pathname === '/'} title="Home" href="/">Home</a>
                 <a aria-current={page.url.pathname === '/browse'} title="Browse" href="/browse">Browse</a>
-                {#if (user.primary_inventory !== null) }
+                {#if (user && user.primary_inventory) }
                     <a aria-current={page.url.pathname === '/inventory/'+user.primary_inventory} title="Browse" href="/inventory/{user.primary_inventory}">Inventory</a>
                 {/if}
                 <a aria-current={page.url.pathname === '/projects'} title="Projects" href="/projects">Projects</a>
@@ -70,9 +88,21 @@
                     </svg>
                 </div>
                 <div class="header-icon">
-                    <a class="user-profile-button" href="/account/{user.uuid}">
-                        <img src="{user.profile_picture ?? DefaultProfilePicture}" alt="Profile picture">
+                    <a class="user-profile-button" id="account-button" href="/account/{user ? user.uuid : 'loading'}">
+                        <img src="{user && user.profile_picture ? user.profile_picture : DefaultProfilePicture}" alt="User profile button">
                     </a>
+                    {#if ($state.eager(accountHoverBoxOpen)) }
+                        <div class="account-hover-box" id="account-hover-box">
+                            <button class="hover-box-button settings-button" type="button" title="Settings">
+                                SETTINGS
+                            </button>
+                            <button class="hover-box-button logout-button" type="button" title="Logout" onclick="{ () => {
+                                window.location.href = '/logout';
+                            } }">
+                                LOGOUT
+                            </button>
+                        </div>
+                    {/if}
                 </div>
                 <div class="header-icon">
                     <button class="page-theme-switch-button" id="dark-light-mode-switcher" onclick={toggleTheme} title="Page Theme Switcher">
@@ -227,6 +257,59 @@
                             stroke-width: 1.65;
 
                             transition-duration: 150ms;
+                        }
+
+                        .account-hover-box {
+                            position: absolute;
+                            transform: translateY(2.25rem) translateX(-4.25rem);
+                            --bg: #666;
+                            background-color: rgba(from var(--theme-background-container) r g b / 35%);
+                            border: .12em solid var(--theme-border-button);
+                            backdrop-filter: blur(4px);
+                            color: var(--theme-text);
+                            border-radius: .45rem;
+                            padding: .75rem;
+                            filter: drop-shadow(1px 1px 3px rgb(0 0 0 / 0.1));
+                            width: 10rem;
+                            height: fit-content;
+
+                            z-index: 15000;
+
+                            * {
+                                transition: none;
+                            }
+
+                            .hover-box-button {
+                                font-family: 'Funnel Sans', sans-serif;
+                                font-weight: 750;
+                                font-size: 1.025rem;
+                                text-align: center;
+                                width: 100%;
+                                border-radius: .5em;
+                                padding: 0.2rem 0.6rem;
+                                border-width: .12em;
+                                border-style: solid;
+                                box-shadow: 0 .1em .15em rgba(13 13 13 / 10%);
+                                margin-bottom: .5rem;
+
+                                cursor: pointer;
+                                user-select: none;
+                            }
+
+                            .hover-box-button:last-child {
+                                margin-bottom: 0;
+                            }
+
+                            .settings-button {
+                                background: var(--theme-background-button);
+                                border-color: var(--theme-border-button);
+                            }
+
+                            .logout-button {
+                                background: oklch(45.5% 0.188 13.697);
+                                border-color: oklch(64.5% 0.246 16.439);
+                                color: #FFFFF2;
+                            }
                         }
                     }
                 }

@@ -1,10 +1,11 @@
-<script lang='ts'>
+<script lang="ts">
     import {enhance} from '$app/forms';
-    import type {ActionData} from './$types';
+    import type {ActionData} from "../../../../.svelte-kit/types/src/routes/reset-password/$types";
+    import {page} from "$app/state";
 
     let {form}: { form: ActionData } = $props();
-    let isLoginAllowed = $state(false);
 </script>
+
 <section>
     <div class="inventar-logo">
         <svg id="a" xmlns="http://www.w3.org/2000/svg" width="3013.54" height="659.04" viewBox="0 0 3013.54 659.04">
@@ -28,22 +29,21 @@
         </svg>
     </div>
     <div class="login-form">
-        <form method="post" action="?/login" use:enhance>
-            <label for="Email">
-                <input type="text" name="email" placeholder="Email" class="email-input" autocomplete="email" required/>
-            </label>
+        <form method="post" action="?/reset" use:enhance>
+            <input type="hidden" name="token" value="{page.params.token ?? ''}" required/>
             <label for="Password">
-                <input type="password" name="password" placeholder="Password" class="password-input" autocomplete="current-password" required/>
+                <input type="password" name="password" placeholder="New Password" class="password-input" autocomplete="new-password" required/>
             </label>
-            <div class="login-form-buttons">
-                <button class="login-button">Login</button>
-                <a href="/register">
-                    <button class="">Register</button>
+            <div class="reset-form-buttons">
+                <a href="/login">
+                    <button class="back-button">Back</button>
                 </a>
+                <button type="{form && form.success ? 'button' : 'submit'}" class="reset-button">Confirm</button>
             </div>
         </form>
-        <a class="forgot-password" href="/reset-password">Forgot password?</a>
-        <p style='color: red'>{form?.message ?? ''}</p>
+        {#if form}
+            <p class="form-message {form.success ? 'success' : 'error'}">{form.message ?? 'Internal Error.'}</p>
+        {/if}
     </div>
 </section>
 
@@ -57,7 +57,7 @@
         flex-flow: column nowrap;
         justify-content: center;
         align-items: center;
-        gap: 2rem;
+        gap: 1rem;
 
         .inventar-logo {
             margin: 0 0 1.5rem 0;
@@ -76,6 +76,18 @@
             justify-content: center;
             align-content: center;
             align-items: center;
+
+            .form-message {
+                margin-top: 1.25rem;
+            }
+
+            .form-message.success {
+                color: greenyellow;
+            }
+
+            .form-message.error {
+                color: red;
+            }
         }
 
         form {
@@ -96,6 +108,7 @@
                     font-weight: 400;
                     background: #1f2023;
                     border: .122em solid #464b65;
+                    outline: none;
                     color: #FFFFF2;
                     accent-color: var(--theme-text-accent);
                 }
@@ -108,44 +121,43 @@
                     border-color: oklch(64.5% 0.246 16.439);
                 }
             }
-
-            .login-form-buttons {
-                user-select: none;
-
-                button {
-                    width: fit-content;
-                    margin-left: .25em;
-                    margin-right: .25em;
-                    margin-top: 1.5rem;
-                    padding: .35rem .8rem;
-                    background: oklch(0.233 0.015 279.523);
-                    border: .12em solid oklch(0.302 0.011 271.028);
-                    border-radius: .6em;
-                    color: #FFFFF2;
-                }
-
-                button:hover {
-                    cursor: pointer;
-
-                    background: oklch(0.281 0.02 280.925);
-                    border: .12em solid oklch(0.375 0.013 267.193);
-                    filter: drop-shadow(0 0 1em rgba(255, 255, 242, 0.04));
-                }
-            }
         }
 
-        .forgot-password {
+        .reset-form-buttons {
             user-select: none;
-            margin-top: 1rem;
-            color: #51565b;
-
-            transition: 400ms 125ms ease;
         }
 
-        .forgot-password:hover {
+        .reset-form-buttons button, .back-button {
+            width: fit-content;
+            margin-left: .5em;
+            margin-right: .5em;
+            margin-top: 1.5rem;
+            padding: .35rem .8rem;
+            background: oklch(0.233 0.015 279.523);
+            border: .12em solid oklch(0.302 0.011 271.028);
+            border-radius: .6em;
             color: #FFFFF2;
+        }
 
-            transition: 50ms ease;
+        .reset-form-buttons .back-button:hover {
+            cursor: pointer;
+
+            background: oklch(0.281 0.02 280.925);
+            border: .12em solid oklch(0.375 0.013 267.193);
+            filter: drop-shadow(0 0 1em rgba(255, 255, 242, 0.04));
+        }
+
+        .reset-form-buttons .reset-button:hover {
+            cursor: pointer;
+
+            background: oklch(62.3% 0.214 259.815);
+            border: .12em solid oklch(74.6% 0.16 232.661);
+            filter: drop-shadow(0 0 1em rgba(from oklch(62.3% 0.214 259.815) r g b / 0.10));
+        }
+
+        .reset-button.disabled {
+            pointer-events: none;
+            cursor: pointer !important;
         }
     }
 </style>

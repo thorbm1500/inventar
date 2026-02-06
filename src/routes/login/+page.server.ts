@@ -3,7 +3,6 @@ import {fail, redirect} from '@sveltejs/kit';
 import * as auth from '$lib/server/auth';
 import * as db from "$lib/server/db/database";
 import type {Actions, PageServerLoad} from './$types';
-import {validateEmail,validatePassword} from "$lib/server/auth";
 import type {Session, User} from "$lib/server/db/schema";
 
 export const load: PageServerLoad = async (event) => {
@@ -19,10 +18,10 @@ export const actions: Actions = {
         const email = formData.get('email');
         const password = formData.get('password');
 
-        if (!validateEmail(email)) {
+        if (!auth.validateEmail(email)) {
             return fail(400, {message: 'Invalid email (min 3, max 31 characters, alphanumeric only)'});
         }
-        if (!validatePassword(password)) {
+        if (!auth.validatePassword(password)) {
             return fail(400, {message: 'Invalid password (min 32, max 255 characters)'});
         }
 
@@ -40,10 +39,11 @@ export const actions: Actions = {
 
         const validPassword = await verify(passwordHash.valueOf(), password, {
             memoryCost: 19456,
-            timeCost: 2,
+            timeCost: 5,
             outputLen: 32,
             parallelism: 1,
         });
+
         if (!validPassword) {
             return fail(400, {message: 'Incorrect username or password'});
         }

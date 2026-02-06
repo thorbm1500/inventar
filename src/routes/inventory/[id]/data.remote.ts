@@ -4,11 +4,6 @@ import {error} from '@sveltejs/kit';
 import * as v from 'valibot';
 import util from "$lib/server/utilities";
 import type {Currency, Inventory, Item} from "$lib/server/db/schema";
-import {env} from '$env/dynamic/private'
-
-export const getUploadPath = query((): String => {
-    return env.UPLOAD_PATH;
-});
 
 export const getInventory = query(v.string(), async (id: string): Promise<Inventory> => {
     const [result] = await db.Inventories.fetchInventoryByUuid(id);

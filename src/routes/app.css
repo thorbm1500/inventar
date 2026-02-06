@@ -92,6 +92,7 @@
     --container-full-height: 87.5%;
     --border-radius: .8rem;
     --icon-border-radius: .65rem;
+    --theme-icon-disabled: #d0d0d0;
     --border-width: .1em;
     --form-input-border-radius: .4rem;
     --form-input-background: #41414b;
@@ -143,9 +144,10 @@
     --theme-background-highlight: #18181c;
     --theme-background-container: #151518;
     --theme-background-button: #151518;
-    --theme-background-button-hover: #18181c;
+    --theme-background-button-hover: #24242a;
     --theme-border-container: #2E323D;
-    --theme-border-button: #2E323D;
+    --theme-border-button: #2c303a;
+    --theme-icon-disabled: #2a2e31;
 
     --theme-form-input-background-dark: #1f2023;
     --theme-form-input-border-dark: .122em solid #464b65;
