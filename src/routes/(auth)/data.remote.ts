@@ -1,13 +1,15 @@
 import * as v from 'valibot';
-import * as auth from "$lib/server/auth";
+import * as auth from "$lib/server/internal/auth";
 import * as db from "$lib/server/db/database";
 import {form} from '$app/server';
-import type {ResetRequest, Session, User} from "$lib/server/db/schema";
-import {sendPasswordResetLink} from "$lib/server/mail";
+import type {ResetRequest, Session} from "$lib/server/db/schema";
+import {sendPasswordResetLink} from "$lib/server/internal/mail";
 import {sha256} from "@oslojs/crypto/sha2";
 import {encodeHexLowerCase} from "@oslojs/encoding";
 import {hash, verify} from "@node-rs/argon2";
 import {redirect} from "@sveltejs/kit";
+import type {DatabaseResult} from "$lib/server/db/database";
+import type {UserInterface} from "$lib/server/components/User";
 
 export const requestReset = form(
     v.object({email: v.pipe(v.string(), v.nonEmpty())}),
@@ -17,10 +19,22 @@ export const requestReset = form(
             return {success: false, message: 'Invalid email (min 3, max 31 characters, alphanumeric only)'}
         }
 
-        const user: User | undefined = await db.Users.getFromEmail(email);
+        const result: DatabaseResult = await db.Users.getFromEmail(email);
+
+        if (!result.success) {
+            return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
+        }
+
+        const user: UserInterface = result.result as UserInterface;
 
         if (user) {
-            const existingToken: ResetRequest | undefined = await db.Auth.getResetTokenFromUuid(user.uuid);
+            const tokenResult: DatabaseResult = await db.Auth.getResetTokenFromUuid(user.uuid);
+
+            if (!tokenResult.success) {
+                return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
+            }
+
+            const existingToken: ResetRequest = result.result as ResetRequest;
 
             if (existingToken && existingToken.expires > new Date(Date.now()).getTime()) {
                 return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
@@ -36,7 +50,7 @@ export const requestReset = form(
             }
         }
 
-        return {success: true, message: 'A reset link has been sent, if an account with that email exists.'}
+        return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
     });
 
 export const resetPassword = form(
@@ -46,7 +60,13 @@ export const resetPassword = form(
     }),
     async ({_token, _password}) => {
         const resetToken: string = encodeHexLowerCase(sha256(new TextEncoder().encode(_token)));
-        const resetRequest: ResetRequest | undefined = await db.Auth.getResetToken(resetToken);
+        const result: DatabaseResult = await db.Auth.getResetToken(resetToken);
+
+        if (!result.success) {
+            return {success: false, message: 'Failed to reset password. If this problem persists, please contact the system administrator'};
+        }
+
+        const resetRequest: ResetRequest = result.result as ResetRequest;
 
         if (resetRequest && resetRequest.expires > new Date(Date.now()).getTime()) {
             if (!auth.validatePassword(_password)) {
@@ -61,12 +81,18 @@ export const resetPassword = form(
                     parallelism: 1,
                 });
 
-                const passwordUpdate: boolean = await db.Users.setPasswordHash(resetRequest.uuid, passwordHash);
+                const updateResult: DatabaseResult = await db.Users.setPasswordHash(resetRequest.uuid, passwordHash);
+
+                if (!updateResult.success) {
+                    return {success: false, message: 'Failed to update password. If this problem persists, please contact the server administrator'};
+                }
+
+                const passwordUpdate: boolean = result.result;
                 await db.Auth.deleteResetToken(_token);
 
                 if (!passwordUpdate) {
                     console.error(`Failed to reset password for user '${resetRequest.uuid}'.`);
-                    return {success: false, message: 'Failed to update password. If this problem persists, please reach out to the server administrator.'};
+                    return {success: false, message: 'Failed to update password. If this problem persists, please contact the server administrator'};
                 } else {
                     return redirect(302, '/login')
                 }
@@ -91,14 +117,26 @@ export const login = form(
             return {success: false, message: 'Invalid password (min 32, max 255 characters)'};
         }
 
-        const user: User | undefined = await db.Users.getFromEmail(email);
+        const result: DatabaseResult = await db.Users.getFromEmail(email);
+
+        if (!result.success) {
+            return {success: false, message: 'Failed to login. If this continues, please contact the system administrator'};
+        }
+
+        const user: UserInterface = result.result as UserInterface;
 
         if (!user) {
             console.error(`Login failed: No user exists with the email '${email}'.`);
             return {success: false, message: 'Incorrect username or password'};
         }
 
-        const passwordHash: String | undefined = await db.Users.getPasswordHash(user.uuid);
+        const passwordResult: DatabaseResult = await db.Users.getPasswordHash(user.uuid);
+
+        if (!passwordResult.success) {
+            return {success: false, message: 'Failed to login. If this continues, please contact the system administrator'};
+        }
+
+        const passwordHash: string = result.result;
 
         if (!passwordHash) {
             console.error(`Login failed: No password found in the database for user with email '${email}'.`);
@@ -118,8 +156,8 @@ export const login = form(
         }
 
         const sessionToken: string = auth.generateSessionToken();
-        const session: Session = await auth.createSession(sessionToken, user.uuid);
-        auth.setSessionTokenCookie(sessionToken, session.expires);
+        const session: Session | null = await auth.createSession(sessionToken, user.uuid);
+        if (session) auth.setSessionTokenCookie(sessionToken, session.expires);
 
         return redirect(302, '/');
     });
@@ -158,15 +196,21 @@ export const register = form(
         });
 
         try {
-            const user: User | undefined = await db.Users.create(email, username, passwordHash);
+            const result: DatabaseResult = await db.Users.create(email, username, passwordHash);
+
+            if (!result.success) {
+                return {success: false, message: 'Failed to register new user. If this problem persists, please contact the system administrator'};
+            }
+
+            const user: UserInterface = result.result as UserInterface;
 
             if (!user) {
-                return {success: false, message: 'An error has occurred'};
+                return {success: false, message: 'Failed to register new user. If this problem persists, please contact the system administrator'};
             }
 
             const sessionToken: string = auth.generateSessionToken();
-            const session: Session = await auth.createSession(sessionToken, user.uuid);
-            auth.setSessionTokenCookie(sessionToken, session.expires);
+            const session: Session | null = await auth.createSession(sessionToken, user.uuid);
+            if (session) auth.setSessionTokenCookie(sessionToken, session.expires);
         } catch {
             return {success: false, message: 'An error has occurred'};
         }

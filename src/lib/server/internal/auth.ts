@@ -4,7 +4,8 @@ import {sha256} from '@oslojs/crypto/sha2';
 import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
 import * as db from "$lib/server/db/database";
 import type {Session} from "$lib/server/db/schema";
-import { DAY_IN_MS } from '../utilities';
+import { DAY_IN_MS } from '$lib/utilities';
+import type {DatabaseResult} from "$lib/server/db/database";
 
 export const sessionCookieName = 'auth-session';
 
@@ -20,7 +21,8 @@ export function generateResetToken(): string {
 
 export async function createResetRequest(token: string, uuid: string): Promise<boolean> {
     const resetToken: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    return await db.Auth.setResetToken(uuid, resetToken, new Date(Date.now() + 1800000).getTime());
+    const result: DatabaseResult = await db.Auth.setResetToken(uuid, resetToken, new Date(Date.now() + 1800000).getTime());
+    return result.success;
 }
 
 /**
@@ -28,15 +30,16 @@ export async function createResetRequest(token: string, uuid: string): Promise<b
  * @param token Token for the session id.
  * @param uuid The user's uuid.
  */
-export async function createSession(token: string, uuid: string): Promise<Session> {
+export async function createSession(token: string, uuid: string): Promise<Session | null> {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
     const session: Session = {
         uuid,
         session_id,
         expires: new Date(Date.now() + DAY_IN_MS * 7).getTime()
     };
-    await db.Auth.newSession(session);
-    return session;
+    const result: DatabaseResult = await db.Auth.newSession(session);
+
+    return result.success ? session : null;
 }
 
 export async function validateSessionToken(token: string) {
@@ -56,7 +59,10 @@ export async function validateSessionToken(token: string) {
     const renewSession: boolean = Date.now() >= (result.expires - DAY_IN_MS * 3);
     if (renewSession) {
         result.expires = new Date(Date.now() + DAY_IN_MS * 7);
-        await db.Auth.renewSession(session_id, result.expires);
+        const renewalResult: DatabaseResult = await db.Auth.renewSession(session_id, result.expires);
+        if (!renewalResult.success) {
+            return {uuid: null, session_id: null, expires: null};
+        }
     }
 
     return {uuid: result.uuid, session_id: result.session_id, expires: result.expires};
@@ -68,8 +74,9 @@ export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionT
  * Invalidate the given session.
  * @param session_id Id of session to invalidate.
  */
-export async function invalidateSession(session_id: string): Promise<void> {
-    await db.Auth.invalidateSession(session_id);
+export async function invalidateSession(session_id: string): Promise<boolean> {
+    const result: DatabaseResult = await db.Auth.invalidateSession(session_id);
+    return result.success;
 }
 
 export function setSessionTokenCookie(token: string, expires: number, event: RequestEvent | undefined = undefined): void {

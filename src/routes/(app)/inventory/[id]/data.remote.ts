@@ -1,15 +1,18 @@
+import {error} from '@sveltejs/kit';
 import {query} from '$app/server';
 import * as db from '$lib/server/db/database'
-import {error} from '@sveltejs/kit';
 import * as v from 'valibot';
 import util from "$lib/server/utilities";
-import type {Currency, Inventory, Item} from "$lib/server/db/schema";
+import type {Currency} from "$lib/server/db/schema";
+import type {DatabaseResult} from "$lib/server/db/database";
+import type {InventoryInterface} from "$lib/server/components/Inventory";
+import type {ItemInterface} from "$lib/server/components/Item";
 
-export const getInventory = query(v.string(), async (id: string): Promise<Inventory> => {
-    const [result] = await db.Inventories.fetchInventoryByUuid(id);
-    if (!result) error(500, "Failed to fetch inventory.");
+export const getInventory = query(v.string(), async (id: string): Promise<InventoryInterface> => {
+    const result: DatabaseResult = await db.Inventories.fetchInventoryByUuid(id);
+    if (!result.success) error(500, "Failed to fetch inventory.");
 
-    return result as Inventory;
+    return result.result as InventoryInterface;
 });
 
 const itemsObj = v.object({
@@ -21,28 +24,33 @@ const itemsObj = v.object({
 });
 
 export const getCurrencies = query(async (): Promise<Currency[]> => {
-    const result: Currency[] = await db.getCurrencies();
-    if (!result) error(500, "Failed to fetch currencies.");
+    const result: DatabaseResult = await db.getCurrencies();
+    if (!result.success) error(500, `Failed to fetch currencies: ${result.message}`);
 
-    return result;
+    const currencies = result.result as Currency[];
+    return currencies;
 });
 
-export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
+export const getItems = query(itemsObj, async (data): Promise<ItemInterface[]> => {
     if (util.isOffline()) {
-        return [];
+        const result: DatabaseResult = await db.Items.fetch(data.inventory_uuid,data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+
+        if (result.success) {
+            return result.result as ItemInterface[];
+        }
     }
-    else {
-        const result = await db.Items.fetch(data.inventory_uuid,data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
-        return result;
-    }
+
+    return [];
 });
 
 export const getTotalItemCount = query(v.string(), async (id: string): Promise<number> => {
     if (util.isOffline()) {
-        return 1;
+        const result: DatabaseResult = await db.Items.fetchTotalItemCount(id);
+
+        if (result.success) {
+            return result.result;
+        }
     }
-    else {
-        const result = await db.Items.fetchTotalItemCount(id);
-        return result;
-    }
+
+    return 1;
 });

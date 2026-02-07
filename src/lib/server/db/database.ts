@@ -1,10 +1,10 @@
-import postgres, {type Row, type RowList} from 'postgres';
 import {env} from "$env/dynamic/private";
-import type {Currency, ResetRequest, Session, User} from "$lib/server/db/schema";
+import postgres, {type Row, type RowList} from 'postgres';
+import type {Currency, Session, ResetRequest} from "$lib/server/db/schema";
 
 export const sql = postgres({
     host: env.DB_HOST,
-    port: Number.parseInt(env.DB_PORT ?? 'NONE'),
+    port: Number.parseInt(env.DB_PORT ?? '0'),
     database: env.DB_DATABASE,
     username: env.DB_USER,
     password: env.DB_PASSWORD,
@@ -12,22 +12,28 @@ export const sql = postgres({
     }
 });
 
-export async function getCurrencies(): Promise<Currency[]> {
+export interface DatabaseResult {
+    success: boolean,
+    result?: any,
+    rawResult?: RowList<Row[]>,
+    message?: string
+}
+
+export async function getCurrencies(): Promise<DatabaseResult> {
     return await sql`SELECT *
                      FROM currencies`
         .then(result => {
             const results: Currency[] = [];
             result.forEach(row => results.push({code: row.code, number: row.number, symbol: row.symbol ?? null}))
-            return results;
+            return {success: true, result: results, rawResult: result};
         })
         .catch(error => {
             console.error(`Failed to fetch currencies. Error: ${error}`);
-            return [];
+            return {success: false, message: `Failed to fetch currencies. Error: ${error}`};
         })
 }
 
 export class Inventories {
-
     /**
      * Creates a new inventory.
      * @param name The inventory's name.
@@ -35,252 +41,86 @@ export class Inventories {
      * @param image The path of the inventory's thumbnail, if any.
      * @return The UUID of the new inventory, or undefined if any errors occurred.
      */
-    static async create(name: string, description?: string, image?: string): Promise<string | undefined> {
+    static async create(name: string, description?: string, image?: string): Promise<DatabaseResult> {
         return await sql`INSERT INTO inventories (name${description ? `,description` : ``}${image ? `,image` : ``})
                          VALUES (${name}${description ? `,${description}` : ``}${image ? `,${image}` : ``})
                          ON CONFLICT DO NOTHING
                          RETURNING inventory_uuid`
             .then(result => {
-                const id = result[0]['inventory_uuid'];
-                console.log(`Inventory '${name}' has been created, and has received ID '${id}'`);
-                return id;
+                const [res] = result;
+                const id: string = res.inventory_uuid ?? 'NONE';
+                return {success:true, result: id, rawResult: result};
             }).catch((error) => {
                 console.error(`Failed to create inventory '${name}'. Error: ${error}`);
-                return undefined;
+                return {success:false, message: `Failed to create inventory '${name}'. Error: ${error}`}
             });
     }
 
-    static async delete(uuid: string): Promise<boolean> {
-        return await sql`DELETE
-                         FROM inventories
-                         WHERE inventory_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully deleted inventory with UUID '${uuid}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to delete inventory with UUID '${uuid}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async rename(uuid: string, name: string): Promise<boolean> {
-        return await sql`UPDATE inventories
-                         SET name = ${name}
-                         WHERE inventory_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully renamed inventory with UUID '${uuid}' to '${name}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to rename inventory with UUID '${uuid}' to '${name}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async changeDescription(uuid: string, description: string): Promise<boolean> {
-        return await sql`UPDATE inventories
-                         SET description = ${description}
-                         WHERE inventory_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully updated the description of inventory with UUID '${uuid}' to '${description}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to update the description of inventory with UUID '${uuid}' to '${description}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-
-    static async changeImage(uuid: string, path: string): Promise<boolean> {
-        return await sql`UPDATE inventories
-                         SET image_path = ${path}
-                         WHERE inventory_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully updated image of inventory with UUID '${uuid}' to '${path}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to updated image of inventory with UUID '${uuid}' to '${path}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async removeDescription(uuid: string): Promise<boolean> {
-        return await sql`UPDATE inventories
-                         SET description = NULL
-                         WHERE inventory_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully removed description of inventory with UUID '${uuid}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to remove the description of inventory with UUID '${uuid}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async removeImage(uuid: string): Promise<boolean> {
-        return await sql`UPDATE inventories
-                         SET image_path = NULL
-                         WHERE inventory_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully removed image of inventory with UUID '${uuid}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to remove the image of inventory with UUID '${uuid}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async fetchAll() {
-        return await sql`SELECT *
-                         FROM inventories`
-            .then(result => {
-                return result;
-            })
-            .catch(error => {
-                console.error(`Failed to fetch all inventories. Error: ${error}`);
-                return [];
-            })
-    }
-
-    static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<any[]> {
+    static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<DatabaseResult> {
         return await sql`select *
                          from inventories ${order_by === '' ? `` : sql`order by
                          ${sql(order_by)}
                          ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
                          LIMIT ${amount} OFFSET ${offset}`
             .then(result => {
-                return result;
+                return {success:true, result: result, rawResult: result};
             })
             .catch(error => {
                 console.error(`Failed to fetch items. Error: ${error}`);
-                return [];
+                return {success:false, message: `Failed to fetch items. Error: ${error}`};
             });
     }
 
-    static async fetchTotalInventoryCount(): Promise<number> {
+    static async fetchTotalInventoryCount(): Promise<DatabaseResult> {
         return await sql`SELECT COUNT(inventory_uuid) AS amount
                          FROM inventories`
             .then(result => {
-                return result[0].amount;
+                const [res] = result;
+                return {success:true,result: res.amount ?? 0,rawResult: result};
             })
             .catch(error => {
                 console.error(`Failed to fetch total inventory count. Error: ${error}`);
-                return 1;
+                return {success:false,message:`Failed to fetch total inventory count. Error: ${error}`};
             })
     }
 
-    static async fetchInventoryByUuid(uuid: string) {
+    static async fetchInventoryByUuid(uuid: string): Promise<DatabaseResult> {
         return await sql`SELECT *
                          FROM inventories
                          WHERE inventory_uuid = ${uuid}`
             .then(result => {
-                return result;
+                const [res] = result;
+                return {success:true,result:res,rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to fetch inventory with UUID '${uuid}'. Error: ${error}`);
-                return [];
-            })
-    }
-
-    static async fetchItems(amount: number = 15, order_by: string, order: string, offset: number = 0) {
-        if (amount < 15) amount = 15;
-        else if (amount > 60) amount = 60;
-
-        return await sql`select *
-                         from items ${order_by === '' ? `` : sql`order by
-                         ${sql(order_by)}
-                         ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
-                         LIMIT ${amount} OFFSET ${offset}`
-            .then(result => {
-                return result;
-            })
-            .catch(error => {
-                console.error(`Failed to fetch items. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to fetch inventory with UUID '${uuid}'. Error: ${error}`};
             })
     }
 }
 
 export class Categories {
-    static async create(name: string, description?: string) {
+    static async create(name: string, description?: string): Promise<DatabaseResult> {
         return await sql`INSERT INTO categories (name${description ? description : ``})
                          VALUES (${name}${description ? `,${description}` : ``})
                          ON CONFLICT DO NOTHING
                          RETURNING category_uuid`
             .then(result => {
-                const id = result[0]['category_uuid'];
+                const [res] = result;
+                const id = res.category_uuid ?? 'NONE';
                 console.log(`Inventory '${name}' has been created, and has received ID '${id}'`);
-                return id;
+                return {success:true,result:id,rawResult:result};
             }).catch((error) => {
                 console.error(`Failed to create inventory '${name}'. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to create inventory '${name}'. Error: ${error}`};
             });
-    }
-
-    static async delete(uuid: string): Promise<boolean> {
-        return await sql`DELETE
-                         FROM categories
-                         WHERE category_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully deleted category with UUID '${uuid}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to delete category with UUID '${uuid}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async rename(uuid: string, name: string): Promise<boolean> {
-        return await sql`UPDATE categories
-                         SET name = ${name}
-                         WHERE category_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully renamed category with UUID '${uuid}' to '${name}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to rename category with UUID '${uuid}' to '${name}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async changeDescription(uuid: string, description: string): Promise<boolean> {
-        return await sql`UPDATE categories
-                         SET description = ${description}
-                         WHERE category_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully updated the description of category with UUID '${uuid}' to '${description}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to update the description of category with UUID '${uuid}' to '${description}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async fetchAll() {
-        return await sql`SELECT *
-                         FROM categories`
-            .then(result => {
-                return result;
-            })
-            .catch(error => {
-                console.error(`Failed to fetch all categories. Error: ${error}`);
-                return undefined;
-            })
     }
 }
 
 export class Items {
     /* todo Add categories to itemCategories table */
     static async create(inventory: string, name: string, description?: string, amount: number = 0, categories: [] = [], image?: string,
-                        url?: string, price: number = 0, currency: string = 'DKK'): Promise<{ failed: boolean, error: string, id: any }> {
+                        url?: string, price: number = 0, currency: string = 'DKK'): Promise<DatabaseResult> {
         const item = {
             inventory_uuid: inventory,
             name: name,
@@ -293,240 +133,124 @@ export class Items {
         }
 
         return await sql`INSERT INTO items ${sql(item)}
-                         ON CONFLICT
-        DO NOTHING RETURNING item_uuid`
+                         ON CONFLICT DO NOTHING
+                         RETURNING item_uuid`
             .then(result => {
-                const id = result[0]['item_uuid'];
+                const [res] = result;
+                const id = res.item_uuid ?? 'NONE';
                 console.log(`Item '${name}' has been created, and has received ID '${id}'`);
-                return {failed: false, error: '', id: id};
+                return {success:true,result:id,rawResult:result};
             }).catch((error) => {
                 console.error(`Failed to create item '${name}'. Error: ${error}`);
-                return {failed: true, error: error, id: undefined};
+                return {success:false,message:`Failed to create item '${name}'. Error: ${error}`};
             });
     }
 
-    static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<any[]> {
+    static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<DatabaseResult> {
         return await sql`select *
                          from items
                          where inventory_uuid = ${inventory}
-                             ${order_by === '' ? `` : sql`order by
-                             ${sql(order_by)}
+                             ${order_by === '' ? `` : sql`order by ${sql(order_by)}
                              ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
                          LIMIT ${amount} OFFSET ${offset}`
             .then(result => {
-                return result;
+                return {success:true,result:result,rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to fetch items. Error: ${error}`);
-                return [];
+                return {success:false,message:`Failed to fetch items. Error: ${error}`};
             });
     }
 
-    static async fetchTotalItemCount(inventory_uuid: string): Promise<number> {
+    static async fetchTotalItemCount(inventory_uuid: string): Promise<DatabaseResult> {
         return await sql`SELECT COUNT(item_uuid) AS amount
                          FROM items
                          WHERE inventory_uuid = ${inventory_uuid}`
             .then(result => {
-                return result[0].amount;
+                const [res] = result;
+                return {success:true,result:res.amount??0,rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to fetch total item count. Error: ${error}`);
-                return 1;
+                return {success:false,message:`Failed to fetch total item count. Error: ${error}`};
             })
     }
-
-    static async addCategory(inventory: string, item: string, categories: string[]): Promise<void> {
-        for (const category of categories) {
-            await sql`INSERT INTO item_categories (inventory_uuid, item_uuid, category_uuid)
-                      VALUES (${inventory}, ${item}, ${category})
-                      ON CONFLICT DO NOTHING`
-                .then(() => {
-                    console.log(`Category '${category}' has been added to item '${item}'`);
-                }).catch((error) => {
-                    console.error(`Failed to add category '${category}' to item '${item}'. Error: ${error}`);
-                });
-        }
-    }
-
-    static async removeCategory(inventory: string, item: string, categories: string[]): Promise<void> {
-        for (const category of categories) {
-            await sql`DELETE
-                      FROM item_categories
-                      WHERE inventory_uuid = ${inventory}
-                        AND item_uuid = ${item}
-                        AND category_uuid = ${category}`
-                .then(() => {
-                    console.log(`Category '${category}' has been removed from item '${item}'`);
-                }).catch((error) => {
-                    console.error(`Failed to remove category '${category}' from item '${item}'. Error: ${error}`);
-                });
-        }
-    }
-
-    static async delete(uuid: string): Promise<boolean> {
-        return await sql`DELETE
-                         FROM items
-                         WHERE item_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully deleted item with UUID '${uuid}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to delete item with UUID '${uuid}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async rename(uuid: string, name: string): Promise<boolean> {
-        return await sql`UPDATE items
-                         SET name = ${name}
-                         WHERE item_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully renamed item with UUID '${uuid}' to '${name}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to rename item with UUID '${uuid}' to '${name}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async changeDescription(uuid: string, description: string): Promise<boolean> {
-        return await sql`UPDATE items
-                         SET description = ${description}
-                         WHERE item_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully updated the description of item with UUID '${uuid}' to '${description}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to update the description of item with UUID '${uuid}' to '${description}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async updateAmount(uuid: string, amount: number): Promise<boolean> {
-        return await sql`UPDATE categories
-                         SET amount = ${amount}
-                         WHERE item_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully updated the amount of item with UUID '${uuid}' to '${amount}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to update the amount of item with UUID '${uuid}' to '${amount}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    static async updatePrice(uuid: string, amount: number): Promise<boolean> {
-        return await sql`UPDATE categories
-                         SET price = ${amount}
-                         WHERE item_uuid = ${uuid}`
-            .then((): boolean => {
-                console.log(`Successfully updated the price of item with UUID '${uuid}' to '${amount}'`)
-                return true;
-            })
-            .catch(error => {
-                console.error(`Failed to update the price of item with UUID '${uuid}' to '${amount}'. Error: ${error}`);
-                return false;
-            })
-    }
-
-    //todo: Update thumbnail
-    //todo: Change url
-    //todo: Change currency
-    //todo: Change reserved amount
-    //todo: Update pending amount
 }
 
 export class Users {
-    static async create(email: string, username: string, password_hash: string) {
+    /**
+     * Creates a new user in the database, and returns the new user's uuid.
+     * @param email The user's email.
+     * @param username The user's username.
+     * @param password_hash A hashed version of the user's password.
+     */
+    static async create(email: string, username: string, password_hash: string): Promise<DatabaseResult> {
         return await sql`INSERT INTO users (email, username, password_hash)
-                         VALUES (${email}, ${username}, ${password_hash})`
-            .then(async () => {
-                return await this.getFromUsername(username) ?? undefined;
+                         VALUES (${email}, ${username}, ${password_hash})
+                         RETURNING uuid`
+            .then(result => {
+                const [res] = result;
+                return {success:true,result:res.uuid??'NONE',rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to create new user with username '${username}' and email '${email}'. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to create new user with username '${username}' and email '${email}'. Error: ${error}`};
             })
     }
 
-    static async getFromUuid(uuid: string): Promise<User | undefined> {
+    static async getFromUuid(uuid: string): Promise<DatabaseResult> {
         return await sql`SELECT *
                          FROM users
                          WHERE uuid = ${uuid}`
             .then(result => {
                 const [res] = result;
-                return res as User;
+                return {success:true,result:res,rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to get user with uuid '${uuid}'. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to get user with uuid '${uuid}'. Error: ${error}`};
             })
     }
 
-    static async getFromUsername(username: string) {
-        return await sql`SELECT *
-                         FROM users
-                         WHERE username = ${username}`
-            .then(result => {
-                return result[0] as User ?? undefined;
-            })
-            .catch(error => {
-                console.error(`Failed to get user with username '${username}'. Error: ${error}`);
-                return undefined;
-            })
-    }
-
-    static async getFromEmail(email: string) {
+    static async getFromEmail(email: string): Promise<DatabaseResult> {
         return await sql`SELECT *
                          FROM users
                          WHERE email = ${email}`
             .then(result => {
                 const [res] = result;
-                return res as User;
+                return {success:true,result:res,rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to get user with email '${email}'. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to get user with email '${email}'. Error: ${error}`};
             });
     }
 
-    static async getPasswordHash(uuid: string): Promise<String | undefined> {
+    static async getPasswordHash(uuid: string): Promise<DatabaseResult> {
         return await sql`SELECT password_hash
                          FROM users
                          WHERE uuid = ${uuid}`
             .then(result => {
-                return result[0].password_hash ?? undefined;
+                const [res] = result;
+                return {success:true,result:res.password_hash??'NONE',rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`};
             });
     }
 
-    static async setPasswordHash(uuid: string, passwordHash: string): Promise<boolean> {
+    static async setPasswordHash(uuid: string, passwordHash: string): Promise<DatabaseResult> {
         return await sql`UPDATE users
                          SET password_hash = ${passwordHash}
                          WHERE uuid = ${uuid}`
-            .then(() => true)
+            .then(() => {
+                return {success:true}
+            })
             .catch(error => {
                 console.error(`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`);
-                return false;
+                return {success:false,message:`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`};
             });
-    }
-
-    static async delete(email: string): Promise<boolean> {
-        return await sql`DELETE
-                         FROM users
-                         WHERE email = ${email}`
-            .then(() => true)
-            .catch(error => {
-                console.error(`Failed to delete user with email '${email}'. Error: ${error}`);
-                return false;
-            })
     }
 }
 
@@ -535,16 +259,18 @@ export class Auth {
      * Creates a new session in the database.
      * @param session Session to cache.
      */
-    static async newSession(session: Session): Promise<boolean> {
+    static async newSession(session: Session): Promise<DatabaseResult> {
         return await sql`INSERT INTO sessions (uuid, session_id, expires)
                          VALUES (${session.uuid}, ${session.session_id}, ${session.expires})
                          ON CONFLICT (uuid) DO UPDATE
                              SET session_id = $2,
                                  expires    = $3`
-            .then(() => true)
+            .then(() => {
+                return {success:true};
+            })
             .catch(error => {
                 console.error(`Failed to create a new session for user with uuid '${session.uuid}' with id '${session.session_id}'. Error: ${error}`);
-                return false;
+                return {success:false,message:`Failed to create a new session for user with uuid '${session.uuid}' with id '${session.session_id}'. Error: ${error}`};
             });
     }
 
@@ -552,16 +278,17 @@ export class Auth {
      * Gets an existing session.
      * @param session_id Id of session to retrieve.
      */
-    static async getSession(session_id: string): Promise<any> {
+    static async getSession(session_id: string): Promise<DatabaseResult> {
         return await sql`SELECT *
                          FROM sessions
                          WHERE session_id = ${session_id}`
             .then(result => {
-                return {uuid: result[0].uuid ?? undefined, session_id: result[0].session_id ?? undefined, expires: result[0].expires ?? undefined};
+                const [res] = result;
+                return {success:true,result:{uuid: res.uuid ?? undefined, session_id: res.session_id ?? undefined, expires: res.expires ?? undefined},rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to retrieve session with id '${session_id}'. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to retrieve session with id '${session_id}'. Error: ${error}`};
             });
     }
 
@@ -570,13 +297,16 @@ export class Auth {
      * @param session_id Id of session to renew.
      * @param expires New expiration date.
      */
-    static async renewSession(session_id: string, expires: number): Promise<void> {
-        await sql`UPDATE sessions
+    static async renewSession(session_id: string, expires: number): Promise<DatabaseResult> {
+        return await sql`UPDATE sessions
                   SET expires = ${expires}
                   WHERE session_id = ${session_id}`
+            .then(() => {
+                return {success:true};
+            })
             .catch(error => {
                 console.error(`Failed to invalidate session with id '${session_id}'. Error: ${error}`);
-                return false;
+                return {success:false,message:`Failed to invalidate session with id '${session_id}'. Error: ${error}`};
             });
     }
 
@@ -584,65 +314,72 @@ export class Auth {
      * Invalidates the session, forcing the user to login again.
      * @param session_id Id of session to invalidate.
      */
-    static async invalidateSession(session_id: string): Promise<void> {
-        await sql`DELETE
+    static async invalidateSession(session_id: string): Promise<DatabaseResult> {
+        return await sql`DELETE
                   FROM sessions
                   WHERE session_id = ${session_id}`
+            .then(() => {
+                return {success:true};
+            })
             .catch(error => {
                 console.error(`Failed to invalidate session with id '${session_id}'. Error: ${error}`);
-                return false;
+                return {success:false,message:`Failed to invalidate session with id '${session_id}'. Error: ${error}`};
             });
     }
 
-    static async getResetToken(token: string): Promise<ResetRequest | undefined> {
+    static async getResetToken(token: string): Promise<DatabaseResult> {
         return await sql`SELECT *
                          FROM reset_tokens
                          WHERE token = ${token}`
             .then(result => {
                 const [res] = result;
-                return res as ResetRequest || undefined;
+                return {success:true,result:res as ResetRequest || undefined,rawResult: result};
             })
             .catch(error => {
                 console.error(`Failed to get reset token '${token}'. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to get reset token '${token}'. Error: ${error}`};
             });
     }
 
-    static async getResetTokenFromUuid(uuid: string): Promise<ResetRequest | undefined> {
+    static async getResetTokenFromUuid(uuid: string): Promise<DatabaseResult> {
         return await sql`SELECT *
                          FROM reset_tokens
                          WHERE uuid = ${uuid}`
             .then(result => {
                 const [res] = result;
-                return res as ResetRequest || undefined;
+                return {success:true,result:res as ResetRequest || undefined,rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to get reset token of user '${uuid}'. Error: ${error}`);
-                return undefined;
+                return {success:false,message:`Failed to get reset token of user '${uuid}'. Error: ${error}`};
             });
     }
 
-    static async setResetToken(uuid: string, token: string, expires: number): Promise<boolean> {
+    static async setResetToken(uuid: string, token: string, expires: number): Promise<DatabaseResult> {
         return await sql`INSERT INTO reset_tokens(uuid, token, expires)
                          VALUES (${uuid}, ${token}, ${expires})
                          ON CONFLICT (uuid) DO UPDATE
                              SET token   = $2,
                                  expires = $3`
-            .then(() => true)
+            .then(() => {
+                return {success:true}
+            })
             .catch(error => {
                 console.error(`Failed to set/update reset token for user with uuid '${uuid}'. Error: ${error}`);
-                return false;
+                return {success:false,message:`Failed to set/update reset token for user with uuid '${uuid}'. Error: ${error}`};
             });
     }
 
-    static async deleteResetToken(token: string): Promise<boolean> {
+    static async deleteResetToken(token: string): Promise<DatabaseResult> {
         return await sql`DELETE
                          FROM reset_tokens
                          WHERE token = ${token}`
-            .then(() => true)
+            .then(() => {
+                return {success:true};
+            })
             .catch(error => {
                 console.error(`Failed to delete reset token '${token}'. Error: ${error}`);
-                return false;
+                return {success:false,message:`Failed to delete reset token '${token}'. Error: ${error}`};
             });
     }
 }

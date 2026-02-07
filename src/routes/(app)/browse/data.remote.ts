@@ -1,8 +1,9 @@
 import {query} from '$app/server';
 import * as db from '$lib/server/db/database'
 import util from '$lib/server/utilities';
-import type {Inventory} from "$lib/server/db/schema";
 import * as v from "valibot";
+import type {DatabaseResult} from "$lib/server/db/database";
+import type {InventoryInterface} from "$lib/server/components/Inventory";
 
 const inventoriesObj = v.object({
     amount: v.number(),
@@ -23,22 +24,26 @@ const inventoriesObj = v.object({
  *   - <strong>primary_inventory</strong> <i>as boolean</i>
  * @return Array
  */
-export const getInventories = query(inventoriesObj, async (data): Promise<Inventory[]> => {
-    if (util.isOffline()) {
-        return [];
+export const getInventories = query(inventoriesObj, async (data): Promise<InventoryInterface[]> => {
+    if (!util.isOffline()) {
+        const result: DatabaseResult = await db.Inventories.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+
+        if (result.success) {
+            return result.result ?? [];
+        }
     }
-    else {
-        const result = await db.Inventories.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
-        return result;
-    }
+
+    return [];
 });
 
 export const getTotalInventoryCount = query(async (): Promise<number> => {
     if (util.isOffline()) {
-        return 1;
+        const result: DatabaseResult = await db.Inventories.fetchTotalInventoryCount();
+
+        if (result.success) {
+            return result.result ?? 1;
+        }
     }
-    else {
-        const result = await db.Inventories.fetchTotalInventoryCount();
-        return result;
-    }
+
+    return 1;
 });

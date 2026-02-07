@@ -1,6 +1,6 @@
-import type {Actions} from "../../../../.svelte-kit/types/src/routes/login/$types";
 import * as db from '$lib/server/db/database';
 import { promises as fs } from "fs";
+import type {DatabaseResult} from "$lib/server/db/database";
 
 
 export const ssr = false;
@@ -17,10 +17,10 @@ export const actions = {
         const external = formData.get('external')?.toString();
         const image: File = formData.get('image')?.valueOf() as File ?? undefined;
 
-        const result = await db.Items.create(inventory_uuid,name,description,amount,[],image.name ?? undefined,external,price,currency);
+        const result: DatabaseResult = await db.Items.create(inventory_uuid,name,description,amount,[],image.name ?? undefined,external,price,currency);
 
-        if (result && result.failed) {
-            return {success: false, failed: true, error: result.error.toString()}
+        if (!result.success) {
+            return {success: false, failed: true, error: result.message ?? 'NONE'}
         }
 
         const UPLOAD_PATH = String('');
