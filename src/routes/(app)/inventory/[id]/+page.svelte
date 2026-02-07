@@ -1,16 +1,18 @@
 <script module lang="ts">
+    import {getContext, onMount} from "svelte";
     import {error} from '@sveltejs/kit';
+    import {Spring} from "svelte/motion";
+    import {page} from "$app/state";
     import {validate} from 'uuid';
-    import type {Inventory} from "$lib/server/db/schema";
     import type {PageProps} from "../../../../../.svelte-kit/types/src/routes/(app)/inventory/[id]/$types";
-    import type {Item, User} from "$lib/server/db/schema";
-    import ItemCreator from "../components/ItemCreator.svelte";
+    import type {Inventory, Item, User} from "$lib/server/db/schema";
     import ItemCreationSuccessfulToast from "../../../../components/Toasts/ItemCreationSuccessful.svelte";
     import GenericErrorToast from "../../../../components/Toasts/GenericError.svelte";
     import {parseTimestamp} from '$lib/utilities'
-    import FilterSettings from "./utilities.svelte.js";
+    import FilterSettings from "./utilities.svelte.ts";
     import {getInventory, getItems, getTotalItemCount} from './data.remote.ts';
-    import {Spring} from "svelte/motion";
+    import Utility from "../../browse/utility";
+    import ItemCreator from "../components/ItemCreator.svelte";
 
     const imageModules = import.meta.glob('$lib/assets/uploads/item-images/*.{avif,gif,heif,jpeg,jpg,png,tiff,webp}',
         {
@@ -21,19 +23,16 @@
         }
     )
 
+    //todo: Add logic to archive deleted items for 30 days to allow for recovery of deleted items
+    //todo: After implementing todo above, add option to permanently delete any archived item
+
     /*
     * <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><g fill="currentColor"><circle cx="5" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="15" cy="10" r="2"/></g></svg>
     * <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><path fill="currentColor" fill-rule="evenodd" d="M4 5.543V4.25H3a1 1 0 0 0-1 1v3.5a1 1 0 0 0 1 1h1a1 1 0 1 1 0 2H3a3 3 0 0 1-3-3v-3.5a3 3 0 0 1 3-3h1V.957a.5.5 0 0 1 .854-.353l2.292 2.292a.5.5 0 0 1 0 .708L4.854 5.896A.5.5 0 0 1 4 5.543m6 6.207v1.293a.5.5 0 0 1-.854.354l-2.292-2.293a.5.5 0 0 1 0-.708l2.292-2.292a.5.5 0 0 1 .854.353V9.75h1a1 1 0 0 0 1-1v-3.5a1 1 0 0 0-1-1h-1a1 1 0 1 1 0-2h1a3 3 0 0 1 3 3v3.5a3 3 0 0 1-3 3z" clip-rule="evenodd"/></svg>
-    * Refresh icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M3 12q0-3.75 2.625-6.375T12 3V2q0-.3.275-.45t.525.05l3.125 2.35q.4.3.4.8t-.4.8L12.8 7.9q-.25.2-.525.05T12 7.5v-1q-2.275 0-3.888 1.613T6.5 12q0 .825.238 1.588T7.4 15q.275.4.225.863T7.2 16.6l-.85.625q-.45.35-1 .275t-.875-.55q-.725-1.075-1.1-2.325T3 12m9 9v1q0 .3-.275.45t-.525-.05l-3.125-2.35q-.4-.3-.4-.8t.4-.8L11.2 16.1q.25-.2.525-.05t.275.45v1q2.275 0 3.888-1.613T17.5 12q0-.825-.238-1.588T16.6 9q-.275-.4-.225-.862T16.8 7.4l.85-.625q.45-.35 1-.263t.875.538q.7 1.075 1.088 2.325T21 12q0 3.75-2.625 6.375T12 21"/></svg>
-    * Row height: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M5 22q-.425 0-.712-.288T4 21t.288-.712T5 20h14q.425 0 .713.288T20 21t-.288.713T19 22zm7-3.425q-.2 0-.375-.062T11.3 18.3l-2.6-2.6q-.275-.275-.287-.687T8.7 14.3q.275-.275.688-.288t.712.263l.9.875v-6.3l-.9.875Q9.825 10 9.413 10T8.7 9.7q-.275-.275-.275-.7t.275-.7l2.6-2.6q.15-.15.325-.212T12 5.425t.375.063t.325.212l2.6 2.6q.275.275.287.688T15.3 9.7q-.275.275-.687.288t-.713-.263L13 8.85v6.3l.9-.875q.275-.275.688-.275t.712.3q.275.275.275.7t-.275.7l-2.6 2.6q-.15.15-.325.213t-.375.062M5 4q-.425 0-.712-.288T4 3t.288-.712T5 2h14q.425 0 .713.288T20 3t-.288.713T19 4z"/></svg>
     *  */
 </script>
 
 <script lang="ts">
-    import {page} from "$app/state";
-    import {getContext, onMount} from "svelte";
-    import Utility from "../../browse/utility";
-
     if (!page.params.id || !validate(page.params.id)) {
         error(404, 'Inventory ID is required!');
     }
@@ -43,19 +42,18 @@
     let {form}: PageProps = $props();
     const user: User = getContext('user');
 
-    let inventory: Inventory | undefined = $state(undefined);
-    let itemCount: number = $state(0);
-    let totalPages = $state(0);
-    let items: Item[] = $state.raw([]);
-
     //todo: Add option to save filters, and make them persistent for the user.
     const filterSettings: FilterSettings = new FilterSettings();
+
+    let inventory: Inventory | undefined = $state(undefined);
+    let itemCount: number = $state(0);
+    let totalPages = $derived(Math.ceil(itemCount / filterSettings.columnSize) ?? 1);
+    let items: Item[] = $state.raw([]);
 
     onMount(async () => {
         const rawInventory = await getInventory(id);
         if (!rawInventory) error(404, 'Failed to find inventory!');
         inventory = rawInventory;
-        totalPages = Math.ceil(itemCount / filterSettings.columnSize);
 
         itemCount = await getTotalItemCount(String(id)) ?? 0;
         // const userFilterSettings = getUserFilterSettings();
@@ -210,12 +208,6 @@
                             </div>
                         </div>
                         <div class="header-buttons">
-                            <button id="refresh-button" class="refresh-button" title="Refresh" onclick="{refresh}">
-                                <svg fill="currentColor" width="24" height="24" viewBox="0 0 24 24">
-                                    <path fill="currentColor" d="M3 12q0-3.75 2.625-6.375T12 3V2q0-.3.275-.45t.525.05l3.125 2.35q.4.3.4.8t-.4.8L12.8 7.9q-.25.2-.525.05T12 7.5v-1q-2.275 0-3.888 1.613T6.5 12q0 .825.238 1.588T7.4 15q.275.4.225.863T7.2 16.6l-.85.625q-.45.35-1 .275t-.875-.55q-.725-1.075-1.1-2.325T3 12m9 9v1q0 .3-.275.45t-.525-.05l-3.125-2.35q-.4-.3-.4-.8t.4-.8L11.2 16.1q.25-.2.525-.05t.275.45v1q2.275 0 3.888-1.613T17.5 12q0-.825-.238-1.588T16.6 9q-.275-.4-.225-.862T16.8 7.4l.85-.625q.45-.35 1-.263t.875.538q.7 1.075 1.088 2.325T21 12q0 3.75-2.625 6.375T12 21"/>
-                                </svg>
-                                Refresh
-                            </button>
                             <button id="filters-button" class="filters-button" title="Filters" onclick={() => isFilterContainerOpen = !isFilterContainerOpen}>
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -231,12 +223,23 @@
                                 </svg>
                                 Add Item
                             </button>
+                            <button id="refresh-button" class="refresh-button" title="Refresh" onclick="{refresh}">
+                                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                            </button>
+                            <button id="inventory-settings-button" class="inventory-settings-button" onclick={() => creatorScale.target = 1}>
+                                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </section>
                 {#if (isFilterContainerOpen) }
                     <div class="inventory-filter-container"
-                         style="{isFilterContainerOpen?'padding:1.75rem 2.5rem;visibility:visible;margin-top:2rem;height:fit-content;opacity:1;':'visibility:hidden;margin-top:0;opacity:0;'}">
+                         style="{isFilterContainerOpen?'padding:1.75rem 2.5rem;visibility:visible;height:fit-content;opacity:1;':'visibility:hidden;margin-top:0;opacity:0;'}">
                         <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
                             <h1>Filters</h1>
                             <button class="filters-save-button {filterSettings.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
@@ -342,6 +345,7 @@
                                         </svg>
                                     </button>
                                 </div>
+                                <div class="item-manage-spacer"></div>
                             </div>
                         </div>
                         <div class="inventory-list">
@@ -388,6 +392,12 @@
                                             {/if}
                                             <div class="entry-item inventory-item-amount">
                                                 {item.amount}
+                                            </div>
+                                            <div class="manage-item">
+                                                <!-- todo - Add quick delete logic, and popup warning to confirm deletion -->
+                                                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                </svg>
                                             </div>
                                         </a>
                                     {/each}
@@ -476,12 +486,6 @@
         --inventory-header-height: 6rem;
     }
 
-    .header-section {
-        pointer-events: auto;
-        height: 100%;
-        z-index: 10000;
-    }
-
     .body-section {
         height: var(--theme-max-page-height);
         overflow: hidden;
@@ -529,10 +533,6 @@
 
             z-index: 1000;
 
-            background: var(--theme-header-secondary-color);
-            border-color: var(--theme-border-container);
-            border-bottom-width: var(--border-width);
-
             .inventory-header-content {
                 display: flex;
                 flex-flow: row nowrap;
@@ -540,7 +540,8 @@
                 align-content: center;
                 justify-content: space-between;
 
-                padding: 2.5rem 0;
+                padding: 2rem 0;
+                margin: 0;
 
                 width: 80rem;
 
@@ -553,9 +554,9 @@
                     user-select: none;
 
                     h1 {
-                        font-size: 2.15rem;
-                        font-family: 'FunnelSans', sans-serif;
-                        font-variation-settings: "wght" 900;
+                        font-size: 2.25rem;
+                        font-family: 'FunnelDisplay', sans-serif;
+                        font-variation-settings: "wght" 800;
                         color: var(--theme-text);
                     }
 
@@ -585,7 +586,11 @@
                     flex-flow: row nowrap;
                     gap: .5rem;
 
-                    .refresh-button, .filters-button, .create-item-button {
+                    .refresh-button,.inventory-settings-button {
+                        padding: .5em 1em !important;
+                    }
+
+                    .refresh-button, .filters-button, .create-item-button,.inventory-settings-button {
                         display: flex;
                         flex-flow: row nowrap;
                         align-items: center;
@@ -606,7 +611,7 @@
                         user-select: none;
                     }
 
-                    .refresh-button:hover, .filters-button:hover, .create-item-button:hover {
+                    .refresh-button:hover, .filters-button:hover, .create-item-button:hover,.inventory-settings-button:hover {
                         color: var(--accent-text);
 
                         transition-duration: 75ms;
@@ -629,6 +634,7 @@
             width: 90rem;
             opacity: 0;
             margin-top: 0;
+            margin-bottom: 2.5rem;
             height: 0;
 
             transition: 125ms ease-in-out;
@@ -759,7 +765,7 @@
                 width: 90rem;
                 height: fit-content;
 
-                margin: 2.5rem 0;
+                margin: 0 0 2.5rem 0;
 
                 border-width: var(--border-width);
                 border-radius: var(--border-radius);
@@ -777,8 +783,16 @@
                         margin-top: .75em;
                         margin-bottom: .75em;
 
+                        .item-manage-spacer {
+                            flex: 1 5%;
+                        }
+
                         .header-item:first-child {
-                            flex: 1 70%;
+                            flex: 1 68%;
+                        }
+
+                        .header-item.items-filter {
+                            flex: 1 7%;
                         }
 
                         .header-item {
@@ -893,8 +907,43 @@
 
                         font-family: 'Funnel Sans', sans-serif;
 
+                        .manage-item {
+                            flex: 1 5%;
+                            align-items: center;
+                            opacity: 0;
+
+                            transition: 50ms ease-in-out;
+
+                            svg {
+                                justify-self: center;
+                                stroke: var(--theme-text);
+
+                                width: 2.25rem;
+                                height: 2.25rem;
+                                padding: .5em .25em;
+
+                                background: var(--theme-background-button);
+                                border: .122em solid var(--theme-border-button);
+                                border-radius: .7em;
+                                transition: 50ms ease-in-out;
+                            }
+                        }
+
+                        .manage-item:hover {
+                            svg {
+                                background: var(--theme-background-button-hover);
+                                stroke: oklch(58.6% 0.253 17.585) !important;
+                                stroke-width: 2.25;
+                                transition: 50ms ease-out;
+                            }
+                        }
+
+                        .entry-item.inventory-item-amount {
+                            flex: 1 7%;
+                        }
+
                         .entry-item:first-child {
-                            flex: 1 70%;
+                            flex: 1 68%;
                         }
 
                         .entry-item {
@@ -972,9 +1021,18 @@
                     .inventory-list-entry:hover {
                         background: var(--theme-background-highlight);
 
+                        .manage-item {
+                            opacity: 1;
+                            transition: 25ms ease-in-out;
+
+                            svg {
+                                stroke: var(--theme-text);
+                            }
+                        }
+
                         svg {
                             stroke: var(--theme-text-accent);
-                            transition: 50ms ease-in-out;
+                            transition: 50ms ease-out;
                         }
 
                         .inventory-meta {

@@ -27,10 +27,10 @@
     <div class="login-form">
         <form {...login}>
             <label>
-                <input {...login.fields.email.as('text')} placeholder="Email" class="email-input" autocomplete="email" required/>
+                <input {...login.fields.email.as('text')} placeholder="Email" class="email-input" autocomplete="email"/>
             </label>
             <label>
-                <input {...login.fields._password.as('password')} placeholder="Password" class="password-input" autocomplete="current-password" required/>
+                <input {...login.fields._password.as('password')} placeholder="Password" class="password-input" autocomplete="current-password"/>
             </label>
             <div class="login-form-buttons">
                 <button type="submit" class="login-button">Login</button>
@@ -94,13 +94,11 @@
                     margin: .15rem;
                     font-weight: 400;
                     background: #1f2023;
-                    border: .122em solid #464b65;
+                    border-width: .122em;
+                    border-style: solid;
+                    border-color: #464b65;
                     color: #FFFFF2;
                     accent-color: var(--theme-text-accent);
-                }
-
-                input:focus {
-                    outline-width: 2.5rem;
                 }
 
                 input:invalid {

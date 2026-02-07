@@ -2,6 +2,7 @@
     import Header from './Header.svelte';
     import {setContext} from "svelte";
     import type {User} from "$lib/server/db/schema";
+    import Footer from "./Footer.svelte";
 
 	let { children,data } = $props();
 
@@ -21,7 +22,7 @@
 
 <style>
     .main-container {
-        height: 100vh;
+        height: calc(var(--header-height) - 100vh);
         width: 100vw;
         scrollbar-width: none;
     }

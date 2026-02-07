@@ -1,10 +1,7 @@
 <script lang='ts'>
-    import {enhance} from '$app/forms';
-    import type {ActionData} from '../../../../.svelte-kit/types/src/routes';
-
-    let {form}: { form: ActionData } = $props();
-    let isLoginAllowed = $state(false);
+import {register} from "../data.remote";
 </script>
+
 <section>
     <div class="inventar-logo">
         <svg id="a" xmlns="http://www.w3.org/2000/svg" width="3013.54" height="659.04" viewBox="0 0 3013.54 659.04">
@@ -28,18 +25,18 @@
         </svg>
     </div>
     <div class="login-form">
-        <form method="post" action="?/register" use:enhance>
-            <label for="username">
-                <input type="text" id="username" name="username" placeholder="Username" class="username-input"/>
+        <form {...register}>
+            <label>
+                <input {...register.fields.username.as('text')} id="username" placeholder="Username" class="username-input"/>
             </label>
-            <label for="email">
-                <input type="text" id="email" name="email" placeholder="Email" class="email-input"/>
+            <label>
+                <input {...register.fields.email.as('text')} id="email" name="email" placeholder="Email" class="email-input"/>
             </label>
-            <label for="password">
-                <input type="password" id="password" name="password" placeholder="Password" class="password-input"/>
+            <label>
+                <input {...register.fields._password.as('password')} id="password" name="password" placeholder="Password" class="password-input"/>
             </label>
-            <label for="repeat-password">
-                <input type="password" id="repeat-password" name="password" placeholder="Repeat Password" class="password-input"/>
+            <label>
+                <input {...register.fields._repeat_password.as('password')} id="repeat-password" name="password" placeholder="Repeat Password" class="password-input"/>
             </label>
             <div class="login-form-buttons">
                 <button type="submit" class="register-button">Register</button>
@@ -49,7 +46,9 @@
             <p>Already got an account?</p>
             <a class="sign-in" href="/login">Sign in.</a>
         </div>
-        <p style='color: red'>{form?.message ?? ''}</p>
+        {#if register.result}
+            <p style='color: red'>{register.result.message ?? ''}</p>
+        {/if}
     </div>
 </section>
 

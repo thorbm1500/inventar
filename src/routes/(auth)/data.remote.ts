@@ -81,45 +81,94 @@ export const login = form(
         email: v.pipe(v.string(), v.nonEmpty()),
         _password: v.pipe(v.string(), v.nonEmpty())
     }),
-    async ({email,_password}) => {
-    if (!auth.validateEmail(email)) {
-        console.error(`Login failed: Invalid email (min 3, max 31 characters, alphanumeric only)`);
-        return {success: false, message: 'Invalid email (min 3, max 31 characters, alphanumeric only)'};
-    }
-    if (!auth.validatePassword(_password)) {
-        console.error(`Login failed: Invalid password (min 32, max 255 characters)`);
-        return {success: false, message: 'Invalid password (min 32, max 255 characters)'};
-    }
+    async ({email, _password}) => {
+        if (!auth.validateEmail(email)) {
+            console.error(`Login failed: Invalid email (min 3, max 31 characters, alphanumeric only)`);
+            return {success: false, message: 'Invalid email (min 3, max 31 characters, alphanumeric only)'};
+        }
+        if (!auth.validatePassword(_password)) {
+            console.error(`Login failed: Invalid password (min 32, max 255 characters)`);
+            return {success: false, message: 'Invalid password (min 32, max 255 characters)'};
+        }
 
-    const user: User | undefined = await db.Users.getFromEmail(email);
+        const user: User | undefined = await db.Users.getFromEmail(email);
 
-    if (!user) {
-        console.error(`Login failed: No user exists with the email '${email}'.`);
-        return {success: false, message: 'Incorrect username or password'};
-    }
+        if (!user) {
+            console.error(`Login failed: No user exists with the email '${email}'.`);
+            return {success: false, message: 'Incorrect username or password'};
+        }
 
-    const passwordHash: String | undefined = await db.Users.getPasswordHash(user.uuid);
+        const passwordHash: String | undefined = await db.Users.getPasswordHash(user.uuid);
 
-    if (!passwordHash) {
-        console.error(`Login failed: No password found in the database for user with email '${email}'.`);
-        return {success: false, message: 'Incorrect username or password'};
-    }
+        if (!passwordHash) {
+            console.error(`Login failed: No password found in the database for user with email '${email}'.`);
+            return {success: false, message: 'Incorrect username or password'};
+        }
 
-    const validPassword = await verify(passwordHash.valueOf(), _password, {
-        memoryCost: 19456,
-        timeCost: 5,
-        outputLen: 32,
-        parallelism: 1,
+        const validPassword = await verify(passwordHash.valueOf(), _password, {
+            memoryCost: 19456,
+            timeCost: 5,
+            outputLen: 32,
+            parallelism: 1,
+        });
+
+        if (!validPassword) {
+            console.error(`Login failed: Password invalid.`);
+            return {success: false, message: 'Incorrect username or password'};
+        }
+
+        const sessionToken: string = auth.generateSessionToken();
+        const session: Session = await auth.createSession(sessionToken, user.uuid);
+        auth.setSessionTokenCookie(sessionToken, session.expires);
+
+        return redirect(302, '/');
     });
 
-    if (!validPassword) {
-        console.error(`Login failed: Password invalid.`);
-        return {success: false, message: 'Incorrect username or password'};
-    }
+export const register = form(
+    v.object({
+        username: v.pipe(v.string(), v.nonEmpty()),
+        email: v.pipe(v.string(), v.nonEmpty()),
+        _password: v.pipe(v.string(), v.nonEmpty()),
+        _repeat_password: v.pipe(v.string(), v.nonEmpty())
+    }),
+    async ({username, email, _password, _repeat_password}) => {
 
-    const sessionToken: string = auth.generateSessionToken();
-    const session: Session = await auth.createSession(sessionToken, user.uuid);
-    auth.setSessionTokenCookie(sessionToken, session.expires);
+        if (_password !== _repeat_password) {
+            return {success: false, message: 'Passwords do not match!'};
+        }
 
-    return redirect(302, '/');
-});
+        if (!auth.validateUsername(username)) {
+            return {success: false, message: 'Invalid username!'};
+        }
+
+        if (!auth.validateEmail(email)) {
+            return {success: false, message: 'Invalid email!'};
+        }
+
+        if (!auth.validatePassword(_password)) {
+            return {success: false, message: 'Invalid password!'};
+        }
+
+        const passwordHash: string = await hash(_password, {
+            // recommended minimum parameters
+            memoryCost: 19456,
+            timeCost: 5,
+            outputLen: 32,
+            parallelism: 1,
+        });
+
+        try {
+            const user: User | undefined = await db.Users.create(email, username, passwordHash);
+
+            if (!user) {
+                return {success: false, message: 'An error has occurred'};
+            }
+
+            const sessionToken: string = auth.generateSessionToken();
+            const session: Session = await auth.createSession(sessionToken, user.uuid);
+            auth.setSessionTokenCookie(sessionToken, session.expires);
+        } catch {
+            return {success: false, message: 'An error has occurred'};
+        }
+        return redirect(302, '/');
+    });

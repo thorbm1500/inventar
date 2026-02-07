@@ -8,6 +8,8 @@
 </script>
 
 <script lang="ts">
+    import Footer from "../Footer.svelte";
+
     let order_by = $state('name');
     let order = $state('');
     let currentPage = $state(1);
@@ -166,7 +168,16 @@
     </div>
 </section>
 
+<div class="site-footer">
+    <Footer />
+</div>
+
 <style>
+    .site-footer {
+        position: absolute;
+        bottom: .25rem;
+        opacity: .5;
+    }
     section {
         overflow: auto;
         user-select: none !important;
