@@ -3,7 +3,7 @@ import * as db from '$lib/server/db/database'
 import util from '$lib/server/utilities';
 import * as v from "valibot";
 import type {DatabaseResult} from "$lib/server/db/database";
-import type {InventoryInterface} from "$lib/server/components/Inventory";
+import type {Inventory} from '$lib/server/db/schema';
 
 const inventoriesObj = v.object({
     amount: v.number(),
@@ -17,14 +17,16 @@ const inventoriesObj = v.object({
  * The list is returned as a standard Array, and
  * contains a map for each inventory returned.
  * The map contains the following variables;
- *   - <strong>inventory_uuid</strong> <i>as UUID v7</i>
+ *   - <strong>uuid</strong> <i>as UUIDv7</i>
+ *   - <strong>owner</strong> <i>as UUIDv7</i>
  *   - <strong>name</strong> <i>as string</i>
  *   - <strong>description</strong> <i>as string</i>
  *   - <strong>image_path</strong> <i>as URL/URI as string</i>
- *   - <strong>primary_inventory</strong> <i>as boolean</i>
+ *   - <strong>item_amount</strong> <i>as number</i>
+ *   - <strong>last_update</strong> <i>as Date or string</i>
  * @return Array
  */
-export const getInventories = query(inventoriesObj, async (data): Promise<InventoryInterface[]> => {
+export const getInventories = query(inventoriesObj, async (data): Promise<Inventory[]> => {
     if (!util.isOffline()) {
         const result: DatabaseResult = await db.Inventories.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
 

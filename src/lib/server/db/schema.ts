@@ -1,16 +1,11 @@
-import postgres from "postgres";
-import currencies from "$lib/server/db/currencies";
-
-function isValidError(error: any): boolean {
-    if (!error) return false;
-
-    return !(error.severity && error.severity == "NOTICE");
-}
+import postgres from 'postgres';
+import currencies from '$lib/server/db/components/currencies';
+import colors from '$lib/server/db/components/colors'
 
 export interface Currency {
+    id: string,
     code: string,
-    number: string,
-    symbol?: string
+    symbol?: string | null
 }
 
 /**
@@ -18,37 +13,34 @@ export interface Currency {
  * @param sql The database connection on which to perform the query.
  */
 export async function createTableCurrencies(sql: postgres.Sql): Promise<void> {
-    try {
-        await sql`CREATE TABLE IF NOT EXISTS currencies
-                  (
-                      code   VARCHAR(3) UNIQUE NOT NULL,
-                      number VARCHAR(3) UNIQUE NOT NULL,
-                      symbol VARCHAR(255) DEFAULT NULL,
-                      CONSTRAINT currencies_pkey PRIMARY KEY (code, number)
-                  )`.then(async (): Promise<void> => {
-            for (const index of currencies) {
-                await sql`INSERT INTO currencies(code, number)
-                          VALUES (${index.code}, ${index.number})
-                          ON CONFLICT DO NOTHING`;
+    await sql`CREATE TABLE IF NOT EXISTS currencies
+              (
+                  id     VARCHAR(3) UNIQUE NOT NULL,
+                  code   VARCHAR(3) UNIQUE NOT NULL,
+                  symbol VARCHAR(255) DEFAULT NULL,
+                  CONSTRAINT currencies_pkey PRIMARY KEY (id)
+              )`
+        .then(async () => {
+            for (const row of currencies) {
+                await sql`INSERT INTO currencies (id, code)
+                          VALUES (${row.id}, ${row.code})
+                          ON CONFLICT (id) DO NOTHING`
+                    .catch(error => console.error(error))
             }
         })
-    } catch (error) {
-        if (isValidError(error)) {
-            console.log("TRUE");
-            console.error(error);
-        } else {
-            console.log("FALSE");
-        }
-    }
+        .catch(error => console.error(error));
 }
 
 export interface Inventory {
-    inventory_uuid: string,
+    uuid: string,
+    owner: string,
     name: string,
     description?: string,
     image_path?: string,
     item_amount: number,
-    last_update: Date | string
+    labels: Label[],
+    last_update: number,
+    created_at: number
 }
 
 /**
@@ -58,44 +50,140 @@ export interface Inventory {
 export async function createTableInventories(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS inventories
               (
-                  inventory_uuid UUID UNIQUE         NOT NULL DEFAULT uuidv7(),
-                  name           VARCHAR(255) UNIQUE NOT NULL,
-                  description    TEXT                         DEFAULT NULL,
-                  image_path     TEXT UNIQUE                  DEFAULT NULL,
-                  item_amount    BIGINT              NOT NULL DEFAULT 0,
-                  last_update    TIMESTAMP           NOT NULL DEFAULT now(),
-                  CONSTRAINT inventories_pkey PRIMARY KEY (inventory_uuid)
-              )`;
+                  uuid        UUID UNIQUE         NOT NULL DEFAULT uuidv7(),
+                  owner       UUID                NOT NULL,
+                  name        VARCHAR(255) UNIQUE NOT NULL,
+                  description TEXT                         DEFAULT NULL,
+                  image_path  TEXT                         DEFAULT NULL,
+                  item_amount BIGINT              NOT NULL DEFAULT 0,
+                  last_update BIGINT              NOT NULL DEFAULT extract(epoch FROM now()),
+                  created_at  BIGINT              NOT NULL DEFAULT extract(epoch FROM now()),
+                  CONSTRAINT inventories_pkey PRIMARY KEY (uuid),
+                  FOREIGN KEY (owner) REFERENCES users (uuid)
+              )`
+        .catch(error => console.error(error));
+    //todo: Sync item amount every midnight, to ensure correct amount.
+    /*
+    todo: If account of owner is attempted deleted;
+     Check for other members with access, prompt if inventory should be deleted, or transferred. If not other accounts has access, delete inventory.
+     */
+}
+
+export interface userInventoryPermissions {
+    inventory: string,
+    user_uuid: string,
+    edit_inventory: boolean,
+    delete_inventory: boolean,
+    view_items: boolean,
+    create_items: boolean,
+    edit_items: boolean,
+    delete_items: boolean,
+    view_users: boolean,
+    add_users: boolean,
+    edit_users: boolean,
+    remove_users: boolean,
+    view_audit: boolean
+}
+
+export async function createTableInventoryAccessList(sql: postgres.Sql): Promise<void> {
+    await sql`CREATE TABLE IF NOT EXISTS inventory_access_list
+              (
+                  inventory        UUID    NOT NULL,
+                  user_uuid        UUID    NOT NULL,
+                  edit_inventory   BOOLEAN NOT NULL DEFAULT FALSE,
+                  delete_inventory BOOLEAN NOT NULL DEFAULT FALSE,
+                  view_items       BOOLEAN NOT NULL DEFAULT FALSE,
+                  create_items     BOOLEAN NOT NULL DEFAULT FALSE,
+                  edit_items       BOOLEAN NOT NULL DEFAULT FALSE,
+                  delete_items     BOOLEAN NOT NULL DEFAULT FALSE,
+                  view_users       BOOLEAN NOT NULL DEFAULT FALSE,
+                  add_users        BOOLEAN NOT NULL DEFAULT FALSE,
+                  edit_users       BOOLEAN NOT NULL DEFAULT FALSE,
+                  remove_users     BOOLEAN NOT NULL DEFAULT FALSE,
+                  view_audit       BOOLEAN NOT NULL DEFAULT FALSE,
+                  CONSTRAINT inventory_access_list_pkey PRIMARY KEY (inventory, user_uuid),
+                  FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
+                  FOREIGN KEY (user_uuid) REFERENCES users (uuid) ON DELETE CASCADE
+              )`
+        .catch(error => console.error(error));
+}
+
+export interface Label {
+    inventory: string,
+    uuid: string,
+    name: string,
+    color_id: 1,
+    colors: LabelColors | undefined
 }
 
 /**
  * Creates the table 'categories', if it doesn't already exist.
  * @param sql The database connection on which to perform the query.
  */
-export async function createTableCategories(sql: postgres.Sql): Promise<void> {
-    await sql`CREATE TABLE IF NOT EXISTS categories
+export async function createTableLabels(sql: postgres.Sql): Promise<void> {
+    //todo: Expand to allow for custom colors in the future.
+    await sql`CREATE TABLE IF NOT EXISTS labels
               (
-                  inventory_uuid UUID         NOT NULL,
-                  category_uuid  UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
-                  name           VARCHAR(255) NOT NULL,
-                  description    TEXT                  DEFAULT NULL,
-                  CONSTRAINT categories_pkey PRIMARY KEY (inventory_uuid, category_uuid),
-                  FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE
-              )`;
+                  inventory UUID         NOT NULL,
+                  uuid      UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
+                  name      VARCHAR(255) NOT NULL,
+                  color     INTEGER      NOT NULL DEFAULT 1,
+                  CONSTRAINT labels_pkey PRIMARY KEY (inventory, uuid),
+                  FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE
+              )`
+        .catch(error => console.error(error));
+}
+
+export interface LabelColors {
+    id: number,
+    border: string,
+    background: string,
+    dark_border: string,
+    dark_background: string
+}
+
+/**
+ * Creates the table 'categories', if it doesn't already exist.
+ * @param sql The database connection on which to perform the query.
+ */
+export async function createTableLabelColors(sql: postgres.Sql): Promise<void> {
+    await sql`CREATE TABLE IF NOT EXISTS label_colors
+              (
+                  id              INTEGER UNIQUE NOT NULL,
+                  border          VARCHAR(9)     NOT NULL,
+                  background      VARCHAR(9)     NOT NULL,
+                  dark_border     VARCHAR(9)     NOT NULL,
+                  dark_background VARCHAR(9)     NOT NULL,
+                  CONSTRAINT labels_pkey PRIMARY KEY (id)
+              )`
+        .then(async () => {
+            for (const row of colors) {
+                await sql`INSERT INTO label_colors (id, border, background, dark_border, dark_background)
+                          VALUES (${row.id}, ${row.border}, ${row.background}, ${row.dark_border}, ${row.dark_background})
+                          ON CONFLICT (id) DO UPDATE
+                              SET border=${row.border},
+                                  background=${row.background},
+                                  dark_border=${row.dark_border},
+                                  dark_background=${row.dark_background}`
+                    .catch(error => console.error(error))
+            }
+        })
+        .catch(error => console.error(error));
 }
 
 export interface Item {
-    inventory_uuid: string,
-    item_uuid: string,
+    inventory: string,
+    uuid: string,
     name: string,
     description?: string,
     amount: number,
-    thumbnail_path?: string,
+    image?: string,
     url?: string,
     price: number,
-    currency_code: string,
-    created_at: Date | string,
-    last_modified: Date | string
+    currency: string,
+    labels: Label[],
+    last_update: number,
+    created_at: number
 }
 
 /**
@@ -105,83 +193,60 @@ export interface Item {
 export async function createTableItems(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS items
               (
-                  inventory_uuid UUID           NOT NULL,
-                  item_uuid      UUID UNIQUE    NOT NULL DEFAULT uuidv7(),
-                  name           VARCHAR(255)   NOT NULL,
-                  description    TEXT                    DEFAULT NULL,
-                  amount         BIGINT         NOT NULL DEFAULT 0,
-                  thumbnail_path TEXT                    DEFAULT NULL,
-                  url            TEXT                    DEFAULT NULL,
-                  price          NUMERIC(50, 2) NOT NULL DEFAULT 0.0,
-                  currency_code  VARCHAR(3)     NOT NULL DEFAULT 'DKK',
-                  created_at     TIMESTAMP      NOT NULL DEFAULT now(),
-                  last_modified  TIMESTAMP      NOT NULL DEFAULT now(),
-                  CONSTRAINT items_pkey PRIMARY KEY (inventory_uuid, item_uuid),
-                  FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
-                  FOREIGN KEY (currency_code) REFERENCES currencies (code)
-              )`;
+                  inventory           UUID           NOT NULL,
+                  uuid                UUID UNIQUE    NOT NULL DEFAULT uuidv7(),
+                  name                VARCHAR(255)   NOT NULL,
+                  description         TEXT                    DEFAULT NULL,
+                  amount              BIGINT         NOT NULL DEFAULT 0,
+                  reserved_amount     BIGINT         NOT NULL DEFAULT 0,
+                  pending_amount      BIGINT         NOT NULL DEFAULT 0,
+                  reserved_expiration BIGINT                  DEFAULT NULL,
+                  pending_expiration  BIGINT                  DEFAULT NULL,
+                  image               TEXT                    DEFAULT NULL,
+                  url                 TEXT                    DEFAULT NULL,
+                  price               NUMERIC(50, 2) NOT NULL DEFAULT 0.0,
+                  currency            VARCHAR(3)     NOT NULL DEFAULT 'DKK',
+                  created_by          UUID           NOT NULL,
+                  last_update         BIGINT         NOT NULL DEFAULT extract(epoch FROM now()),
+                  created_at          BIGINT         NOT NULL DEFAULT extract(epoch FROM now()),
+                  CONSTRAINT items_pkey PRIMARY KEY (inventory, uuid),
+                  FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
+                  FOREIGN KEY (currency) REFERENCES currencies (code),
+                  FOREIGN KEY (created_by) REFERENCES users (uuid)
+              )`
+        .catch(error => console.error(error));
 }
 
 /**
  * Creates the table 'item_categories', if it doesn't already exist.
  * @param sql The database connection on which to perform the query.
  */
-export async function createTableItemCategories(sql: postgres.Sql): Promise<void> {
-    await sql`CREATE TABLE IF NOT EXISTS item_categories
+export async function createTableItemLabels(sql: postgres.Sql): Promise<void> {
+    await sql`CREATE TABLE IF NOT EXISTS item_labels
               (
-                  inventory_uuid UUID NOT NULL,
-                  item_uuid      UUID NOT NULL,
-                  category_uuid  UUID NOT NULL,
-                  CONSTRAINT item_categories_pkey PRIMARY KEY (inventory_uuid, item_uuid, category_uuid),
-                  FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
-                  FOREIGN KEY (item_uuid) REFERENCES items (item_uuid) ON DELETE CASCADE,
-                  FOREIGN KEY (category_uuid) REFERENCES categories (category_uuid) ON DELETE CASCADE
-              )`;
+                  inventory UUID NOT NULL,
+                  item      UUID NOT NULL,
+                  label     UUID NOT NULL,
+                  CONSTRAINT item_categories_pkey PRIMARY KEY (inventory, item, label),
+                  FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
+                  FOREIGN KEY (item) REFERENCES items (uuid) ON DELETE CASCADE,
+                  FOREIGN KEY (label) REFERENCES labels (uuid) ON DELETE CASCADE
+              )`
+        .catch(error => console.error(error));
 }
 
 /**
- * Creates the table 'pending_item_changes', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
+ * User interface, to easily handle user data. The User interface should never contain or be able to contain any sensitive data.
  */
-export async function createTablePendingItemChanges(sql: postgres.Sql): Promise<void> {
-    await sql`CREATE TABLE IF NOT EXISTS item_amount_specifications
-              (
-                  inventory_uuid     UUID   NOT NULL,
-                  item_uuid          UUID   NOT NULL,
-                  reserved           BIGINT NOT NULL DEFAULT 0,
-                  pending            BIGINT NOT NULL DEFAULT 0,
-                  pending_expiration TIMESTAMP       DEFAULT NULL,
-                  CONSTRAINT pending_item_changes_pkey PRIMARY KEY (inventory_uuid, item_uuid),
-                  FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
-                  FOREIGN KEY (item_uuid) REFERENCES items (item_uuid) ON DELETE CASCADE
-              )`;
-}
-
-/** todo: For later use. Will be implemented if item will have the ability to have multiple images, other than the thumbnail.
- * Creates the table 'item_assets', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
- */
-export async function createTableItemAssets(sql: postgres.Sql): Promise<void> {
-    await sql`CREATE TABLE IF NOT EXISTS item_assets
-              (
-                  inventory_uuid UUID        NOT NULL,
-                  item_uuid      UUID        NOT NULL,
-                  image_path     TEXT UNIQUE NOT NULL,
-                  CONSTRAINT item_assets_pkey PRIMARY KEY (inventory_uuid, item_uuid, image_path),
-                  FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
-                  FOREIGN KEY (item_uuid) REFERENCES items (item_uuid) ON DELETE CASCADE
-              )`
-}
-
 export interface User {
     uuid: string,
     email: string,
     username: string,
     profile_picture?: string,
-    created_at: string,
-    last_login: string,
-    superuser: boolean,
-    primary_inventory?: string
+    primary_inventory?: string,
+    last_login: number,
+    created_at: number,
+    superuser: boolean
 }
 
 /**
@@ -191,18 +256,20 @@ export interface User {
 export async function createTableUsers(sql: postgres.Sql): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS users
               (
-                  uuid              UUID UNIQUE  NOT NULL DEFAULT uuidv7(),
-                  email             varchar(255) NOT NULL,
-                  password_hash     TEXT         NOT NULL,
-                  username          varchar(255) NOT NULL,
-                  profile_picture   TEXT                  DEFAULT NULL,
-                  reset_token       TEXT                  DEFAULT NULL,
-                  created_at        TIMESTAMP    NOT NULL DEFAULT now(),
-                  last_login        TIMESTAMP    NOT NULL DEFAULT now(),
-                  primary_inventory UUID                  DEFAULT NULL,
+                  uuid              UUID UNIQUE         NOT NULL DEFAULT uuidv7(),
+                  email             varchar(255) UNIQUE NOT NULL,
+                  password_hash     TEXT                NOT NULL,
+                  username          varchar(255) UNIQUE NOT NULL,
+                  profile_picture   TEXT                         DEFAULT NULL,
+                  reset_token       TEXT UNIQUE                  DEFAULT NULL,
+                  primary_inventory UUID                         DEFAULT NULL,
+                  last_login        BIGINT              NOT NULL DEFAULT extract(epoch FROM now()),
+                  created_at        BIGINT              NOT NULL DEFAULT extract(epoch FROM now()),
+                  superuser         BOOLEAN             NOT NULL DEFAULT false,
                   CONSTRAINT users_pkey PRIMARY KEY (uuid),
-                  FOREIGN KEY (primary_inventory) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE
-              )`;
+                  FOREIGN KEY (primary_inventory) REFERENCES inventories (uuid)
+              )`
+        .catch(error => console.error(error));
 }
 
 export interface Session {
@@ -223,7 +290,8 @@ export async function createTableSessions(sql: postgres.Sql): Promise<void> {
                   expires    BIGINT      NOT NULL,
                   CONSTRAINT sessions_pkey PRIMARY KEY (uuid),
                   FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
-              )`;
+              )`
+        .catch(error => console.error(error));
 }
 
 export interface ResetRequest {
@@ -244,5 +312,6 @@ export async function createTableResetTokens(sql: postgres.Sql): Promise<void> {
                   expires BIGINT      NOT NULL,
                   CONSTRAINT reset_tokens_pkey PRIMARY KEY (uuid),
                   FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
-              )`;
+              )`
+        .catch(error => console.error(error));
 }

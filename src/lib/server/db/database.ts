@@ -23,9 +23,9 @@ export async function getCurrencies(): Promise<DatabaseResult> {
     return await sql`SELECT *
                      FROM currencies`
         .then(result => {
-            const results: Currency[] = [];
-            result.forEach(row => results.push({code: row.code, number: row.number, symbol: row.symbol ?? null}))
-            return {success: true, result: results, rawResult: result};
+            const currencyList: Currency[] = [];
+            result.forEach(res => currencyList.push(res as Currency));
+            return {success: true, result: currencyList, rawResult: result};
         })
         .catch(error => {
             console.error(`Failed to fetch currencies. Error: ${error}`);
@@ -45,10 +45,10 @@ export class Inventories {
         return await sql`INSERT INTO inventories (name${description ? `,description` : ``}${image ? `,image` : ``})
                          VALUES (${name}${description ? `,${description}` : ``}${image ? `,${image}` : ``})
                          ON CONFLICT DO NOTHING
-                         RETURNING inventory_uuid`
+                         RETURNING uuid`
             .then(result => {
                 const [res] = result;
-                const id: string = res.inventory_uuid ?? 'NONE';
+                const id: string = res.uuid ?? 'NONE';
                 return {success:true, result: id, rawResult: result};
             }).catch((error) => {
                 console.error(`Failed to create inventory '${name}'. Error: ${error}`);
@@ -72,7 +72,7 @@ export class Inventories {
     }
 
     static async fetchTotalInventoryCount(): Promise<DatabaseResult> {
-        return await sql`SELECT COUNT(inventory_uuid) AS amount
+        return await sql`SELECT COUNT(uuid) AS amount
                          FROM inventories`
             .then(result => {
                 const [res] = result;
@@ -87,7 +87,7 @@ export class Inventories {
     static async fetchInventoryByUuid(uuid: string): Promise<DatabaseResult> {
         return await sql`SELECT *
                          FROM inventories
-                         WHERE inventory_uuid = ${uuid}`
+                         WHERE uuid = ${uuid}`
             .then(result => {
                 const [res] = result;
                 return {success:true,result:res,rawResult:result};
@@ -104,10 +104,10 @@ export class Categories {
         return await sql`INSERT INTO categories (name${description ? description : ``})
                          VALUES (${name}${description ? `,${description}` : ``})
                          ON CONFLICT DO NOTHING
-                         RETURNING category_uuid`
+                         RETURNING uuid`
             .then(result => {
                 const [res] = result;
-                const id = res.category_uuid ?? 'NONE';
+                const id = res.uuid ?? 'NONE';
                 console.log(`Inventory '${name}' has been created, and has received ID '${id}'`);
                 return {success:true,result:id,rawResult:result};
             }).catch((error) => {
@@ -122,22 +122,22 @@ export class Items {
     static async create(inventory: string, name: string, description?: string, amount: number = 0, categories: [] = [], image?: string,
                         url?: string, price: number = 0, currency: string = 'DKK'): Promise<DatabaseResult> {
         const item = {
-            inventory_uuid: inventory,
+            inventory: inventory,
             name: name,
             description: description ?? null,
             amount: amount,
-            thumbnail_path: image ?? null,
+            image: image ?? null,
             url: url ?? null,
             price: price,
-            currency_code: currency,
+            currency: currency,
         }
 
         return await sql`INSERT INTO items ${sql(item)}
                          ON CONFLICT DO NOTHING
-                         RETURNING item_uuid`
+                         RETURNING uuid`
             .then(result => {
                 const [res] = result;
-                const id = res.item_uuid ?? 'NONE';
+                const id = res.uuid ?? 'NONE';
                 console.log(`Item '${name}' has been created, and has received ID '${id}'`);
                 return {success:true,result:id,rawResult:result};
             }).catch((error) => {
@@ -149,7 +149,7 @@ export class Items {
     static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<DatabaseResult> {
         return await sql`select *
                          from items
-                         where inventory_uuid = ${inventory}
+                         where inventory = ${inventory}
                              ${order_by === '' ? `` : sql`order by ${sql(order_by)}
                              ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
                          LIMIT ${amount} OFFSET ${offset}`
@@ -162,10 +162,10 @@ export class Items {
             });
     }
 
-    static async fetchTotalItemCount(inventory_uuid: string): Promise<DatabaseResult> {
-        return await sql`SELECT COUNT(item_uuid) AS amount
+    static async fetchTotalItemCount(inventory: string): Promise<DatabaseResult> {
+        return await sql`SELECT COUNT(uuid) AS amount
                          FROM items
-                         WHERE inventory_uuid = ${inventory_uuid}`
+                         WHERE inventory = ${inventory}`
             .then(result => {
                 const [res] = result;
                 return {success:true,result:res.amount??0,rawResult:result};
@@ -176,9 +176,9 @@ export class Items {
             })
     }
 
-    static async deleteItem(item_uuid: string): Promise<DatabaseResult> {
+    static async deleteItem(uuid: string): Promise<DatabaseResult> {
         return await sql`DELETE FROM items
-                         WHERE item_uuid = ${item_uuid}`
+                         WHERE uuid = ${uuid}`
             .then(result => {
                 const [res] = result;
                 return {success:true,result:res,rawResult:result};

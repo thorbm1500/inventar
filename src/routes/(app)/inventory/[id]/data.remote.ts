@@ -15,7 +15,7 @@ export const getInventory = query(v.string(), async (id: string): Promise<Invent
 });
 
 const itemsObj = v.object({
-    inventory_uuid: v.string(),
+    inventory: v.string(),
     amount: v.number(),
     order_by: v.string(),
     order: v.string(),
@@ -33,7 +33,7 @@ export const getCurrencies = query(async (): Promise<Currency[]> => {
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
     let items: Item[] = [];
     if (!util.isOffline()) {
-        const result: DatabaseResult = await db.Items.fetch(data.inventory_uuid,data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+        const result: DatabaseResult = await db.Items.fetch(data.inventory,data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
         if (result.success) items = result.result as Item[];
     }
     return items;

@@ -50,7 +50,7 @@
     let inventory: Inventory | undefined = $state(undefined);
     let itemCount: number = $state(0);
     let totalPages = $derived(Math.ceil(itemCount / filterSettings.columnSize) ?? 1);
-    let items: Item[] = $state.raw([]);
+    let items: Item[] = $state([]);
 
     onMount(async () => {
         const rawInventory = await getInventory(id);
@@ -73,7 +73,7 @@
     await refresh();
 
     let nameFilter = $state('DEFAULT');
-    let latestChangeFilter = $state('DEFAULT');
+    let lastUpdateFilter = $state('DEFAULT');
     let priceFilter = $state('DEFAULT');
     let itemsFilter = $state('DEFAULT');
 
@@ -92,11 +92,14 @@
         await refresh();
     }
 
-    async function refresh() {
+    async function refresh(force = false) {
         const offset = filterSettings.columnSize * (currentPage - 1);
 
-        const newItems: Item[] = await getItems({inventory_uuid: String(page.params.id), amount: filterSettings.columnSize, order_by, order, offset}) || [];
-        items = newItems;
+        if (force) await getItems({inventory: String(page.params.id), amount: filterSettings.columnSize, order_by, order, offset}).refresh();
+        else {
+            const newItems: Item[] = await getItems({inventory: String(page.params.id), amount: filterSettings.columnSize, order_by, order, offset}) || [];
+            items = newItems;
+        }
     }
 
     async function updateFilter(filter: string, current: string) {
@@ -109,7 +112,7 @@
             nameFilter = 'DEFAULT';
             itemsFilter = 'DEFAULT';
             priceFilter = 'DEFAULT';
-            latestChangeFilter = 'DEFAULT';
+            lastUpdateFilter = 'DEFAULT';
         } else {
             order = next;
 
@@ -119,24 +122,24 @@
 
                 priceFilter = 'DEFAULT';
                 itemsFilter = 'DEFAULT';
-                latestChangeFilter = 'DEFAULT';
+                lastUpdateFilter = 'DEFAULT';
             } else if (filter == 'price') {
                 priceFilter = next;
                 order_by = 'price';
 
                 itemsFilter = 'DEFAULT';
                 nameFilter = 'DEFAULT';
-                latestChangeFilter = 'DEFAULT';
+                lastUpdateFilter = 'DEFAULT';
             } else if (filter == 'amount') {
                 itemsFilter = next;
                 order_by = 'amount';
 
                 nameFilter = 'DEFAULT';
                 itemsFilter = 'DEFAULT';
-                latestChangeFilter = 'DEFAULT';
-            } else if (filter == 'last_modified') {
-                latestChangeFilter = next;
-                order_by = 'last_modified';
+                lastUpdateFilter = 'DEFAULT';
+            } else if (filter == 'last_update') {
+                lastUpdateFilter = next;
+                order_by = 'last_update';
 
                 nameFilter = 'DEFAULT';
                 itemsFilter = 'DEFAULT';
@@ -220,14 +223,16 @@
                                 </svg>
                                 Add Item
                             </button>
-                            <button id="refresh-button" class="refresh-button" title="Refresh" onclick="{refresh}">
+                            <button id="refresh-button" class="refresh-button" title="Refresh" onclick="{async () => {
+                                await refresh();
+                            }}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
                                 </svg>
                             </button>
                             <!-- todo - Add inventory settings -->
-                            <button id="inventory-settings-button" class="inventory-settings-button">
+                            <button id="inventory-settings-button" class="inventory-settings-button" title="Settings">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
@@ -365,11 +370,11 @@
                                 {#if (filterSettings.lastUpdated)}
                                     <div class="header-item latest-change-filter">
                                         <button id="latest-change-filter-button" title="Filter by latest update"
-                                                onclick={async () => await updateFilter("last_modified",latestChangeFilter)}>
-                                            Latest update
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { latestChangeFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }"
+                                                onclick={async () => await updateFilter("last_update",lastUpdateFilter)}>
+                                            Last Updated
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { lastUpdateFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }"
                                                  style="opacity:0;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(latestChangeFilter)}"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(lastUpdateFilter)}"/>
                                             </svg>
                                         </button>
                                     </div>
@@ -407,8 +412,8 @@
                                 border-b-container-border dark:border-b-dark-container-border">
                                             <div class="entry-item inventory-meta">
                                                 <div class="inventory-image">
-                                                    {#if (item.thumbnail_path) }
-                                                        <img src='/src/lib/assets/uploads/item-images/{item.thumbnail_path}' alt="Item Thumbnail">
+                                                    {#if (item.image) }
+                                                        <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
                                                     {:else }
                                                         <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -431,7 +436,7 @@
                                             </div>
                                             {#if (filterSettings.lastUpdated) }
                                                 <div class="entry-item inventory-item-last_change">
-                                                    {parseTimestamp(String(item.last_modified))}
+                                                    {parseTimestamp(String(item.last_update))}
                                                 </div>
                                             {/if}
                                             {#if (filterSettings.price) }
@@ -442,10 +447,10 @@
                                             <div class="entry-item inventory-item-amount">
                                                 {item.amount}
                                             </div>
-                                            <div class="manage-item">
+                                            <div class="quick-delete">
                                                 <!-- todo - Add popup warning to confirm deletion -->
                                                 <button title="Delete Item" onclick="{() => {
-                                                    deleteItem(item.item_uuid);
+                                                    deleteItem(item.uuid);
                                                 }}">
                                                     <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -1032,7 +1037,9 @@
 
                         font-family: 'Funnel Sans', sans-serif;
 
-                        .manage-item {
+                        z-index: 20;
+
+                        .quick-delete {
                             flex: 1 5%;
                             align-items: center;
                             opacity: 0;
@@ -1040,16 +1047,20 @@
                             transition: 50ms ease-in-out;
                             user-select: none;
 
+                            z-index: 25;
+
                             button {
                                 cursor: pointer;
+                                width: 2.25rem;
+                                height: 2.25rem;
                             }
 
                             svg {
                                 justify-self: center;
                                 stroke: var(--theme-text);
+                                width: 100%;
+                                height: 100%;
 
-                                width: 2.25rem;
-                                height: 2.25rem;
                                 padding: .5em .25em;
 
                                 background: var(--theme-background-button);
@@ -1059,7 +1070,7 @@
                             }
                         }
 
-                        .manage-item:hover {
+                        .quick-delete button:hover {
                             svg {
                                 background: var(--theme-background-button-hover);
                                 stroke: oklch(58.6% 0.253 17.585) !important;
@@ -1151,7 +1162,7 @@
                     .inventory-list-entry:hover {
                         background: var(--theme-background-highlight);
 
-                        .manage-item {
+                        .quick-delete {
                             opacity: 1;
                             transition: 25ms ease-in-out;
 
