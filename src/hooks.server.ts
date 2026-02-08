@@ -2,9 +2,9 @@ import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
 import * as auth from '$lib/server/internal/auth';
 import * as db from '$lib/server/db/database'
 import initializeDatabase from '$lib/server/db/index';
-import {type UserInterface} from "$lib/server/components/User";
 import {env} from "$env/dynamic/private";
 import type {DatabaseResult} from "$lib/server/db/database";
+import type {User} from "$lib/server/db/schema";
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
@@ -62,7 +62,7 @@ const handleAuth: Handle = async ({event, resolve}) => {
         return redirect(302, '/login');
     }
 
-    const user: UserInterface = result.result as UserInterface;
+    const user: User = result.result as User;
 
     if (!user) {
         return redirect(302, '/login')

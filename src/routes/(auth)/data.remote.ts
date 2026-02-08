@@ -2,14 +2,13 @@ import * as v from 'valibot';
 import * as auth from "$lib/server/internal/auth";
 import * as db from "$lib/server/db/database";
 import {form} from '$app/server';
-import type {ResetRequest, Session} from "$lib/server/db/schema";
+import type {ResetRequest, Session, User} from "$lib/server/db/schema";
 import {sendPasswordResetLink} from "$lib/server/internal/mail";
 import {sha256} from "@oslojs/crypto/sha2";
 import {encodeHexLowerCase} from "@oslojs/encoding";
 import {hash, verify} from "@node-rs/argon2";
 import {redirect} from "@sveltejs/kit";
 import type {DatabaseResult} from "$lib/server/db/database";
-import type {UserInterface} from "$lib/server/components/User";
 
 export const requestReset = form(
     v.object({email: v.pipe(v.string(), v.nonEmpty())}),
@@ -25,7 +24,7 @@ export const requestReset = form(
             return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
         }
 
-        const user: UserInterface = result.result as UserInterface;
+        const user: User = result.result as User;
 
         if (user) {
             const tokenResult: DatabaseResult = await db.Auth.getResetTokenFromUuid(user.uuid);
@@ -76,7 +75,7 @@ export const resetPassword = form(
             if (resetRequest.uuid) {
                 const passwordHash: string = await hash(_password, {
                     memoryCost: 19456,
-                    timeCost: 5,
+                    timeCost: 3,
                     outputLen: 32,
                     parallelism: 1,
                 });
@@ -123,7 +122,7 @@ export const login = form(
             return {success: false, message: 'Failed to login. If this continues, please contact the system administrator'};
         }
 
-        const user: UserInterface = result.result as UserInterface;
+        const user: User = result.result as User;
 
         if (!user) {
             console.error(`Login failed: No user exists with the email '${email}'.`);
@@ -136,16 +135,16 @@ export const login = form(
             return {success: false, message: 'Failed to login. If this continues, please contact the system administrator'};
         }
 
-        const passwordHash: string = result.result;
+        const passwordHash: string = passwordResult.result;
 
         if (!passwordHash) {
             console.error(`Login failed: No password found in the database for user with email '${email}'.`);
             return {success: false, message: 'Incorrect username or password'};
         }
 
-        const validPassword = await verify(passwordHash.valueOf(), _password, {
+        const validPassword: boolean = await verify(passwordHash.valueOf(), _password, {
             memoryCost: 19456,
-            timeCost: 5,
+            timeCost: 3,
             outputLen: 32,
             parallelism: 1,
         });
@@ -190,7 +189,7 @@ export const register = form(
         const passwordHash: string = await hash(_password, {
             // recommended minimum parameters
             memoryCost: 19456,
-            timeCost: 5,
+            timeCost: 3,
             outputLen: 32,
             parallelism: 1,
         });
@@ -202,7 +201,7 @@ export const register = form(
                 return {success: false, message: 'Failed to register new user. If this problem persists, please contact the system administrator'};
             }
 
-            const user: UserInterface = result.result as UserInterface;
+            const user: User = result.result as User;
 
             if (!user) {
                 return {success: false, message: 'Failed to register new user. If this problem persists, please contact the system administrator'};

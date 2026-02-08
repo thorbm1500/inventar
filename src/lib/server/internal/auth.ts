@@ -44,28 +44,28 @@ export async function createSession(token: string, uuid: string): Promise<Sessio
 
 export async function validateSessionToken(token: string) {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    const result: any = await db.Auth.getSession(session_id);
+    const result: DatabaseResult = await db.Auth.getSession(session_id);
 
-    if (!result) {
+    if (!result.success) {
         return {uuid: null, session_id: null, expires: null};
     }
 
-    const isSessionExpired: boolean = Date.now() >= result.expires;
+    const isSessionExpired: boolean = Date.now() >= result.result.expires;
     if (isSessionExpired) {
         await db.Auth.invalidateSession(session_id);
         return {uuid: null, session_id: null, expires: null};
     }
 
-    const renewSession: boolean = Date.now() >= (result.expires - DAY_IN_MS * 3);
+    const renewSession: boolean = Date.now() >= (result.result.expires - DAY_IN_MS * 3);
     if (renewSession) {
-        result.expires = new Date(Date.now() + DAY_IN_MS * 7);
-        const renewalResult: DatabaseResult = await db.Auth.renewSession(session_id, result.expires);
+        result.result.expires = new Date(Date.now() + DAY_IN_MS * 7);
+        const renewalResult: DatabaseResult = await db.Auth.renewSession(session_id, result.result.expires);
         if (!renewalResult.success) {
             return {uuid: null, session_id: null, expires: null};
         }
     }
 
-    return {uuid: result.uuid, session_id: result.session_id, expires: result.expires};
+    return {uuid: result.result.uuid, session_id: result.result.session_id, expires: result.result.expires};
 }
 
 export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionToken>>;

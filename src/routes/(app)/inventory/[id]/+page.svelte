@@ -1,22 +1,23 @@
 <script module lang="ts">
     import {getContext, onMount} from "svelte";
     import {error} from '@sveltejs/kit';
-    import {Spring} from "svelte/motion";
     import {page} from "$app/state";
     import {validate} from 'uuid';
-    import type {PageProps} from "../../../../../.svelte-kit/types/src/routes/(app)/inventory/[id]/$types";
     import type {Inventory, Item, User} from "$lib/server/db/schema";
-    import ItemCreationSuccessfulToast from "../../../../components/Toasts/ItemCreationSuccessful.svelte";
-    import GenericErrorToast from "../../../../components/Toasts/GenericError.svelte";
     import {parseTimestamp} from '$lib/utilities'
     import FilterSettings from "./utilities.svelte.ts";
     import {getInventory, getItems, getTotalItemCount} from './data.remote.ts';
     import Utility from "../../browse/utility";
-    import ItemCreator from "../components/ItemCreator.svelte";
+    import {createItem} from './data.remote.ts';
+    import ItemCreationSuccessfulToast from "../../../../components/Toasts/ItemCreationSuccessful.svelte";
+    import GenericErrorToast from "../../../../components/Toasts/GenericError.svelte";
+    import {getCurrencies} from "./data.remote.ts";
+
+    const currencies = await getCurrencies();
 
     const imageModules = import.meta.glob('$lib/assets/uploads/item-images/*.{avif,gif,heif,jpeg,jpg,png,tiff,webp}',
         {
-            eager: true,
+            eager: false,
             query: {
                 enhanced: false
             }
@@ -39,7 +40,6 @@
 
     const id = page.params.id;
 
-    let {form}: PageProps = $props();
     const user: User = getContext('user');
 
     //todo: Add option to save filters, and make them persistent for the user.
@@ -60,13 +60,7 @@
         // filterSettings.load(userFilterSettings); Set filter settings loaded from user data.
     })
 
-    let creatorScale = $state(new Spring(0, {
-        stiffness: 0.1,
-        damping: 0.3
-    }))
-
-    let itemCreatorOpacity = $derived(creatorScale.current);
-    let isItemCreatorOpen: boolean = $derived(itemCreatorOpacity !== 0);
+    let isItemCreatorOpen: boolean = $state(false);
     let isFilterContainerOpen: boolean = $state(false);
 
     /* Item Container*/
@@ -163,26 +157,21 @@
     }
 </script>
 
-{#if form?.success }
+{#if createItem.result && createItem.result.success }
     <div class="item-creation-success-toast generic-toast-parent-class play-animation">
         <ItemCreationSuccessfulToast/>
     </div>
 {/if}
 
-{#if form && form.failed }
+{#if createItem.result && !createItem.result.success }
     <div class="item-creation-failed-toast generic-toast-parent-class play-animation">
-        {#if form.error }
-            <GenericErrorToast error={String(form.error)}/>
+        {#if createItem.result?.error }
+            <GenericErrorToast error={String(createItem.result?.error)}/>
         {:else}
             <GenericErrorToast/>
         {/if}
     </div>
 {/if}
-
-<div class="item-creation-container"
-     style="opacity: {itemCreatorOpacity}; visibility: {isItemCreatorOpen ? 'visible' : 'hidden'}; transform: scale({itemCreatorOpacity});">
-    <ItemCreator bind:creatorScale/>
-</div>
 
 <div class="page-content">
     <div class="body-section">
@@ -208,14 +197,20 @@
                             </div>
                         </div>
                         <div class="header-buttons">
-                            <button id="filters-button" class="filters-button" title="Filters" onclick={() => isFilterContainerOpen = !isFilterContainerOpen}>
+                            <button id="filters-button" class="filters-button" title="Filters" onclick={() => {
+                                isItemCreatorOpen = false;
+                                isFilterContainerOpen = !isFilterContainerOpen;
+                            }}>
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/>
                                 </svg>
                                 Filters
                             </button>
-                            <button id="create-item-button" class="create-item-button" onclick={() => creatorScale.target = 1}>
+                            <button id="create-item-button" class="create-item-button" onclick={() => {
+                                isFilterContainerOpen = false;
+                                isItemCreatorOpen = !isItemCreatorOpen;
+                            }}>
                                 <svg width="19" height="19" viewBox="0 0 14 14">
                                     <path fill="currentColor" fill-rule="evenodd"
                                           d="M1.5 1.784c0-.157.127-.284.284-.284h3.182c.157 0 .284.127.284.284v3.182a.284.284 0 0 1-.284.284H1.784a.284.284 0 0 1-.284-.284zM1.784.25C.937.25.25.937.25 1.784v3.182C.25 5.813.937 6.5 1.784 6.5h3.182c.847 0 1.534-.687 1.534-1.534V1.784C6.5.937 5.813.25 4.966.25zM8.75 9.034c0-.157.127-.284.284-.284h3.182c.157 0 .284.127.284.284v3.182a.284.284 0 0 1-.284.284H9.034a.284.284 0 0 1-.284-.284zM9.034 7.5c-.847 0-1.534.687-1.534 1.534v3.182c0 .847.687 1.534 1.534 1.534h3.182c.847 0 1.534-.687 1.534-1.534V9.034c0-.847-.687-1.534-1.534-1.534zM.25 9.034C.25 8.187.937 7.5 1.784 7.5h3.182c.847 0 1.534.687 1.534 1.534v3.182c0 .847-.687 1.534-1.534 1.534H1.784A1.534 1.534 0 0 1 .25 12.216zM10.625.25a.75.75 0 0 1 .75.75v1.625H13a.75.75 0 0 1 0 1.5h-1.625V5.75a.75.75 0 0 1-1.5 0V4.125H8.25a.75.75 0 0 1 0-1.5h1.625V1a.75.75 0 0 1 .75-.75"
@@ -225,21 +220,23 @@
                             </button>
                             <button id="refresh-button" class="refresh-button" title="Refresh" onclick="{refresh}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
                                 </svg>
                             </button>
-                            <button id="inventory-settings-button" class="inventory-settings-button" onclick={() => creatorScale.target = 1}>
+                            <!-- todo - Add inventory settings -->
+                            <button id="inventory-settings-button" class="inventory-settings-button">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
                                 </svg>
                             </button>
                         </div>
                     </div>
                 </section>
                 {#if (isFilterContainerOpen) }
-                    <div class="inventory-filter-container"
-                         style="{isFilterContainerOpen?'padding:1.75rem 2.5rem;visibility:visible;height:fit-content;opacity:1;':'visibility:hidden;margin-top:0;opacity:0;'}">
+                    <div class="extra-container {isFilterContainerOpen?'open':'closed'} inventory-filter-container">
                         <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
                             <h1>Filters</h1>
                             <button class="filters-save-button {filterSettings.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
@@ -253,19 +250,22 @@
                             <div class="filter columns">
                                 <div style="display:flex;flex-flow:row nowrap;gap:.2rem;">
                                     <svg width="24" height="24" viewBox="0 0 24 24">
-                                        <path fill="currentColor" d="M17.75 20.25q-1.575 0-2.662-1.088T14 16.5t1.088-2.662t2.662-1.088t2.663 1.088T21.5 16.5t-1.088 2.663t-2.662 1.087M11 17.5H5q-.425 0-.712-.288T4 16.5t.288-.712T5 15.5h6q.425 0 .713.288T12 16.5t-.288.713T11 17.5m-4.75-6.25q-1.575 0-2.662-1.088T2.5 7.5t1.088-2.662T6.25 3.75t2.663 1.088T10 7.5t-1.088 2.663T6.25 11.25M19 8.5h-6q-.425 0-.712-.288T12 7.5t.288-.712T13 6.5h6q.425 0 .713.288T20 7.5t-.288.713T19 8.5"/>
+                                        <path fill="currentColor"
+                                              d="M17.75 20.25q-1.575 0-2.662-1.088T14 16.5t1.088-2.662t2.662-1.088t2.663 1.088T21.5 16.5t-1.088 2.663t-2.662 1.087M11 17.5H5q-.425 0-.712-.288T4 16.5t.288-.712T5 15.5h6q.425 0 .713.288T12 16.5t-.288.713T11 17.5m-4.75-6.25q-1.575 0-2.662-1.088T2.5 7.5t1.088-2.662T6.25 3.75t2.663 1.088T10 7.5t-1.088 2.663T6.25 11.25M19 8.5h-6q-.425 0-.712-.288T12 7.5t.288-.712T13 6.5h6q.425 0 .713.288T20 7.5t-.288.713T19 8.5"/>
                                     </svg>
                                     <h1>Columns</h1>
                                 </div>
                                 <div class="buttons">
-                                    <button class="price filter-button {filterSettings.price ? '' : 'off'}" style="order:{filterSettings.price ? 1 : 101}" onclick={() => filterSettings.price = !filterSettings.price}>
+                                    <button class="extra-container-button price filter-button {filterSettings.price ? '' : 'off'}" style="order:{filterSettings.price ? 1 : 101}"
+                                            onclick={() => filterSettings.price = !filterSettings.price}>
                                         Prices
                                     </button>
-                                    <button class="last-updated filter-button {filterSettings.lastUpdated ? '' : 'off'}" style="order:{filterSettings.lastUpdated ? 2 : 102}"
+                                    <button class="extra-container-button last-updated filter-button {filterSettings.lastUpdated ? '' : 'off'}" style="order:{filterSettings.lastUpdated ? 2 : 102}"
                                             onclick={() => filterSettings.lastUpdated = !filterSettings.lastUpdated}>
                                         Last Updated
                                     </button>
-                                    <button class="description filter-button {filterSettings.description ? '' : 'off'}" style="order:{filterSettings.description ? 3 : 103}" onclick={() => filterSettings.description = !filterSettings.description}>
+                                    <button class="extra-container-button description filter-button {filterSettings.description ? '' : 'off'}" style="order:{filterSettings.description ? 3 : 103}"
+                                            onclick={() => filterSettings.description = !filterSettings.description}>
                                         Description
                                     </button>
                                 </div>
@@ -281,23 +281,70 @@
                                     </svg>
                                     <h1>Row Amount</h1>
                                 </div>
-                                <div style="display:flex;flex-flow:row nowrap;gap:.35rem;">
-                                    <button onclick={() => filterSettings.columnSize = 15} class="filter-button row-amount {filterSettings.columnSize === 15 ? 'selected' : ''}">15</button>
-                                    <button onclick={() => filterSettings.columnSize = 30} class="filter-button row-amount {filterSettings.columnSize === 30 ? 'selected' : ''}">30</button>
-                                    <button onclick={() => filterSettings.columnSize = 45} class="filter-button row-amount {filterSettings.columnSize === 45 ? 'selected' : ''}">45</button>
-                                    <button onclick={() => filterSettings.columnSize = 60} class="filter-button row-amount {filterSettings.columnSize === 60 ? 'selected' : ''}">60</button>
+                                <div style="display:flex;flex-flow:row nowrap;gap:.25rem;">
+                                    <button onclick={() => filterSettings.columnSize = 15} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 15 ? 'selected' : ''}">15</button>
+                                    <button onclick={() => filterSettings.columnSize = 30} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 30 ? 'selected' : ''}">30</button>
+                                    <button onclick={() => filterSettings.columnSize = 45} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 45 ? 'selected' : ''}">45</button>
+                                    <button onclick={() => filterSettings.columnSize = 60} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 60 ? 'selected' : ''}">60</button>
                                 </div>
-                            </div>
-                            <div class="filter row-height">
-                                <div style="display:flex;flex-flow:row nowrap;">
-                                    <svg width="24" height="24" viewBox="0 0 24 24">
-                                        <path fill="currentColor" d="M5 22q-.425 0-.712-.288T4 21t.288-.712T5 20h14q.425 0 .713.288T20 21t-.288.713T19 22zm7-3.425q-.2 0-.375-.062T11.3 18.3l-2.6-2.6q-.275-.275-.287-.687T8.7 14.3q.275-.275.688-.288t.712.263l.9.875v-6.3l-.9.875Q9.825 10 9.413 10T8.7 9.7q-.275-.275-.275-.7t.275-.7l2.6-2.6q.15-.15.325-.212T12 5.425t.375.063t.325.212l2.6 2.6q.275.275.287.688T15.3 9.7q-.275.275-.687.288t-.713-.263L13 8.85v6.3l.9-.875q.275-.275.688-.275t.712.3q.275.275.275.7t-.275.7l-2.6 2.6q-.15.15-.325.213t-.375.062M5 4q-.425 0-.712-.288T4 3t.288-.712T5 2h14q.425 0 .713.288T20 3t-.288.713T19 4z"/>
-                                    </svg>
-                                    <h1>Row Height</h1>
-                                </div>
-                                <input type="range" bind:value={filterSettings.rowHeight} min="60" max="80" />
                             </div>
                         </section>
+                    </div>
+                {:else if (isItemCreatorOpen) }
+                    <div class="extra-container {isItemCreatorOpen?'open':'closed'} create-item-container" id="create-item-container">
+                        <div class="header">
+                            <h1>Add Item</h1>
+                        </div>
+                        <form {...createItem} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
+                            <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
+                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id}" hidden required/>
+                            <div class="option-container">
+                                <label for="name">Item Name</label>
+                                <input {...createItem.fields.name.as('text')} id="item-name" placeholder="Name" required/>
+                            </div>
+                            <div class="option-container">
+                                <label for="description">Description</label>
+                                <input {...createItem.fields.description.as('text')} id="description" name="description" placeholder="Description"/>
+                            </div>
+                            <div class="option-container">
+                                <label for="amount">Amount</label>
+                                <input {...createItem.fields.amount.as('number')} id="amount" value=0 required/>
+                            </div>
+                            <div class="option-container price-section">
+                                <div class="price-section-input">
+                                    <label for="price">Price</label>
+                                    <input {...createItem.fields.price.as('number')} id="price" placeholder="0" min="0" value="0"/>
+                                </div>
+                                <div class="price-section-input">
+                                    <label for="currency">Currency</label>
+                                    <select {...createItem.fields.currency.as('text')} id="currencies">
+                                        {#each currencies as currency}
+                                            {#if (currency.code === "DKK") }
+                                                <option value="{currency.code}" selected>{currency.code}</option>
+                                            {:else}
+                                                <option value="{currency.code}">{currency.code}</option>
+                                            {/if}
+                                        {/each}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="option-container">
+                                <label for="image">Image</label>
+                                <input {...createItem.fields.image.as('file')} id="image"
+                                       class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
+                            </div>
+                            <div class="option-container">
+                                <label for="external">External</label>
+                                <input {...createItem.fields.external.as('text')} id="external" placeholder="URL"
+                                       class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
+                            </div>
+                            <div class="item-creation-buttons">
+                                <button type="{createItem.result ? 'button' : 'submit'}" class="extra-container-button item-confirm-creation-button bg-button-background dark:bg-dark-button-background border-button-border dark:border-dark-button-border
+                rounded-(--border-radius) text-text-primary dark:text-dark-text-primary">
+                                    Create
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 {/if}
                 <section class="inventory-body-section">
@@ -352,7 +399,7 @@
                             {#if inventory }
                                 {#if items.length > 0 }
                                     {#each items as item}
-                                        <a href='/static' target='_parent' style="height:{filterSettings.rowHeight / 10}rem !important;"
+                                        <a data-sveltekit-preload-data="tap" href='/' target='_parent' style="height:5.5rem !important;"
                                            class="inventory-list-entry
                                 border-t-container-border dark:border-t-dark-container-border
                                 border-b-container-border dark:border-b-dark-container-border">
@@ -396,7 +443,8 @@
                                             <div class="manage-item">
                                                 <!-- todo - Add quick delete logic, and popup warning to confirm deletion -->
                                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                          d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
                                                 </svg>
                                             </div>
                                         </a>
@@ -504,15 +552,6 @@
         scrollbar-width: none;
     }
 
-    .item-creation-container {
-        position: absolute;
-        top: calc(((var(--header-height) / 2) + 50vh) - 20rem);
-        left: calc(50vw - 32rem);
-        opacity: 0;
-
-        z-index: 100;
-    }
-
     .inventory-section {
         display: flex;
         flex-flow: column nowrap;
@@ -586,11 +625,11 @@
                     flex-flow: row nowrap;
                     gap: .5rem;
 
-                    .refresh-button,.inventory-settings-button {
+                    .refresh-button, .inventory-settings-button {
                         padding: .5em 1em !important;
                     }
 
-                    .refresh-button, .filters-button, .create-item-button,.inventory-settings-button {
+                    .refresh-button, .filters-button, .create-item-button, .inventory-settings-button {
                         display: flex;
                         flex-flow: row nowrap;
                         align-items: center;
@@ -611,7 +650,7 @@
                         user-select: none;
                     }
 
-                    .refresh-button:hover, .filters-button:hover, .create-item-button:hover,.inventory-settings-button:hover {
+                    .refresh-button:hover, .filters-button:hover, .create-item-button:hover, .inventory-settings-button:hover {
                         color: var(--accent-text);
 
                         transition-duration: 75ms;
@@ -626,7 +665,7 @@
             }
         }
 
-        .inventory-filter-container {
+        .extra-container {
             display: flex;
             flex-flow: column wrap;
             justify-content: flex-start;
@@ -652,7 +691,117 @@
                     color: var(--theme-text);
                     margin-bottom: .75rem;
                 }
+            }
 
+            .extra-container-button {
+                background: var(--theme-background-button);
+                color: var(--theme-text);
+                border: var(--theme-form-input-border-dark);
+                border-radius: .75rem;
+                padding: .75rem 1.5rem;
+                user-select: none;
+                font-size: 1rem;
+                font-weight: 700;
+                cursor: pointer;
+                gap: .25rem;
+
+                transition: filter 100ms ease-in-out;
+            }
+
+            .extra-container-button:hover {
+                background: var(--theme-background-button-hover);
+            }
+
+            .extra-container-button:active {
+                transform: scale(0.975);
+            }
+        }
+
+        .extra-container.open {
+            padding: 1.75rem 2.5rem;
+            visibility: visible;
+            height: fit-content;
+            opacity: 1;
+        }
+
+        .extra-container.closed {
+            visibility: hidden;
+            margin-top: 0;
+            opacity: 0;
+        }
+
+        .extra-container.create-item-container {
+            form {
+                display: flex;
+                flex-flow: column wrap;
+                justify-content: center;
+                align-items: center;
+                align-content: center;
+                height: 100%;
+
+                font-family: 'Funnel Sans', sans-serif;
+
+                label {
+                    color: var(--theme-text);
+                }
+
+                input, option, select {
+                    background: var(--theme-form-input-background-dark);
+                    border: var(--theme-form-input-border-dark);
+                    border-radius: var(--form-input-border-radius);
+                    color: var(--theme-text);
+                }
+
+                .option-container {
+                    display: flex;
+                    flex-flow: column nowrap;
+
+                    width: 80%;
+                }
+
+                #description {
+                    height: 3rem;
+                }
+
+                .price-section {
+                    display: flex;
+                    flex-flow: row nowrap;
+                    align-items: center;
+
+                    .price-section-input:first-child {
+                        flex-grow: 2;
+                    }
+
+                    .price-section-input {
+                        display: flex;
+                        flex-flow: column nowrap;
+                        align-items: center;
+                        flex-grow: 0;
+
+                        #currencies, #currencies * {
+                            background: var(--theme-form-input-background-dark);
+                            border: var(--theme-form-input-border-dark);
+                            border-radius: 0.5rem;
+
+                            scroll-behavior: smooth;
+                            scrollbar-width: none;
+                        }
+
+                        select option {
+                            color: var(--theme-text);
+                        }
+                    }
+                }
+
+                input {
+                    margin-top: .25rem;
+                    margin-bottom: 1.5rem;
+                }
+            }
+        }
+
+        .extra-container.inventory-filter-container {
+            .header {
                 .filters-save-button {
                     svg {
                         width: 1.75rem;
@@ -687,7 +836,6 @@
                 flex-flow: row wrap;
                 align-items: center;
                 justify-content: flex-start;
-                gap: .5rem;
                 width: 100%;
                 height: fit-content;
 
@@ -696,28 +844,6 @@
                     align-items: center;
                     color: var(--theme-text);
                     font-family: 'Google Sans', sans-serif;
-
-                    .filter-button {
-                        background: var(--theme-background-button);
-                        color: var(--theme-text);
-                        border: var(--theme-form-input-border-dark);
-                        border-radius: 1.25rem;
-                        padding: .75rem 1.5rem;
-                        user-select: none;
-                        font-size: 1rem;
-                        font-weight: 700;
-                        cursor: pointer;
-
-                        transition: filter 100ms ease-in-out;
-                    }
-
-                    .filter-button:hover {
-                        background: var(--theme-background-button-hover);
-                    }
-
-                    .filter-button:active {
-                        transform: scale(0.975);
-                    }
 
                     .filter-button.off {
                         filter: saturate(.5) opacity(.5);
@@ -746,13 +872,6 @@
 
                     .row-amount.selected {
                         background: #1F2023FF;
-                    }
-                }
-
-                .filter.row-height {
-                    input {
-                        width: 8rem;
-                        margin-top: .75rem;
                     }
                 }
             }
@@ -961,9 +1080,9 @@
                                 height: 5rem;
 
                                 svg {
-                                    width: 4rem;
-                                    height: 4rem;
-                                    margin: .5rem .5rem;
+                                    width: 2.5rem;
+                                    height: 2.5rem;
+                                    margin: 1rem;
                                     transition: 450ms 100ms ease-in-out;
                                 }
 

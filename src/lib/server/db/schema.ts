@@ -10,7 +10,7 @@ function isValidError(error: any): boolean {
 export interface Currency {
     code: string,
     number: string,
-    symbol: string | null
+    symbol?: string
 }
 
 /**
@@ -40,6 +40,15 @@ export async function createTableCurrencies(sql: postgres.Sql): Promise<void> {
             console.log("FALSE");
         }
     }
+}
+
+export interface Inventory {
+    inventory_uuid: string,
+    name: string,
+    description?: string,
+    image_path?: string,
+    item_amount: number,
+    last_update: Date | string
 }
 
 /**
@@ -73,6 +82,20 @@ export async function createTableCategories(sql: postgres.Sql): Promise<void> {
                   CONSTRAINT categories_pkey PRIMARY KEY (inventory_uuid, category_uuid),
                   FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE
               )`;
+}
+
+export interface Item {
+    inventory_uuid: string,
+    item_uuid: string,
+    name: string,
+    description?: string,
+    amount: number,
+    thumbnail_path?: string,
+    url?: string,
+    price: number,
+    currency_code: string,
+    created_at: Date | string,
+    last_modified: Date | string
 }
 
 /**
@@ -148,6 +171,17 @@ export async function createTableItemAssets(sql: postgres.Sql): Promise<void> {
                   FOREIGN KEY (inventory_uuid) REFERENCES inventories (inventory_uuid) ON DELETE CASCADE,
                   FOREIGN KEY (item_uuid) REFERENCES items (item_uuid) ON DELETE CASCADE
               )`
+}
+
+export interface User {
+    uuid: string,
+    email: string,
+    username: string,
+    profile_picture?: string,
+    created_at: string,
+    last_login: string,
+    superuser: boolean,
+    primary_inventory?: string
 }
 
 /**
