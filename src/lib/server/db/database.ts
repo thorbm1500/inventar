@@ -175,6 +175,19 @@ export class Items {
                 return {success:false,message:`Failed to fetch total item count. Error: ${error}`};
             })
     }
+
+    static async deleteItem(item_uuid: string): Promise<DatabaseResult> {
+        return await sql`DELETE FROM items
+                         WHERE item_uuid = ${item_uuid}`
+            .then(result => {
+                const [res] = result;
+                return {success:true,result:res,rawResult:result};
+            })
+            .catch(error => {
+                console.error(`Failed to fetch total item count. Error: ${error}`);
+                return {success:false,message:`Failed to fetch total item count. Error: ${error}`};
+            })
+    }
 }
 
 export class Users {

@@ -51,6 +51,15 @@ export const getTotalItemCount = query(v.string(), async (id: string): Promise<n
     return 1;
 });
 
+export const deleteItem = query(v.string(), async (id: string): Promise<boolean> => {
+    if (!util.isOffline()) {
+        const result: DatabaseResult = await db.Items.deleteItem(id);
+        return result.result;
+    }
+
+    return false;
+});
+
 export const createItem = form(
     v.object({
         inventoryUuid: v.pipe(v.string(), v.nonEmpty()),
