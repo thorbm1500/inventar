@@ -53,7 +53,6 @@ export async function createTableInventories(): Promise<void> {
                   owner       UUID                NOT NULL,
                   name        VARCHAR(255) UNIQUE NOT NULL,
                   description TEXT                         DEFAULT NULL,
-                  image_path  TEXT                         DEFAULT NULL,
                   item_amount BIGINT              NOT NULL DEFAULT 0,
                   last_update BIGINT              NOT NULL DEFAULT extract(epoch FROM now()),
                   created_at  BIGINT              NOT NULL DEFAULT extract(epoch FROM now()),

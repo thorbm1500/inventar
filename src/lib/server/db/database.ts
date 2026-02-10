@@ -15,7 +15,7 @@ export const sql = postgres({
 export interface DatabaseResult {
     success: boolean,
     result?: any,
-    rawResult?: RowList<Row[]>,
+    rawResult?: RowList<Row[]> | Row,
     message?: string
 }
 
@@ -36,20 +36,18 @@ export async function getCurrencies(): Promise<DatabaseResult> {
 export class Inventories {
     /**
      * Creates a new inventory.
+     * @param owner UUID of the account that is creating the inventory.
      * @param name The inventory's name.
      * @param description The inventory's description, if any.
-     * @param image The path of the inventory's thumbnail, if any.
      * @return The UUID of the new inventory, or undefined if any errors occurred.
      */
-    static async create(name: string, description?: string, image?: string): Promise<DatabaseResult> {
-        return await sql`INSERT INTO inventories (name${description ? `,description` : ``}${image ? `,image` : ``})
-                         VALUES (${name}${description ? `,${description}` : ``}${image ? `,${image}` : ``})
-                         ON CONFLICT DO NOTHING
+    static async create(owner: string, name: string, description?: string | null): Promise<DatabaseResult> {
+        return await sql`INSERT INTO inventories(owner,name,description)
+                         VALUES (${owner},${name},${description as string ?? null })
                          RETURNING uuid`
             .then(result => {
                 const [res] = result;
-                const id: string = res.uuid ?? 'NONE';
-                return {success:true, result: id, rawResult: result};
+                return {success:true, result: res.uuid ?? 'NONE', rawResult: res};
             }).catch((error) => {
                 console.error(`Failed to create inventory '${name}'. Error: ${error}`);
                 return {success:false, message: `Failed to create inventory '${name}'. Error: ${error}`}
@@ -57,8 +55,8 @@ export class Inventories {
     }
 
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<DatabaseResult> {
-        return await sql`select *
-                         from inventories ${order_by === '' ? `` : sql`order by
+        return await sql`SELECT *
+                         FROM inventories ${order_by === '' ? `` : sql`ORDER BY
                          ${sql(order_by)}
                          ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
                          LIMIT ${amount} OFFSET ${offset}`
