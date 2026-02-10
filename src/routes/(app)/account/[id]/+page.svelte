@@ -94,7 +94,7 @@
                 }
 
                 p, span {
-                    font-family: 'Funnel Display', sans-serif;
+                    font-family: 'FunnelDisplay', sans-serif;
                 }
 
                 p {

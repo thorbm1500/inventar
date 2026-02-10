@@ -154,6 +154,8 @@ export const login = form(
             return {success: false, message: 'Incorrect username or password'};
         }
 
+        await db.Users.updateLastLogin(user.uuid);
+
         const sessionToken: string = auth.generateSessionToken();
         const session: Session | null = await auth.createSession(sessionToken, user.uuid);
         if (session) auth.setSessionTokenCookie(sessionToken, session.expires);
@@ -169,49 +171,54 @@ export const register = form(
         _repeat_password: v.pipe(v.string(), v.nonEmpty())
     }),
     async ({username, email, _password, _repeat_password}) => {
-
         if (_password !== _repeat_password) {
-            return {success: false, message: 'Passwords do not match!'};
+            console.error(`Passwords do not match!`);
+            return {success: false, message: `Passwords do not match!`};
         }
 
         if (!auth.validateUsername(username)) {
-            return {success: false, message: 'Invalid username!'};
+            console.error(`Invalid username!`);
+            return {success: false, message: `Invalid username!`};
         }
 
         if (!auth.validateEmail(email)) {
-            return {success: false, message: 'Invalid email!'};
+            console.error(`Invalid email!`);
+            return {success: false, message: `Invalid email!`};
         }
 
         if (!auth.validatePassword(_password)) {
-            return {success: false, message: 'Invalid password!'};
+            console.error(`Invalid password!`);
+            return {success: false, message: `Invalid password!`};
         }
 
         const passwordHash: string = await hash(_password, {
-            // recommended minimum parameters
             memoryCost: 19456,
             timeCost: 3,
             outputLen: 32,
-            parallelism: 1,
+            parallelism: 1
         });
 
         try {
-            const result: DatabaseResult = await db.Users.create(email, username, passwordHash);
+            // Give administrator rights no users have been created yet.
+            const result: DatabaseResult = await db.Users.getUserAmount();
+            const userAmount: number = result.success ? result.result : 1;
+            const creationResult: DatabaseResult = await db.Users.create(email, username, passwordHash, userAmount === 0);
 
-            if (!result.success) {
+            if (!creationResult.success) {
                 return {success: false, message: 'Failed to register new user. If this problem persists, please contact the system administrator'};
             }
 
-            const user: User = result.result as User;
+            const userQuery: DatabaseResult = await db.Users.getFromUuid(creationResult.result);
 
-            if (!user) {
+            if (!userQuery.success) {
                 return {success: false, message: 'Failed to register new user. If this problem persists, please contact the system administrator'};
             }
 
             const sessionToken: string = auth.generateSessionToken();
-            const session: Session | null = await auth.createSession(sessionToken, user.uuid);
+            const session: Session | null = await auth.createSession(sessionToken, userQuery.result);
             if (session) auth.setSessionTokenCookie(sessionToken, session.expires);
         } catch {
             return {success: false, message: 'An error has occurred'};
         }
-        return redirect(302, '/');
+        return {success:true, message: 'Successfully registered!'};
     });

@@ -46,7 +46,8 @@ export async function validateSessionToken(token: string) {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
     const result: DatabaseResult = await db.Auth.getSession(session_id);
 
-    if (!result.success) {
+    if (!result.success || result.result.session_id === null) {
+        deleteSessionTokenCookie();
         return {uuid: null, session_id: null, expires: null};
     }
 

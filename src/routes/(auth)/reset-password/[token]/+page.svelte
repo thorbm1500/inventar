@@ -33,7 +33,7 @@
                 <input {...resetPassword.fields._password.as('password')} type="password" placeholder="New Password" class="password-input" autocomplete="new-password" required/>
             </label>
             <div class="reset-form-buttons">
-                <a href="/login">
+                <a data-sveltekit-reload href="/login">
                     <button class="back-button">Back</button>
                 </a>
                 <button type="{resetPassword.result && resetPassword.result.success ? 'button' : 'submit'}" class="reset-button">Confirm</button>
@@ -49,7 +49,7 @@
     section {
         height: 100%;
         width: 100%;
-        font-family: 'Funnel Sans', sans-serif;
+        font-family: 'FunnelSans', sans-serif;
 
         display: flex;
         flex-flow: column nowrap;

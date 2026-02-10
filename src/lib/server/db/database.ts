@@ -196,10 +196,11 @@ export class Users {
      * @param email The user's email.
      * @param username The user's username.
      * @param password_hash A hashed version of the user's password.
+     * @param superuser If the user should have administrator rights.
      */
-    static async create(email: string, username: string, password_hash: string): Promise<DatabaseResult> {
-        return await sql`INSERT INTO users (email, username, password_hash)
-                         VALUES (${email}, ${username}, ${password_hash})
+    static async create(email: string, username: string, password_hash: string, superuser: boolean = false): Promise<DatabaseResult> {
+        return await sql`INSERT INTO users (email, username, password_hash, superuser)
+                         VALUES (${email}, ${username}, ${password_hash}, ${superuser})
                          RETURNING uuid`
             .then(result => {
                 const [res] = result;
@@ -265,6 +266,32 @@ export class Users {
                 return {success:false,message:`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`};
             });
     }
+
+    static async updateLastLogin(uuid: string): Promise<DatabaseResult> {
+        return await sql`UPDATE users
+                         SET last_login = ${(Date.now() * 1000)}
+                         WHERE uuid = ${uuid}`
+            .then(() => {
+                return {success:true}
+            })
+            .catch(error => {
+                console.error(`Failed to update last login for user with uuid '${uuid}'. Error: ${error}`);
+                return {success:false,message:`Failed to update last login for user with uuid '${uuid}'. Error: ${error}`};
+            });
+    }
+
+    static async getUserAmount(): Promise<DatabaseResult> {
+        return await sql`SELECT count(uuid) as amount
+                         FROM users`
+            .then(result => {
+                const [res] = result;
+                return {success:true,result:res.amount,rawResult:result};
+            })
+            .catch(error => {
+                console.error(`Failed to get amount of users registered. Error: ${error}`);
+                return {success:false,message:`Failed to get amount of users registered. Error: ${error}`};
+            });
+    }
 }
 
 export class Auth {
@@ -297,7 +324,7 @@ export class Auth {
                          WHERE session_id = ${session_id}`
             .then(result => {
                 const [res] = result;
-                return {success:true,result:{uuid: res.uuid ?? undefined, session_id: res.session_id ?? undefined, expires: res.expires ?? undefined},rawResult:result};
+                return {success:true,result:{uuid: res?.uuid ?? null, session_id: res?.session_id ?? null, expires: res?.expires ?? null},rawResult:result};
             })
             .catch(error => {
                 console.error(`Failed to retrieve session with id '${session_id}'. Error: ${error}`);

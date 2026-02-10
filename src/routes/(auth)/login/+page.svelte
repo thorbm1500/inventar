@@ -39,7 +39,7 @@
                 </a>
             </div>
         </form>
-        <a class="forgot-password" href="/reset-password">Forgot password?</a>
+        <a data-sveltekit-reload class="forgot-password" href="/reset-password">Forgot password?</a>
         {#if login.result}
             <p style='color: red'>{login.result.message ?? ''}</p>
         {/if}
@@ -50,7 +50,7 @@
     section {
         height: 100%;
         width: 100%;
-        font-family: 'Funnel Sans', sans-serif;
+        font-family: 'FunnelSans', sans-serif;
 
         display: flex;
         flex-flow: column nowrap;
@@ -119,6 +119,7 @@
                     border: .12em solid oklch(0.302 0.011 271.028);
                     border-radius: .6em;
                     color: #FFFFF2;
+                    pointer-events: all;
                 }
 
                 button:hover {

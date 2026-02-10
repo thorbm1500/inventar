@@ -1,4 +1,4 @@
-import postgres from 'postgres';
+import {sql} from "$lib/server/db/database";
 import currencies from '$lib/server/db/components/currencies';
 import colors from '$lib/server/db/components/colors'
 
@@ -10,9 +10,8 @@ export interface Currency {
 
 /**
  * Creates the table 'currencies', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
  */
-export async function createTableCurrencies(sql: postgres.Sql): Promise<void> {
+export async function createTableCurrencies(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS currencies
               (
                   id     VARCHAR(3) UNIQUE NOT NULL,
@@ -45,9 +44,9 @@ export interface Inventory {
 
 /**
  * Creates the table 'inventories', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
+ * If the table creation is successful; Adds foreign key constraint on table 'users'.
  */
-export async function createTableInventories(sql: postgres.Sql): Promise<void> {
+export async function createTableInventories(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS inventories
               (
                   uuid        UUID UNIQUE         NOT NULL DEFAULT uuidv7(),
@@ -61,6 +60,12 @@ export async function createTableInventories(sql: postgres.Sql): Promise<void> {
                   CONSTRAINT inventories_pkey PRIMARY KEY (uuid),
                   FOREIGN KEY (owner) REFERENCES users (uuid)
               )`
+        .then(async () => {
+            await sql`ALTER TABLE users
+                ADD CONSTRAINT users_inventory_fk
+                    FOREIGN KEY (primary_inventory) references inventories (uuid)`
+                .catch(() => {})
+        })
         .catch(error => console.error(error));
     //todo: Sync item amount every midnight, to ensure correct amount.
     /*
@@ -85,7 +90,7 @@ export interface userInventoryPermissions {
     view_audit: boolean
 }
 
-export async function createTableInventoryAccessList(sql: postgres.Sql): Promise<void> {
+export async function createTableInventoryAccessList(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS inventory_access_list
               (
                   inventory        UUID    NOT NULL,
@@ -118,9 +123,8 @@ export interface Label {
 
 /**
  * Creates the table 'categories', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
  */
-export async function createTableLabels(sql: postgres.Sql): Promise<void> {
+export async function createTableLabels(): Promise<void> {
     //todo: Expand to allow for custom colors in the future.
     await sql`CREATE TABLE IF NOT EXISTS labels
               (
@@ -144,9 +148,8 @@ export interface LabelColors {
 
 /**
  * Creates the table 'categories', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
  */
-export async function createTableLabelColors(sql: postgres.Sql): Promise<void> {
+export async function createTableLabelColors(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS label_colors
               (
                   id              INTEGER UNIQUE NOT NULL,
@@ -154,7 +157,7 @@ export async function createTableLabelColors(sql: postgres.Sql): Promise<void> {
                   background      VARCHAR(9)     NOT NULL,
                   dark_border     VARCHAR(9)     NOT NULL,
                   dark_background VARCHAR(9)     NOT NULL,
-                  CONSTRAINT labels_pkey PRIMARY KEY (id)
+                  CONSTRAINT label_colors_pkey PRIMARY KEY (id)
               )`
         .then(async () => {
             for (const row of colors) {
@@ -188,9 +191,8 @@ export interface Item {
 
 /**
  * Creates the table 'items', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
  */
-export async function createTableItems(sql: postgres.Sql): Promise<void> {
+export async function createTableItems(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS items
               (
                   inventory           UUID           NOT NULL,
@@ -219,9 +221,8 @@ export async function createTableItems(sql: postgres.Sql): Promise<void> {
 
 /**
  * Creates the table 'item_categories', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
  */
-export async function createTableItemLabels(sql: postgres.Sql): Promise<void> {
+export async function createTableItemLabels(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS item_labels
               (
                   inventory UUID NOT NULL,
@@ -251,9 +252,8 @@ export interface User {
 
 /**
  * Creates the table 'users', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
  */
-export async function createTableUsers(sql: postgres.Sql): Promise<void> {
+export async function createTableUsers(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS users
               (
                   uuid              UUID UNIQUE         NOT NULL DEFAULT uuidv7(),
@@ -266,8 +266,7 @@ export async function createTableUsers(sql: postgres.Sql): Promise<void> {
                   last_login        BIGINT              NOT NULL DEFAULT extract(epoch FROM now()),
                   created_at        BIGINT              NOT NULL DEFAULT extract(epoch FROM now()),
                   superuser         BOOLEAN             NOT NULL DEFAULT false,
-                  CONSTRAINT users_pkey PRIMARY KEY (uuid),
-                  FOREIGN KEY (primary_inventory) REFERENCES inventories (uuid)
+                  CONSTRAINT users_pkey PRIMARY KEY (uuid)
               )`
         .catch(error => console.error(error));
 }
@@ -280,9 +279,8 @@ export interface Session {
 
 /**
  * Creates the table 'sessions', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
  */
-export async function createTableSessions(sql: postgres.Sql): Promise<void> {
+export async function createTableSessions(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS sessions
               (
                   uuid       UUID UNIQUE NOT NULL,
@@ -302,9 +300,8 @@ export interface ResetRequest {
 
 /**
  * Creates the table 'reset_tokens', if it doesn't already exist.
- * @param sql The database connection on which to perform the query.
  */
-export async function createTableResetTokens(sql: postgres.Sql): Promise<void> {
+export async function createTableResetTokens(): Promise<void> {
     await sql`CREATE TABLE IF NOT EXISTS reset_tokens
               (
                   uuid    UUID UNIQUE NOT NULL,
@@ -314,4 +311,22 @@ export async function createTableResetTokens(sql: postgres.Sql): Promise<void> {
                   FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
               )`
         .catch(error => console.error(error));
+}
+
+/**
+ * Creates all the default tables, in the database, and adds the table's default values, if any.
+ */
+export async function createTables(): Promise<void> {
+    console.log(`Table creation starting...`)
+    await createTableCurrencies();
+    await createTableUsers();
+    await createTableInventories();
+    await createTableInventoryAccessList();
+    await createTableLabels();
+    await createTableLabelColors();
+    await createTableItems();
+    await createTableItemLabels();
+    await createTableSessions();
+    await createTableResetTokens();
+    console.log(`Table creation finished.`)
 }

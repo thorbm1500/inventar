@@ -22,7 +22,7 @@ import { page } from '$app/state';
         height: var(--theme-max-page-height);
 
         h1 {
-            font-family: 'Funnel Display', monospace;
+            font-family: 'FunnelDisplay', monospace;
             font-size: 12rem;
             font-weight: 500;
             color: var(--theme-text);
@@ -30,7 +30,7 @@ import { page } from '$app/state';
             z-index: 10;
         }
         h3 {
-            font-family: 'Funnel Display', monospace;
+            font-family: 'FunnelDisplay', monospace;
             font-size: 2.25rem;
             font-style: italic;
             color: var(--theme-text);

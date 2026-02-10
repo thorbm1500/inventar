@@ -46,7 +46,7 @@
     section {
         height: 100%;
         width: 100%;
-        font-family: 'Funnel Sans', sans-serif;
+        font-family: 'FunnelSans', sans-serif;
 
         display: flex;
         flex-flow: column nowrap;

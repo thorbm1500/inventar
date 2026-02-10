@@ -27,16 +27,16 @@ import {register} from "../data.remote";
     <div class="login-form">
         <form {...register}>
             <label>
-                <input {...register.fields.username.as('text')} id="username" placeholder="Username" class="username-input"/>
+                <input {...register.fields.username.as('text')} placeholder="Username" class="username-input"/>
             </label>
             <label>
-                <input {...register.fields.email.as('text')} id="email" name="email" placeholder="Email" class="email-input"/>
+                <input {...register.fields.email.as('text')} name="email" placeholder="Email" class="email-input"/>
             </label>
             <label>
-                <input {...register.fields._password.as('password')} id="password" name="password" placeholder="Password" class="password-input"/>
+                <input {...register.fields._password.as('password')} name="_password" placeholder="Password" class="password-input"/>
             </label>
             <label>
-                <input {...register.fields._repeat_password.as('password')} id="repeat-password" name="password" placeholder="Repeat Password" class="password-input"/>
+                <input {...register.fields._repeat_password.as('password')} name="_repeat_password" placeholder="Repeat Password" class="password-input"/>
             </label>
             <div class="login-form-buttons">
                 <button type="submit" class="register-button">Register</button>
@@ -44,10 +44,10 @@ import {register} from "../data.remote";
         </form>
         <div class="back-to-sign-in">
             <p>Already got an account?</p>
-            <a class="sign-in" href="/login">Sign in.</a>
+            <a data-sveltekit-reload class="sign-in" href="/login">Sign in.</a>
         </div>
-        {#if register.result}
-            <p style='color: red'>{register.result.message ?? ''}</p>
+        {#if register.result }
+            <p style='color: red'>{register.result.message ?? 'Message missing.'}</p>
         {/if}
     </div>
 </section>
@@ -56,7 +56,7 @@ import {register} from "../data.remote";
     section {
         height: 100%;
         width: 100%;
-        font-family: 'Funnel Sans', sans-serif;
+        font-family: 'FunnelSans', sans-serif;
 
         display: flex;
         flex-flow: column nowrap;
@@ -147,15 +147,15 @@ import {register} from "../data.remote";
                     border: .12em solid oklch(0.302 0.011 271.028);
                     border-radius: .6em;
                     color: #FFFFF2;
+                    cursor: pointer;
                 }
 
                 button:hover {
-                    cursor: pointer;
-
                     background: oklch(0.281 0.02 280.925);
                     border: .12em solid oklch(0.375 0.013 267.193);
                     filter: drop-shadow(0 0 1em rgba(255, 255, 242, 0.04));
                 }
+
                 .register-button:hover {
                     background: oklch(62.3% 0.214 259.815);
                     border: .12em solid oklch(74.6% 0.16 232.661);

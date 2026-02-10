@@ -36,10 +36,6 @@ const handleAuth: Handle = async ({event, resolve}) => {
         } else {
             return redirect(302, '/login');
         }
-    } else {
-        if (isPublicPath(event.url.pathname)) {
-            return redirect(302, '/');
-        }
     }
 
     const {uuid, session_id, expires} = await auth.validateSessionToken(sessionToken);
@@ -54,6 +50,10 @@ const handleAuth: Handle = async ({event, resolve}) => {
         return redirect(302, '/login');
     } else {
         auth.setSessionTokenCookie(sessionToken, expires);
+    }
+
+    if (isPublicPath(event.url.pathname)) {
+        return redirect(302, '/');
     }
 
     const result: DatabaseResult = await db.Users.getFromUuid(uuid);

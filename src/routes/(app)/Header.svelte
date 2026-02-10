@@ -284,7 +284,7 @@
                             }
 
                             .hover-box-button {
-                                font-family: 'Funnel Sans', sans-serif;
+                                font-family: 'FunnelSans', sans-serif;
                                 font-weight: 750;
                                 font-size: 1.025rem;
                                 text-align: center;

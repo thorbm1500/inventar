@@ -750,7 +750,7 @@
                 align-content: center;
                 height: 100%;
 
-                font-family: 'Funnel Sans', sans-serif;
+                font-family: 'FunnelSans', sans-serif;
 
                 label {
                     color: var(--theme-text);
@@ -932,7 +932,7 @@
                             flex-flow: row nowrap;
                             justify-content: center;
 
-                            font-family: 'Funnel Sans', sans-serif;
+                            font-family: 'FunnelSans', sans-serif;
                             font-weight: 600;
 
                             .auto-hide-filter-icon {
@@ -1035,7 +1035,7 @@
                         border-left-color: transparent;
                         border-right-color: transparent;
 
-                        font-family: 'Funnel Sans', sans-serif;
+                        font-family: 'FunnelSans', sans-serif;
 
                         z-index: 20;
 
@@ -1217,7 +1217,7 @@
                         margin-top: .75em;
                         margin-bottom: .75em;
 
-                        font-family: 'Funnel Sans', sans-serif;
+                        font-family: 'FunnelSans', sans-serif;
 
                         .pagination-button {
                             cursor: pointer;

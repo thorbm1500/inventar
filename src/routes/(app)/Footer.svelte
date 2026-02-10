@@ -19,7 +19,7 @@
             p {
                 display: flex;
                 flex-flow: row nowrap;
-                font-family: 'Funnel Display', sans-serif;
+                font-family: 'FunnelDisplay', sans-serif;
                 font-size: .95rem;
                 color: var(--theme-text-third);
             }

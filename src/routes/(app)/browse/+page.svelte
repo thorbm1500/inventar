@@ -4,7 +4,7 @@
     import type {Inventory} from "$lib/server/db/schema";
     import {parseTimestamp} from "$lib/utilities";
 
-    /* todo Make inventory fetch async, to allow page loading, even if there's no connection to the database, while the browser is online. */
+    /* todo Make inventory fetch async, to allow page loading from cache if there's no connection to the database. */
 </script>
 
 <script lang="ts">
@@ -29,7 +29,7 @@
         currentPage += pageChange;
         const offset = 6 * (currentPage - 1);
 
-        const newInventories = await getInventories({amount: 6, order_by ,order, offset });
+        const newInventories = await getInventories({amount: 6, order_by, order, offset});
         inventories = newInventories;
     }
 
@@ -46,15 +46,13 @@
 
             itemsFilter = 'DEFAULT';
             latestChangeFilter = 'DEFAULT';
-        }
-        else if (filter == 'item_amount') {
+        } else if (filter == 'item_amount') {
             itemsFilter = next;
             order_by = 'item_amount';
 
             nameFilter = 'DEFAULT';
             latestChangeFilter = 'DEFAULT';
-        }
-        else if (filter == 'last_update') {
+        } else if (filter == 'last_update') {
             latestChangeFilter = next;
             order_by = 'last_update';
 
@@ -67,14 +65,22 @@
 
     function getNextState(currentState: string) {
         switch (currentState) {
-            case 'DESC': return 'ASC';
-            case 'ASC': return 'DEFAULT';
-            case 'DEFAULT': return 'DESC';
+            case 'DESC':
+                return 'ASC';
+            case 'ASC':
+                return 'DEFAULT';
+            case 'DEFAULT':
+                return 'DESC';
         }
     }
 </script>
 
 <section>
+    <div class="create-inventory-container">
+        <button class="create-inventory-button" onclick="{() => window.location.href='/inventory/new'}" title="Create New Inventory">
+            Create
+        </button>
+    </div>
     <div class="inventory-list-container ui-container">
         <div class="inventory-header border-b-container-border dark:border-b-dark-container-border">
             <div class="header-items">
@@ -140,9 +146,12 @@
                 {/each}
             {:else}
                 <div class="empty-inventory-list">
-                    <span class="text-theme-text-third">{ navigator.onLine ?
-                        'No inventories found. Create your first inventory now!' :
-                        'No internet found. Reconnect to browse inventories.' }</span>
+                    {#if navigator.onLine }
+                        <span class="text-theme-text-third">No inventories found.</span>
+                        <a href="/inventory/new">Create your first inventory now!</a>
+                    {:else}
+                        <span class="text-theme-text-third">No internet found. Reconnect to browse inventories.</span>
+                    {/if}
                 </div>
             {/if}
         </div>
@@ -168,27 +177,45 @@
     </div>
 </section>
 
-<div class="site-footer">
-    <Footer />
-</div>
-
 <style>
-    .site-footer {
-        position: absolute;
-        bottom: .25rem;
-        opacity: .5;
-    }
     section {
-        overflow: auto;
+        overflow: scroll;
+        scrollbar-width: none;
         user-select: none !important;
+        height: fit-content;
+
+        .create-inventory-container {
+            display: flex;
+            flex-flow: row nowrap;
+            align-items: center;
+            justify-content: flex-end;
+
+            width: 80rem;
+            margin: 2.5rem calc(50vw - 40rem) 1.5rem calc(50vw - 40rem);
+
+            .create-inventory-button {
+                width: fit-content;
+                color: var(--theme-text);
+                background: var(--theme-background-button);
+                border: .122em solid var(--theme-border-button);
+                border-radius: var(--theme-border-radius);
+
+                padding: .5rem 1rem;
+                user-select: none;
+                cursor: pointer;
+            }
+
+            .create-inventory-button:hover {
+                background: var(--theme-background-button-hover);
+            }
+        }
 
         .inventory-list-container {
-            width: 80vw;
-            min-width: 54rem !important;
-            max-width: 105rem !important;
+            width: 90rem;
             height: 42rem;
+            margin: 0 calc(50vw - 45rem);
+            padding: 0;
 
-            margin: calc(50vh - (21rem + (var(--header-height) / 2))) auto;
             border-width: var(--border-width);
             border-radius: var(--border-radius);
 
@@ -205,7 +232,7 @@
                     margin-top: .75em;
                     margin-bottom: .75em;
 
-                    font-family: 'Funnel Sans', sans-serif;
+                    font-family: 'FunnelSans', sans-serif;
 
                     .header-item:first-child {
                         flex: 1 50%;
@@ -276,10 +303,22 @@
                     align-items: center;
                     justify-content: center;
                     height: 36rem;
+                    gap: .35em;
+
+                    span,a {
+                        font-size: 1.05rem;
+                    }
 
                     span {
-                        margin: auto;
-                        font-size: 1.05rem;
+                        color: var(--theme-text-third);
+                    }
+
+                    a {
+                        color: var(--theme-text-secondary);
+                    }
+
+                    a:hover {
+                        color: var(--theme-text);
                     }
                 }
 
@@ -299,7 +338,7 @@
                     border-left-color: transparent;
                     border-right-color: transparent;
 
-                    font-family: 'Funnel Sans', sans-serif;
+                    font-family: 'FunnelSans', sans-serif;
 
                     .entry-item:first-child {
                         flex: 1 50%;
@@ -400,7 +439,7 @@
                     margin-top: .75em;
                     margin-bottom: .75em;
 
-                    font-family: 'Funnel Sans', sans-serif;
+                    font-family: 'FunnelSans', sans-serif;
 
                     .pagination-back-button {
                     }
