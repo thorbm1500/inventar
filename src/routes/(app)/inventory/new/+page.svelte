@@ -45,23 +45,18 @@
     <form {...createInventory} id="create-inventory-form" encType="multipart/form-data">
         <input {...createInventory.fields.owner.as('text')} value="{user?.uuid}" hidden>
         <div class="field-container name">
+            <!-- todo - Add popup tip-->
             <svg class="information-icon name" width="24" height="24" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M14.6 8.075q0-1.075-.712-1.725T12 5.7q-.725 0-1.312.313t-1.013.912q-.4.575-1.088.663T7.4 7.225q-.35-.325-.387-.8t.237-.9q.8-1.2 2.038-1.862T12 3q2.425 0 3.938 1.375t1.512 3.6q0 1.125-.475 2.025t-1.75 2.125q-.925.875-1.25 1.363T13.55 14.6q-.1.6-.513 1t-.987.4t-.987-.387t-.413-.963q0-.975.425-1.787T12.5 11.15q1.275-1.125 1.688-1.737t.412-1.338M12 22q-.825 0-1.412-.587T10 20t.588-1.412T12 18t1.413.588T14 20t-.587 1.413T12 22"/>
             </svg>
-            <input {...createInventory.fields.name.as('text')} data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore class="field inventory-name" name="name" value="New Inventory" minlength="3" placeholder="Inventory Name..." required>
+            <input {...createInventory.fields.name.as('text')} data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore class="field inventory-name" name="name" value="New Inventory" minlength="3" placeholder="Inventory Name..." autofocus required>
             <button form="create-inventory-form">CREATE</button>
         </div>
         <div class="field-container description">
-            <svg class="information-icon description" width="24" height="24" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M14.6 8.075q0-1.075-.712-1.725T12 5.7q-.725 0-1.312.313t-1.013.912q-.4.575-1.088.663T7.4 7.225q-.35-.325-.387-.8t.237-.9q.8-1.2 2.038-1.862T12 3q2.425 0 3.938 1.375t1.512 3.6q0 1.125-.475 2.025t-1.75 2.125q-.925.875-1.25 1.363T13.55 14.6q-.1.6-.513 1t-.987.4t-.987-.387t-.413-.963q0-.975.425-1.787T12.5 11.15q1.275-1.125 1.688-1.737t.412-1.338M12 22q-.825 0-1.412-.587T10 20t.588-1.412T12 18t1.413.588T14 20t-.587 1.413T12 22"/>
-            </svg>
             <h1 style="pointer-events:none;user-select:none;">Description</h1>
             <textarea {...createInventory.fields.description.as('text')} placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam commodo at lacus a rhoncus. Sed in magna nisi..." spellcheck="false"></textarea>
         </div>
         <div class="field-container image">
-            <svg class="information-icon thumbnail" width="24" height="24" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M14.6 8.075q0-1.075-.712-1.725T12 5.7q-.725 0-1.312.313t-1.013.912q-.4.575-1.088.663T7.4 7.225q-.35-.325-.387-.8t.237-.9q.8-1.2 2.038-1.862T12 3q2.425 0 3.938 1.375t1.512 3.6q0 1.125-.475 2.025t-1.75 2.125q-.925.875-1.25 1.363T13.55 14.6q-.1.6-.513 1t-.987.4t-.987-.387t-.413-.963q0-.975.425-1.787T12.5 11.15q1.275-1.125 1.688-1.737t.412-1.338M12 22q-.825 0-1.412-.587T10 20t.588-1.412T12 18t1.413.588T14 20t-.587 1.413T12 22"/>
-            </svg>
             <h1 style="pointer-events:none;user-select:none;">Thumbnail</h1>
             <div class="image-content">
                 <div style="display:flex;flex-flow:row nowrap;justify-content:flex-start;align-items:center;gap:.35rem;">
@@ -145,10 +140,6 @@
             }
 
             .field-container {
-                .information-icon.name {
-                    transform: translateX(-.8rem) translateY(.1rem);
-                }
-
                 .information-icon {
                     position: absolute;
                     height: 1.15rem;
@@ -157,7 +148,7 @@
                     color: var(--theme-text);
                     opacity: .25;
 
-                    transform: translateX(-.8rem) translateY(.95rem);
+                    transform: translateX(-.8rem);
 
                     cursor: pointer;
 

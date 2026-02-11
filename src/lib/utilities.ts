@@ -1,7 +1,7 @@
 export const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
 export function parseTimestamp(timestamp: string): string {
-    const diff = (Date.now() - Date.parse(timestamp)) / 1000;
+    const diff = (Date.now() - (Number.parseInt(timestamp) * 1000)) / 1000;
 
     let response: string = "None";
 

@@ -1,4 +1,4 @@
-import {error} from '@sveltejs/kit';
+import {error, redirect} from '@sveltejs/kit';
 import {form, query} from '$app/server';
 import * as db from '$lib/server/db/database'
 import * as v from 'valibot';
@@ -6,6 +6,7 @@ import util from "$lib/server/utilities";
 import type {Currency, Inventory, Item} from "$lib/server/db/schema";
 import type {DatabaseResult} from "$lib/server/db/database";
 import {promises as fs} from "fs";
+import {getInventoryDirectory} from "$lib/server/internal/settings";
 
 export const getInventory = query(v.string(), async (id: string): Promise<Inventory> => {
     const result: DatabaseResult = await db.Inventories.fetchInventoryByUuid(id);
@@ -96,3 +97,14 @@ export const createItem = form(
 
         return {success: true, failed: false, error: ''}
     });
+
+export const updateInventoryGeneral = form(
+    v.object({
+        name: v.optional(v.string(), undefined),
+        description: v.optional(v.string(), undefined)
+    }),
+    ({name, description}) => {
+
+        return {success:true};
+    }
+);

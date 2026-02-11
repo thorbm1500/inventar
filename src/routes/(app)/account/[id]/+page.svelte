@@ -8,6 +8,8 @@
 </script>
 
 <script lang="ts">
+    import type {User} from "$lib/server/db/schema";
+
     if (!page.params.id || !validate(page.params.id)) {
         error(404, 'Account ID is required!');
     }
@@ -20,6 +22,7 @@
 
     const user = getContext('user');
 
+    console.log(userProfile.created_at)
 </script>
 
 <section class="profile-page-content">
@@ -37,7 +40,7 @@
                 {/if}
                 <p>{userProfile.username}</p>
             </div>
-            <span>Member since {new Date(Date.parse(userProfile.created_at)).toLocaleString()}</span>
+            <span>Member since {new Date(userProfile.created_at * 1000).toLocaleString()}</span>
         </div>
     </div>
 </section>

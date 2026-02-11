@@ -4,6 +4,7 @@ import type {DatabaseResult} from "$lib/server/db/database";
 import * as db from '$lib/server/db/database';
 import {promises as fs} from "fs";
 import {getInventoryDirectory} from "$lib/server/internal/settings";
+import {redirect} from "@sveltejs/kit";
 
 export const createInventory = form(
     v.object({
@@ -31,5 +32,7 @@ export const createInventory = form(
                 return {success: false, failed: true, error: `Item has been created, but image upload failed: ${error}`}
             }
         }
+
+        return redirect(302, '/inventory/'.concat(uuid));
     }
 );

@@ -8,8 +8,6 @@
 </script>
 
 <script lang="ts">
-    import Footer from "../Footer.svelte";
-
     let order_by = $state('name');
     let order = $state('');
     let currentPage = $state(1);
