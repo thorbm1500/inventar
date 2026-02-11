@@ -2,35 +2,34 @@ import * as v from 'valibot';
 import {form} from "$app/server";
 import type {DatabaseResult} from "$lib/server/db/database";
 import * as db from '$lib/server/db/database';
-import * as fs from "node:fs";
-import {settings} from "$lib/server/internal/settings";
-import * as Path from "node:path";
+import {promises as fs} from "fs";
+import {getInventoryDirectory} from "$lib/server/internal/settings";
 
 export const createInventory = form(
     v.object({
-        owner: v.pipe(v.string(), v.nonEmpty()),
-        name: v.pipe(v.string(), v.nonEmpty()),
-        description: v.string(),
-        thumbnail: v.file()
+        owner: v.pipe(v.string(), v.nonEmpty('Error: No UUID found. New inventories must be given the UUID of the owner, when created!')),
+        name: v.pipe(v.string(), v.nonEmpty('Error: No inventory name found. New inventories must be given a name, when created!')),
+        description: v.optional(v.string(), undefined),
+        image: v.optional(v.file(), undefined)
     }),
-    async ({owner,name, description, thumbnail}) => {
-        const result: DatabaseResult = await db.Inventories.create(owner,name,description??null);
+    async ({owner, name, description, image}) => {
+        const result: DatabaseResult = await db.Inventories.create(owner,name,description);
         if (!result.success) {
             return {success:false,message:result.message};
         }
 
-        const filePath = settings.data_dir.concat(result.result,'/');
-        const imageData = await thumbnail.bytes();
+        const uuid: string = result.result;
 
-        fs.mkdir(Path.resolve(filePath),{recursive:true},(err) => {
-            if (err) console.error(`Failed to make directory: ${err}`);
-            return {success:true,message:result.message};
-        });
+        if (image) {
+            try {
+                await fs.mkdir(getInventoryDirectory(uuid,['images']),{recursive:true});
 
-        fs.writeFile(Path.resolve(filePath.concat('test.png')),await thumbnail.text(),(err) => {
-            console.log(err);
-        });
-
-        fs.writeFileSync(Path.resolve(filePath),imageData);
+                const bytes = await (image as File).bytes();
+                await fs.writeFile(getInventoryDirectory(uuid,['images','thumbnail.png']), bytes);
+            } catch (error) {
+                console.error(`Error: Failed to write image. ${error}`);
+                return {success: false, failed: true, error: `Item has been created, but image upload failed: ${error}`}
+            }
+        }
     }
 );

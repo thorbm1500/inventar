@@ -14,7 +14,7 @@
     onMount(() => {
         user = getContext('user');
 
-        const imageField: HTMLInputElement = document.getElementById("thumbnail") as HTMLInputElement;
+        const imageField: HTMLInputElement = document.getElementById("image") as HTMLInputElement;
         if (!imageField) return;
 
         imageField.addEventListener('change', () => {
@@ -32,7 +32,7 @@
     });
 
     function removeImage() {
-        const imageField: HTMLInputElement = document.getElementById("thumbnail") as HTMLInputElement;
+        const imageField: HTMLInputElement = document.getElementById("image") as HTMLInputElement;
         if (!imageField) return;
 
         imageField.value = "";
@@ -45,18 +45,27 @@
     <form {...createInventory} id="create-inventory-form" encType="multipart/form-data">
         <input {...createInventory.fields.owner.as('text')} value="{user?.uuid}" hidden>
         <div class="field-container name">
+            <svg class="information-icon name" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14.6 8.075q0-1.075-.712-1.725T12 5.7q-.725 0-1.312.313t-1.013.912q-.4.575-1.088.663T7.4 7.225q-.35-.325-.387-.8t.237-.9q.8-1.2 2.038-1.862T12 3q2.425 0 3.938 1.375t1.512 3.6q0 1.125-.475 2.025t-1.75 2.125q-.925.875-1.25 1.363T13.55 14.6q-.1.6-.513 1t-.987.4t-.987-.387t-.413-.963q0-.975.425-1.787T12.5 11.15q1.275-1.125 1.688-1.737t.412-1.338M12 22q-.825 0-1.412-.587T10 20t.588-1.412T12 18t1.413.588T14 20t-.587 1.413T12 22"/>
+            </svg>
             <input {...createInventory.fields.name.as('text')} data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore class="field inventory-name" name="name" value="New Inventory" minlength="3" placeholder="Inventory Name..." required>
             <button form="create-inventory-form">CREATE</button>
         </div>
         <div class="field-container description">
+            <svg class="information-icon description" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14.6 8.075q0-1.075-.712-1.725T12 5.7q-.725 0-1.312.313t-1.013.912q-.4.575-1.088.663T7.4 7.225q-.35-.325-.387-.8t.237-.9q.8-1.2 2.038-1.862T12 3q2.425 0 3.938 1.375t1.512 3.6q0 1.125-.475 2.025t-1.75 2.125q-.925.875-1.25 1.363T13.55 14.6q-.1.6-.513 1t-.987.4t-.987-.387t-.413-.963q0-.975.425-1.787T12.5 11.15q1.275-1.125 1.688-1.737t.412-1.338M12 22q-.825 0-1.412-.587T10 20t.588-1.412T12 18t1.413.588T14 20t-.587 1.413T12 22"/>
+            </svg>
             <h1 style="pointer-events:none;user-select:none;">Description</h1>
             <textarea {...createInventory.fields.description.as('text')} placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam commodo at lacus a rhoncus. Sed in magna nisi..." spellcheck="false"></textarea>
         </div>
-        <div class="field-container thumbnail">
+        <div class="field-container image">
+            <svg class="information-icon thumbnail" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14.6 8.075q0-1.075-.712-1.725T12 5.7q-.725 0-1.312.313t-1.013.912q-.4.575-1.088.663T7.4 7.225q-.35-.325-.387-.8t.237-.9q.8-1.2 2.038-1.862T12 3q2.425 0 3.938 1.375t1.512 3.6q0 1.125-.475 2.025t-1.75 2.125q-.925.875-1.25 1.363T13.55 14.6q-.1.6-.513 1t-.987.4t-.987-.387t-.413-.963q0-.975.425-1.787T12.5 11.15q1.275-1.125 1.688-1.737t.412-1.338M12 22q-.825 0-1.412-.587T10 20t.588-1.412T12 18t1.413.588T14 20t-.587 1.413T12 22"/>
+            </svg>
             <h1 style="pointer-events:none;user-select:none;">Thumbnail</h1>
-            <div class="thumbnail-content">
+            <div class="image-content">
                 <div style="display:flex;flex-flow:row nowrap;justify-content:flex-start;align-items:center;gap:.35rem;">
-                    <label style="user-select: none;" for="thumbnail">UPLOAD</label>
+                    <label style="user-select: none;" for="image">UPLOAD</label>
                     <button title="Remove" onclick="{removeImage}">
                         <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6" style="visibility:{fieldFiles>0?'visible':'hidden'}">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -64,8 +73,8 @@
                         </svg>
                     </button>
                 </div>
-                <input {...createInventory.fields.image.as('file')} name="thumbnail" id="thumbnail" accept="image/*" style="pointer-events:none;user-select:none;">
-                <div class="image-div"><img src="{imageSource}" alt="Inventory Thumbnail"
+                <input {...createInventory.fields.image.as('file')} name="image" id="image" accept="image/*" style="pointer-events:none;user-select:none;">
+                <div class="image-preview"><img src="{imageSource}" alt="Inventory Thumbnail"
                                             style="pointer-events:none;user-select:none;opacity:{imageSource===''?'0':'1'};height:{imageSource===''?'2rem':'24rem !important'};width:{imageSource===''?'2rem':'24rem !important'};"
                                             id="thumbnail-image"></div>
             </div>
@@ -135,6 +144,33 @@
                 }
             }
 
+            .field-container {
+                .information-icon.name {
+                    transform: translateX(-.8rem) translateY(.1rem);
+                }
+
+                .information-icon {
+                    position: absolute;
+                    height: 1.15rem;
+                    width: 1.15rem;
+
+                    color: var(--theme-text);
+                    opacity: .25;
+
+                    transform: translateX(-.8rem) translateY(.95rem);
+
+                    cursor: pointer;
+
+                    transition: 125ms ease-in-out;
+                }
+
+                .information-icon:hover {
+                    opacity: 1;
+
+                    transition: 50ms ease-in-out;
+                }
+            }
+
             .field-container.name {
                 display: flex;
                 flex-flow: row nowrap;
@@ -184,13 +220,13 @@
                 }
             }
 
-            .field-container.thumbnail {
+            .field-container.image {
                 input {
                     visibility: hidden;
                     width: fit-content;
                 }
 
-                .thumbnail-content {
+                .image-content {
                     display: flex;
                     flex-flow: row nowrap;
                     justify-content: space-between;
@@ -231,7 +267,7 @@
                         color: #ff2357;
                     }
 
-                    .image-div {
+                    .image-preview {
                         background: transparent;
 
                         img {

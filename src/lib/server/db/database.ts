@@ -41,9 +41,9 @@ export class Inventories {
      * @param description The inventory's description, if any.
      * @return The UUID of the new inventory, or undefined if any errors occurred.
      */
-    static async create(owner: string, name: string, description?: string | null): Promise<DatabaseResult> {
+    static async create(owner: string, name: string, description?: string): Promise<DatabaseResult> {
         return await sql`INSERT INTO inventories(owner,name,description)
-                         VALUES (${owner},${name},${description as string ?? null })
+                         VALUES (${owner},${name},${description ?? null })
                          RETURNING uuid`
             .then(result => {
                 const [res] = result;
