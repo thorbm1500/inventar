@@ -88,7 +88,7 @@
     --header-height: 3.5rem;
     --header-icon-gap: 1.5rem;
 
-    /* UI Baseline */
+    /* UI - Baseline */
     --container-full-height: 87.5%;
     --border-radius: .8rem;
     --icon-border-radius: .65rem;
@@ -102,6 +102,11 @@
 
     --theme-max-container-height: 42rem;
     --theme-max-page-height: calc(100vh - var(--header-height));
+
+    /* UI - Forms */
+    --theme-form-background-input: #dadcde;
+    --theme-form-border-input: #bcc3cb;
+    --theme-form-border-input-focus: #979fa6;
 
     /* Global Light/Dark Variables */
     --theme-text: #0D0D0D;
@@ -132,6 +137,10 @@
     --theme-toast-error-glow: oklch(0.632 0.254 29.988);
 
     --error-page-icon-color: rgba(from var(--theme-text) r g b / .075);
+
+    /* Variables */
+    --theme-transition-in: 50ms ease-in-out;
+    --theme-transition-out: 100ms ease-in-out;
 }
 
 .dark {
@@ -154,6 +163,11 @@
 
     --theme-header-color: #111113;
     --theme-header-secondary-color: #121215;
+
+    /* UI - Forms */
+    --theme-form-background-input: #21232a;
+    --theme-form-border-input: #3c4044;
+    --theme-form-border-input-focus: #596269;
 
     /* Toasts */
     --theme-toast-success-background: oklch(0.475 0.112 144.968);

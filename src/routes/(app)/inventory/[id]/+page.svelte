@@ -299,30 +299,36 @@
                 {:else if (isItemCreatorOpen) }
                     <div class="extra-container {isItemCreatorOpen?'open':'closed'} create-item-container" id="create-item-container">
                         <div class="header">
-                            <h1>Add Item</h1>
+                            <h1>Item Creator</h1>
+                            <div class="item-creation-buttons">
+                                <button type="{createItem.result ? 'button' : 'submit'}" class="extra-container-button item-confirm-creation-button bg-button-background dark:bg-dark-button-background border-button-border dark:border-dark-button-border
+                rounded-(--border-radius) text-text-primary dark:text-dark-text-primary">
+                                    CREATE
+                                </button>
+                            </div>
                         </div>
                         <form {...createItem} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                             <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
                             <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id}" hidden required/>
                             <div class="option-container">
-                                <label for="name">Item Name</label>
+                                <h1>Item Name</h1>
                                 <input {...createItem.fields.name.as('text')} id="item-name" placeholder="Name" required/>
                             </div>
                             <div class="option-container">
-                                <label for="description">Description</label>
+                                <h1>Description</h1>
                                 <input {...createItem.fields.description.as('text')} id="description" name="description" placeholder="Description"/>
                             </div>
                             <div class="option-container">
-                                <label for="amount">Amount</label>
+                                <h1>Amount</h1>
                                 <input {...createItem.fields.amount.as('number')} id="amount" value=0 required/>
                             </div>
                             <div class="option-container price-section">
                                 <div class="price-section-input">
-                                    <label for="price">Price</label>
+                                    <h1>Price</h1>
                                     <input {...createItem.fields.price.as('number')} id="price" placeholder="0" min="0" value="0"/>
                                 </div>
                                 <div class="price-section-input">
-                                    <label for="currency">Currency</label>
+                                    <h1>Currency</h1>
                                     <select {...createItem.fields.currency.as('text')} id="currencies">
                                         {#each currencies as currency}
                                             {#if (currency.code === "DKK") }
@@ -335,20 +341,14 @@
                                 </div>
                             </div>
                             <div class="option-container">
-                                <label for="image">Image</label>
+                                <h1>Image</h1>
                                 <input {...createItem.fields.image.as('file')} id="image"
                                        class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
                             </div>
                             <div class="option-container">
-                                <label for="external">External</label>
+                                <h1>External</h1>
                                 <input {...createItem.fields.external.as('text')} id="external" placeholder="URL"
                                        class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
-                            </div>
-                            <div class="item-creation-buttons">
-                                <button type="{createItem.result ? 'button' : 'submit'}" class="extra-container-button item-confirm-creation-button bg-button-background dark:bg-dark-button-background border-button-border dark:border-dark-button-border
-                rounded-(--border-radius) text-text-primary dark:text-dark-text-primary">
-                                    Create
-                                </button>
                             </div>
                         </form>
                     </div>
@@ -741,32 +741,65 @@
         }
 
         .extra-container.create-item-container {
+            .header {
+                display: flex;
+                flex-flow: row nowrap;
+                justify-content: space-between;
+                align-items: center;
+            }
+
             form {
                 display: flex;
-                flex-flow: column wrap;
+                flex-flow: column nowrap;
                 justify-content: center;
                 align-items: center;
-                align-content: center;
                 height: 100%;
 
                 font-family: 'FunnelSans', sans-serif;
 
-                label {
+                input, option, select {
+                    background: var(--theme-form-background-input);
+                    border: .075em solid var(--theme-form-border-input);
+                    border-radius: var(--form-input-border-radius);
+
                     color: var(--theme-text);
+                    caret-shape: underscore;
+                    caret-color: var(--theme-text);
+
+                    transition: border-color var(--theme-transition-out);
                 }
 
-                input, option, select {
-                    background: var(--theme-form-input-background-dark);
-                    border: var(--theme-form-input-border-dark);
-                    border-radius: var(--form-input-border-radius);
-                    color: var(--theme-text);
+                input:focus,option:focus,select:focus {
+                    box-shadow: none;
+                    border-color: var(--theme-form-border-input-focus);
+
+                    transition: border-color var(--theme-transition-in),
+                                box-shadow 0ms linear;
                 }
 
                 .option-container {
                     display: flex;
                     flex-flow: column nowrap;
 
-                    width: 80%;
+                    width: 100%;
+
+                    h1 {
+                        display: flex;
+                        flex-flow: row nowrap !important;
+                        font-size: 1.55rem;
+                        font-weight: 700;
+                        margin-bottom: .25rem;
+                        padding-left: .5rem;
+                        width: 5.5rem;
+                        letter-spacing: .05rem;
+
+                        user-select: none;
+                        color: var(--theme-text);
+                    }
+                }
+
+                .item-creation-buttons {
+                    font-family: 'FunnelDisplay', sans-serif;
                 }
 
                 #description {

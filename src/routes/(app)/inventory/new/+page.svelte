@@ -114,7 +114,7 @@
                 outline-style: none !important;
                 box-shadow: none;
                 appearance: none;
-                caret-shape: underscore;
+                caret-shape: underscore !important;
                 caret-color: var(--theme-text);
             }
 

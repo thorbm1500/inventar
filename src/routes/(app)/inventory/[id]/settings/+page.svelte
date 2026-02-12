@@ -17,8 +17,8 @@
     let inventory: Inventory | undefined = $state(undefined);
     let currentSettingsPage = $state('general');
 
-    let currentName = $state('');
-    let currentDescription = $state('');
+    let currentName = $state('Loading...');
+    let currentDescription = $state('Loading...');
 
     let initialName = $state('');
     let initialDescription = $state('');
@@ -27,8 +27,10 @@
         const rawInventory = await getInventory(id);
         if (!rawInventory) error(404, 'Failed to find inventory!');
         inventory = rawInventory;
-        initialName = currentName = inventory.name;
-        initialDescription = currentDescription = inventory.description ?? '';
+        currentName = inventory.name;
+        initialName = currentName;
+        currentDescription = inventory.description ?? '';
+        initialDescription = currentDescription;
     })
 </script>
 
@@ -74,11 +76,30 @@
 <style>
     *:focus {
         box-shadow: none !important;
+        transition: box-shadow 0ms linear;
+    }
+
+    form {
+        input,textarea {
+            background: var(--theme-form-background-input);
+            border-radius: .55rem;
+            border: .075em solid var(--theme-form-border-input);
+
+            caret-shape: underscore;
+            caret-color: var(--theme-text);
+
+            transition: border-color var(--theme-transition-out);
+        }
+
+        input:focus,textarea:focus {
+            border-color: var(--theme-form-border-input-focus);
+            transition: border-color var(--theme-transition-in);
+        }
     }
 
     .inventory-settings-page {
         height: calc(var(--theme-max-page-height) - 4rem);
-        width: 80rem;
+        width: 71rem;
         display: flex;
         flex-flow: row nowrap;
         justify-content: space-between;
@@ -89,9 +110,9 @@
         user-select: none;
 
         .sidebar {
-            width: 18rem;
+            width: 10rem;
             height: fit-content;
-            min-height: 20rem;
+            min-height: 8rem;
             border: .122em solid var(--theme-border-container);
             border-radius: .65em;
             padding: 1rem 1.5rem;
@@ -200,15 +221,8 @@
                         }
 
                         input {
-                            background: rgba(from var(--theme-border-container) r g b / 35%);
-                            border-radius: .45em;
-                            border: none;
-
                             font-size: 1.5rem;
                             font-weight: 550;
-
-                            caret-shape: underscore;
-                            caret-color: var(--theme-text);
 
                             padding: .75rem 1.25rem;
 
@@ -218,9 +232,6 @@
                         textarea {
                             color: var(--theme-text);
                             appearance: none;
-                            background: rgba(from var(--theme-border-container) r g b / 35%);
-                            border: none;
-                            border-radius: .45em;
                             outline: none;
                             width: 100%;
                             field-sizing: content;
