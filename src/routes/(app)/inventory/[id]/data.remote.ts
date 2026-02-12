@@ -25,8 +25,10 @@ const itemsObj = v.object({
 
 export const getCurrencies = query(async (): Promise<Currency[]> => {
     const result: DatabaseResult = await db.getCurrencies();
-    if (!result.success) error(500, `Failed to fetch currencies: ${result.message}`);
+    if (!result.success || !result.result) error(500, `Failed to fetch currencies: ${result.message}`);
 
+    const currencyList: Currency[] = [];
+    result.result.forEach((res: Currency) => currencyList.push(res));
     const currencies = result.result as Currency[];
     return currencies;
 });
@@ -34,7 +36,7 @@ export const getCurrencies = query(async (): Promise<Currency[]> => {
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
     let items: Item[] = [];
     if (!util.isOffline()) {
-        const result: DatabaseResult = await db.Items.fetch(data.inventory,data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+        const result: DatabaseResult = await db.Items.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
         if (result.success) items = result.result as Item[];
     }
     return items;

@@ -1,36 +1,256 @@
 import {env} from "$env/dynamic/private";
-import postgres, {type Row, type RowList} from 'postgres';
-import type {Currency, Session, ResetRequest} from "$lib/server/db/schema";
+import mysql, {type Connection, type ConnectionOptions} from 'mysql2/promise';
+import type {Session} from "$lib/server/db/schema";
+import currencies from "$lib/server/db/components/currencies";
+import colors from "$lib/server/db/components/colors";
 
-export const sql = postgres({
+export const sql: Connection = await mysql.createConnection({
     host: env.DB_HOST,
-    port: Number.parseInt(env.DB_PORT ?? '0'),
+    port: Number.parseInt(env.DB_PORT) ?? undefined,
     database: env.DB_DATABASE,
     username: env.DB_USER,
     password: env.DB_PASSWORD,
-    onnotice: notice => {
-    }
-});
+    timezone: env.DB_TIMEZONE,
+    supportBigNumbers: true
+} as ConnectionOptions);
 
 export interface DatabaseResult {
     success: boolean,
     result?: any,
-    rawResult?: RowList<Row[]> | Row,
     message?: string
 }
 
+class Internal {
+    static async execute(query: string, params?: any[] | {}): Promise<DatabaseResult> {
+        try {
+            const [results] = await sql.execute(query, params ?? []);
+            return {success: true, result: results};
+        } catch (error) {
+            console.error(error);
+            return {success: false, message: String(error)};
+        }
+    }
+}
+
+/**
+ * Creates all the default tables, in the database, and adds the table's default values, if any.
+ */
+export async function createTables(): Promise<void> {
+    console.log(`Table creation starting...`)
+    await createTableCurrencies();
+    await createTableUsers();
+    await createTableInventories();
+    await createTableInventoryAccessList();
+    await createTableLabels();
+    await createTableLabelColors();
+    await createTableItems();
+    await createTableItemLabels();
+    await createTableSessions();
+    await createTableResetTokens();
+    console.log(`Table creation finished.`)
+}
+
+/**
+ * Creates the table 'currencies', if it doesn't already exist.
+ */
+export async function createTableCurrencies(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS currencies
+                            (
+                                id     VARCHAR(3) UNIQUE NOT NULL,
+                                code   VARCHAR(3) UNIQUE NOT NULL,
+                                symbol VARCHAR(255) DEFAULT NULL,
+                                PRIMARY KEY (id)
+                            )`);
+
+    for (const row of currencies) {
+        await Internal.execute(`INSERT IGNORE INTO currencies (id, code)
+                                VALUES (?, ?)`, [row.id, row.code])
+    }
+}
+
+/**
+ * Creates the table 'inventories', if it doesn't already exist.
+ * If the table creation is successful; Adds foreign key constraint on table 'users'.
+ */
+export async function createTableInventories(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS inventories
+                            (
+                                uuid        VARCHAR(36) UNIQUE  NOT NULL DEFAULT UUID(),
+                                owner       VARCHAR(36)         NOT NULL,
+                                name        VARCHAR(255) UNIQUE NOT NULL,
+                                description TEXT                         DEFAULT NULL,
+                                item_amount BIGINT              NOT NULL DEFAULT 0,
+                                last_update BIGINT              NOT NULL DEFAULT UNIX_TIMESTAMP(),
+                                created_at  BIGINT              NOT NULL DEFAULT UNIX_TIMESTAMP(),
+                                PRIMARY KEY (uuid),
+                                FOREIGN KEY (owner) REFERENCES users (uuid)
+                            )`)
+
+    await Internal.execute(`ALTER TABLE users
+        ADD CONSTRAINT users_inventory_fk
+            FOREIGN KEY (primary_inventory) references inventories (uuid)`);
+
+    //todo: Sync item amount every midnight, to ensure correct amount.
+    /*
+    todo: If account of owner is attempted deleted;
+     Check for other members with access, prompt if inventory should be deleted, or transferred. If not other accounts has access, delete inventory.
+     */
+}
+
+export async function createTableInventoryAccessList(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS inventory_access_list
+                            (
+                                inventory        VARCHAR(36) NOT NULL,
+                                user_uuid        VARCHAR(36) NOT NULL,
+                                edit_inventory   BOOLEAN     NOT NULL DEFAULT FALSE,
+                                delete_inventory BOOLEAN     NOT NULL DEFAULT FALSE,
+                                view_items       BOOLEAN     NOT NULL DEFAULT FALSE,
+                                create_items     BOOLEAN     NOT NULL DEFAULT FALSE,
+                                edit_items       BOOLEAN     NOT NULL DEFAULT FALSE,
+                                delete_items     BOOLEAN     NOT NULL DEFAULT FALSE,
+                                view_users       BOOLEAN     NOT NULL DEFAULT FALSE,
+                                add_users        BOOLEAN     NOT NULL DEFAULT FALSE,
+                                edit_users       BOOLEAN     NOT NULL DEFAULT FALSE,
+                                remove_users     BOOLEAN     NOT NULL DEFAULT FALSE,
+                                view_audit       BOOLEAN     NOT NULL DEFAULT FALSE,
+                                PRIMARY KEY (inventory, user_uuid),
+                                FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
+                                FOREIGN KEY (user_uuid) REFERENCES users (uuid) ON DELETE CASCADE
+                            )`);
+}
+
+/**
+ * Creates the table 'categories', if it doesn't already exist.
+ */
+export async function createTableLabels(): Promise<void> {
+    //todo: Expand to allow for custom colors in the future.
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS labels
+                            (
+                                inventory VARCHAR(36)        NOT NULL,
+                                uuid      VARCHAR(36) UNIQUE NOT NULL DEFAULT UUID(),
+                                name      VARCHAR(255)       NOT NULL,
+                                color     INTEGER            NOT NULL DEFAULT 1,
+                                PRIMARY KEY (inventory, uuid),
+                                FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE
+                            )`);
+}
+
+/**
+ * Creates the table 'categories', if it doesn't already exist.
+ */
+export async function createTableLabelColors(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS label_colors
+                            (
+                                id              INTEGER UNIQUE NOT NULL,
+                                border          VARCHAR(9)     NOT NULL,
+                                background      VARCHAR(9)     NOT NULL,
+                                dark_border     VARCHAR(9)     NOT NULL,
+                                dark_background VARCHAR(9)     NOT NULL,
+                                PRIMARY KEY (id)
+                            )`);
+
+    for (const row of colors) {
+        await Internal.execute(`INSERT IGNORE INTO label_colors (id, border, background, dark_border, dark_background)
+                                VALUES (?, ?, ?, ?, ?)`, [row.id, row.border, row.background, row.dark_border, row.dark_background]);
+    }
+}
+
+/**
+ * Creates the table 'items', if it doesn't already exist.
+ */
+export async function createTableItems(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS items
+                            (
+                                inventory           VARCHAR(36)        NOT NULL,
+                                uuid                VARCHAR(36) UNIQUE NOT NULL DEFAULT UUID(),
+                                name                VARCHAR(255)       NOT NULL,
+                                description         TEXT                        DEFAULT NULL,
+                                amount              BIGINT             NOT NULL DEFAULT 0,
+                                reserved_amount     BIGINT             NOT NULL DEFAULT 0,
+                                pending_amount      BIGINT             NOT NULL DEFAULT 0,
+                                reserved_expiration BIGINT                      DEFAULT NULL,
+                                pending_expiration  BIGINT                      DEFAULT NULL,
+                                image               TEXT                        DEFAULT NULL,
+                                url                 TEXT                        DEFAULT NULL,
+                                price               NUMERIC(50, 2)     NOT NULL DEFAULT 0.0,
+                                currency            VARCHAR(3)         NOT NULL DEFAULT 'DKK',
+                                created_by          VARCHAR(36)        NOT NULL,
+                                last_update         BIGINT             NOT NULL DEFAULT UNIX_TIMESTAMP(),
+                                created_at          BIGINT             NOT NULL DEFAULT UNIX_TIMESTAMP(),
+                                PRIMARY KEY (inventory, uuid),
+                                FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
+                                FOREIGN KEY (currency) REFERENCES currencies (code),
+                                FOREIGN KEY (created_by) REFERENCES users (uuid)
+                            )`);
+}
+
+/**
+ * Creates the table 'item_categories', if it doesn't already exist.
+ */
+export async function createTableItemLabels(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS item_labels
+                            (
+                                inventory VARCHAR(36) NOT NULL,
+                                item      VARCHAR(36) NOT NULL,
+                                label     VARCHAR(36) NOT NULL,
+                                PRIMARY KEY (inventory, item, label),
+                                FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
+                                FOREIGN KEY (item) REFERENCES items (uuid) ON DELETE CASCADE,
+                                FOREIGN KEY (label) REFERENCES labels (uuid)
+                            )`);
+}
+
+/**
+ * Creates the table 'users', if it doesn't already exist.
+ */
+export async function createTableUsers(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS users
+                            (
+                                uuid              VARCHAR(36) UNIQUE  NOT NULL DEFAULT UUID(),
+                                email             VARCHAR(255) UNIQUE NOT NULL,
+                                password_hash     TEXT                NOT NULL,
+                                username          VARCHAR(255) UNIQUE NOT NULL,
+                                profile_picture   TEXT                         DEFAULT NULL,
+                                reset_token       TEXT UNIQUE                  DEFAULT NULL,
+                                primary_inventory VARCHAR(36)                  DEFAULT NULL,
+                                last_login        BIGINT              NOT NULL DEFAULT UNIX_TIMESTAMP(),
+                                created_at        BIGINT              NOT NULL DEFAULT UNIX_TIMESTAMP(),
+                                superuser         BOOLEAN             NOT NULL DEFAULT false,
+                                PRIMARY KEY (uuid)
+                            )`);
+}
+
+/**
+ * Creates the table 'sessions', if it doesn't already exist.
+ */
+export async function createTableSessions(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS sessions
+                            (
+                                uuid       VARCHAR(36) UNIQUE NOT NULL,
+                                session_id TEXT UNIQUE        NOT NULL,
+                                expires    BIGINT             NOT NULL,
+                                PRIMARY KEY (uuid),
+                                FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
+                            )`);
+}
+
+/**
+ * Creates the table 'reset_tokens', if it doesn't already exist.
+ */
+export async function createTableResetTokens(): Promise<void> {
+    await Internal.execute(`CREATE TABLE IF NOT EXISTS reset_tokens
+              (
+                  uuid    VARCHAR(36) UNIQUE NOT NULL,
+                  token   TEXT UNIQUE NOT NULL,
+                  expires BIGINT      NOT NULL,
+                  PRIMARY KEY (uuid),
+                  FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
+              )`);
+}
+
 export async function getCurrencies(): Promise<DatabaseResult> {
-    return await sql`SELECT *
-                     FROM currencies`
-        .then(result => {
-            const currencyList: Currency[] = [];
-            result.forEach(res => currencyList.push(res as Currency));
-            return {success: true, result: currencyList, rawResult: result};
-        })
-        .catch(error => {
-            console.error(`Failed to fetch currencies. Error: ${error}`);
-            return {success: false, message: `Failed to fetch currencies. Error: ${error}`};
-        })
+    return await Internal.execute(`SELECT *
+                                   FROM currencies`);
 }
 
 export class Inventories {
@@ -42,76 +262,40 @@ export class Inventories {
      * @return The UUID of the new inventory, or undefined if any errors occurred.
      */
     static async create(owner: string, name: string, description?: string): Promise<DatabaseResult> {
-        return await sql`INSERT INTO inventories(owner,name,description)
-                         VALUES (${owner},${name},${description ?? null })
-                         RETURNING uuid`
-            .then(result => {
-                const [res] = result;
-                return {success:true, result: res.uuid ?? 'NONE', rawResult: res};
-            }).catch((error) => {
-                console.error(`Failed to create inventory '${name}'. Error: ${error}`);
-                return {success:false, message: `Failed to create inventory '${name}'. Error: ${error}`}
-            });
+        return await Internal.execute(`INSERT IGNORE INTO inventories(owner, name, description)
+                                       VALUES (?, ?, ?);
+        SELECT *
+        FROM inventories
+        ORDER BY created_at DESC
+        LIMIT 1;`, [owner, name, description ?? null]);
     }
 
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<DatabaseResult> {
-        return await sql`SELECT *
-                         FROM inventories ${order_by === '' ? `` : sql`ORDER BY
-                         ${sql(order_by)}
-                         ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
-                         LIMIT ${amount} OFFSET ${offset}`
-            .then(result => {
-                return {success:true, result: result, rawResult: result};
-            })
-            .catch(error => {
-                console.error(`Failed to fetch items. Error: ${error}`);
-                return {success:false, message: `Failed to fetch items. Error: ${error}`};
-            });
+        return await Internal.execute(`SELECT *
+                                       FROM inventories ${order_by === '' ? `` : `ORDER BY ${order_by} ${order === 'ASC' ? `ASC` : `DESC`}`}
+                                       LIMIT ? OFFSET ?`, [amount, offset]);
     }
 
     static async fetchTotalInventoryCount(): Promise<DatabaseResult> {
-        return await sql`SELECT COUNT(uuid) AS amount
-                         FROM inventories`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result: res.amount ?? 0,rawResult: result};
-            })
-            .catch(error => {
-                console.error(`Failed to fetch total inventory count. Error: ${error}`);
-                return {success:false,message:`Failed to fetch total inventory count. Error: ${error}`};
-            })
+        return await Internal.execute(`SELECT COUNT(uuid) AS amount
+                                       FROM inventories`);
     }
 
     static async fetchInventoryByUuid(uuid: string): Promise<DatabaseResult> {
-        return await sql`SELECT *
-                         FROM inventories
-                         WHERE uuid = ${uuid}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res,rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to fetch inventory with UUID '${uuid}'. Error: ${error}`);
-                return {success:false,message:`Failed to fetch inventory with UUID '${uuid}'. Error: ${error}`};
-            })
+        return await Internal.execute(`SELECT *
+                                       FROM inventories
+                                       WHERE uuid = ?`, [uuid]);
     }
 }
 
 export class Categories {
     static async create(name: string, description?: string): Promise<DatabaseResult> {
-        return await sql`INSERT INTO categories (name${description ? description : ``})
-                         VALUES (${name}${description ? `,${description}` : ``})
-                         ON CONFLICT DO NOTHING
-                         RETURNING uuid`
-            .then(result => {
-                const [res] = result;
-                const id = res.uuid ?? 'NONE';
-                console.log(`Inventory '${name}' has been created, and has received ID '${id}'`);
-                return {success:true,result:id,rawResult:result};
-            }).catch((error) => {
-                console.error(`Failed to create inventory '${name}'. Error: ${error}`);
-                return {success:false,message:`Failed to create inventory '${name}'. Error: ${error}`};
-            });
+        return await Internal.execute(`INSERT IGNORE INTO categories (name, description)
+                                       VALUES (?, ?);
+        SELECT *
+        FROM categories
+        ORDER BY created_at DESC
+        LIMIT 1`, [name, description ?? null]);
     }
 }
 
@@ -119,72 +303,30 @@ export class Items {
     /* todo Add categories to itemCategories table */
     static async create(inventory: string, name: string, description?: string, amount: number = 0, categories: [] = [], image?: string,
                         url?: string, price: number = 0, currency: string = 'DKK'): Promise<DatabaseResult> {
-        const item = {
-            inventory: inventory,
-            name: name,
-            description: description ?? null,
-            amount: amount,
-            image: image ?? null,
-            url: url ?? null,
-            price: price,
-            currency: currency,
-        }
-
-        return await sql`INSERT INTO items ${sql(item)}
-                         ON CONFLICT DO NOTHING
-                         RETURNING uuid`
-            .then(result => {
-                const [res] = result;
-                const id = res.uuid ?? 'NONE';
-                console.log(`Item '${name}' has been created, and has received ID '${id}'`);
-                return {success:true,result:id,rawResult:result};
-            }).catch((error) => {
-                console.error(`Failed to create item '${name}'. Error: ${error}`);
-                return {success:false,message:`Failed to create item '${name}'. Error: ${error}`};
-            });
+        return await Internal.execute(`INSERT IGNORE INTO items (inventory, name, description, amount, image, url, price, currency)
+                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                SELECT *
+                FROM items
+                ORDER BY created_at DESC`,
+            [inventory, name, description ?? null, amount, image ?? null, url ?? null, price, currency]);
     }
 
-    static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<DatabaseResult> {
-        return await sql`select *
-                         from items
-                         where inventory = ${inventory}
-                             ${order_by === '' ? `` : sql`order by ${sql(order_by)}
-                             ${order === 'ASC' ? sql`ASC` : sql`DESC`}`}
-                         LIMIT ${amount} OFFSET ${offset}`
-            .then(result => {
-                return {success:true,result:result,rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to fetch items. Error: ${error}`);
-                return {success:false,message:`Failed to fetch items. Error: ${error}`};
-            });
+    static async fetch(amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<DatabaseResult> {
+        return await Internal.execute(`SELECT *
+                                       FROM inventories ${order_by === '' ? `` : `ORDER BY ${order_by} ${order === 'ASC' ? `ASC` : `DESC`}`}
+                                       LIMIT ? OFFSET ?`, [amount, offset]);
     }
 
     static async fetchTotalItemCount(inventory: string): Promise<DatabaseResult> {
-        return await sql`SELECT COUNT(uuid) AS amount
-                         FROM items
-                         WHERE inventory = ${inventory}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res.amount??0,rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to fetch total item count. Error: ${error}`);
-                return {success:false,message:`Failed to fetch total item count. Error: ${error}`};
-            })
+        return await Internal.execute(`SELECT COUNT(uuid) AS amount
+                                       FROM items
+                                       WHERE inventory = ?`, [inventory])
     }
 
     static async deleteItem(uuid: string): Promise<DatabaseResult> {
-        return await sql`DELETE FROM items
-                         WHERE uuid = ${uuid}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res,rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to fetch total item count. Error: ${error}`);
-                return {success:false,message:`Failed to fetch total item count. Error: ${error}`};
-            })
+        return await Internal.execute(`DELETE
+                                       FROM items
+                                       WHERE uuid = ?`, [uuid])
     }
 }
 
@@ -197,98 +339,47 @@ export class Users {
      * @param superuser If the user should have administrator rights.
      */
     static async create(email: string, username: string, password_hash: string, superuser: boolean = false): Promise<DatabaseResult> {
-        return await sql`INSERT INTO users (email, username, password_hash, superuser)
-                         VALUES (${email}, ${username}, ${password_hash}, ${superuser})
-                         RETURNING uuid`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res.uuid??'NONE',rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to create new user with username '${username}' and email '${email}'. Error: ${error}`);
-                return {success:false,message:`Failed to create new user with username '${username}' and email '${email}'. Error: ${error}`};
-            })
+        return await Internal.execute(`INSERT INTO users (email, username, password_hash, superuser)
+                                       VALUES (?, ?, ?, ?);
+        SELECT uuid
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT 1`, [email, username, password_hash, superuser])
     }
 
     static async getFromUuid(uuid: string): Promise<DatabaseResult> {
-        return await sql`SELECT *
-                         FROM users
-                         WHERE uuid = ${uuid}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res,rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to get user with uuid '${uuid}'. Error: ${error}`);
-                return {success:false,message:`Failed to get user with uuid '${uuid}'. Error: ${error}`};
-            })
+        return await Internal.execute(`SELECT *
+                                       FROM users
+                                       WHERE uuid = ?`, [uuid]);
     }
 
     static async getFromEmail(email: string): Promise<DatabaseResult> {
-        return await sql`SELECT *
-                         FROM users
-                         WHERE email = ${email}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res,rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to get user with email '${email}'. Error: ${error}`);
-                return {success:false,message:`Failed to get user with email '${email}'. Error: ${error}`};
-            });
+        return await Internal.execute(`SELECT *
+                                       FROM users
+                                       WHERE email = ?`, [email]);
     }
 
     static async getPasswordHash(uuid: string): Promise<DatabaseResult> {
-        return await sql`SELECT password_hash
-                         FROM users
-                         WHERE uuid = ${uuid}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res.password_hash??'NONE',rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`);
-                return {success:false,message:`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`};
-            });
+        return await Internal.execute(`SELECT password_hash
+                                       FROM users
+                                       WHERE uuid = ?`, [uuid]);
     }
 
     static async setPasswordHash(uuid: string, passwordHash: string): Promise<DatabaseResult> {
-        return await sql`UPDATE users
-                         SET password_hash = ${passwordHash}
-                         WHERE uuid = ${uuid}`
-            .then(() => {
-                return {success:true}
-            })
-            .catch(error => {
-                console.error(`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`);
-                return {success:false,message:`Failed to get password hash for user with uuid '${uuid}'. Error: ${error}`};
-            });
+        return await Internal.execute(`UPDATE users
+                                       SET password_hash = ?
+                                       WHERE uuid = ?`, [passwordHash, uuid]);
     }
 
     static async updateLastLogin(uuid: string): Promise<DatabaseResult> {
-        return await sql`UPDATE users
-                         SET last_login = ${(Date.now() * 1000)}
-                         WHERE uuid = ${uuid}`
-            .then(() => {
-                return {success:true}
-            })
-            .catch(error => {
-                console.error(`Failed to update last login for user with uuid '${uuid}'. Error: ${error}`);
-                return {success:false,message:`Failed to update last login for user with uuid '${uuid}'. Error: ${error}`};
-            });
+        return await Internal.execute(`UPDATE users
+                                       SET last_login = UNIX_TIMESTAMP()
+                                       WHERE uuid = ?`, [uuid]);
     }
 
     static async getUserAmount(): Promise<DatabaseResult> {
-        return await sql`SELECT count(uuid) as amount
-                         FROM users`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res.amount,rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to get amount of users registered. Error: ${error}`);
-                return {success:false,message:`Failed to get amount of users registered. Error: ${error}`};
-            });
+        return await Internal.execute(`SELECT count(uuid) as amount
+                                       FROM users`);
     }
 }
 
@@ -298,18 +389,10 @@ export class Auth {
      * @param session Session to cache.
      */
     static async newSession(session: Session): Promise<DatabaseResult> {
-        return await sql`INSERT INTO sessions (uuid, session_id, expires)
-                         VALUES (${session.uuid}, ${session.session_id}, ${session.expires})
-                         ON CONFLICT (uuid) DO UPDATE
-                             SET session_id = $2,
-                                 expires    = $3`
-            .then(() => {
-                return {success:true};
-            })
-            .catch(error => {
-                console.error(`Failed to create a new session for user with uuid '${session.uuid}' with id '${session.session_id}'. Error: ${error}`);
-                return {success:false,message:`Failed to create a new session for user with uuid '${session.uuid}' with id '${session.session_id}'. Error: ${error}`};
-            });
+        return await Internal.execute(`INSERT INTO sessions (uuid, session_id, expires)
+                                       VALUES (?, ?, ?)
+                                       ON DUPLICATE KEY UPDATE session_id = $2,
+                                                               expires    = $3`, [session.uuid, session.session_id, session.expires]);
     }
 
     /**
@@ -317,17 +400,9 @@ export class Auth {
      * @param session_id Id of session to retrieve.
      */
     static async getSession(session_id: string): Promise<DatabaseResult> {
-        return await sql`SELECT *
-                         FROM sessions
-                         WHERE session_id = ${session_id}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:{uuid: res?.uuid ?? null, session_id: res?.session_id ?? null, expires: res?.expires ?? null},rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to retrieve session with id '${session_id}'. Error: ${error}`);
-                return {success:false,message:`Failed to retrieve session with id '${session_id}'. Error: ${error}`};
-            });
+        return await Internal.execute(`SELECT *
+                                       FROM sessions
+                                       WHERE session_id = ?`, [session_id]);
     }
 
     /**
@@ -336,16 +411,9 @@ export class Auth {
      * @param expires New expiration date.
      */
     static async renewSession(session_id: string, expires: number): Promise<DatabaseResult> {
-        return await sql`UPDATE sessions
-                  SET expires = ${expires}
-                  WHERE session_id = ${session_id}`
-            .then(() => {
-                return {success:true};
-            })
-            .catch(error => {
-                console.error(`Failed to invalidate session with id '${session_id}'. Error: ${error}`);
-                return {success:false,message:`Failed to invalidate session with id '${session_id}'. Error: ${error}`};
-            });
+        return await Internal.execute(`UPDATE sessions
+                                       SET expires = ?
+                                       WHERE session_id = ?`, [expires, session_id]);
     }
 
     /**
@@ -353,72 +421,34 @@ export class Auth {
      * @param session_id Id of session to invalidate.
      */
     static async invalidateSession(session_id: string): Promise<DatabaseResult> {
-        return await sql`DELETE
-                  FROM sessions
-                  WHERE session_id = ${session_id}`
-            .then(() => {
-                return {success:true};
-            })
-            .catch(error => {
-                console.error(`Failed to invalidate session with id '${session_id}'. Error: ${error}`);
-                return {success:false,message:`Failed to invalidate session with id '${session_id}'. Error: ${error}`};
-            });
+        return await Internal.execute(`DELETE
+                                       FROM sessions
+                                       WHERE session_id = ?`, [session_id]);
     }
 
     static async getResetToken(token: string): Promise<DatabaseResult> {
-        return await sql`SELECT *
-                         FROM reset_tokens
-                         WHERE token = ${token}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res as ResetRequest || undefined,rawResult: result};
-            })
-            .catch(error => {
-                console.error(`Failed to get reset token '${token}'. Error: ${error}`);
-                return {success:false,message:`Failed to get reset token '${token}'. Error: ${error}`};
-            });
+        return await Internal.execute(`SELECT *
+                                       FROM reset_tokens
+                                       WHERE token = ?`, [token]);
     }
 
     static async getResetTokenFromUuid(uuid: string): Promise<DatabaseResult> {
-        return await sql`SELECT *
-                         FROM reset_tokens
-                         WHERE uuid = ${uuid}`
-            .then(result => {
-                const [res] = result;
-                return {success:true,result:res as ResetRequest || undefined,rawResult:result};
-            })
-            .catch(error => {
-                console.error(`Failed to get reset token of user '${uuid}'. Error: ${error}`);
-                return {success:false,message:`Failed to get reset token of user '${uuid}'. Error: ${error}`};
-            });
+        return await Internal.execute(`SELECT *
+                                       FROM reset_tokens
+                                       WHERE uuid = ?`, [uuid]);
     }
 
     static async setResetToken(uuid: string, token: string, expires: number): Promise<DatabaseResult> {
-        return await sql`INSERT INTO reset_tokens(uuid, token, expires)
-                         VALUES (${uuid}, ${token}, ${expires})
-                         ON CONFLICT (uuid) DO UPDATE
-                             SET token   = $2,
-                                 expires = $3`
-            .then(() => {
-                return {success:true}
-            })
-            .catch(error => {
-                console.error(`Failed to set/update reset token for user with uuid '${uuid}'. Error: ${error}`);
-                return {success:false,message:`Failed to set/update reset token for user with uuid '${uuid}'. Error: ${error}`};
-            });
+        return await Internal.execute(`INSERT INTO reset_tokens(uuid, token, expires)
+                                       VALUES (?, ?, ?)
+                                       ON DUPLICATE KEY UPDATE token   = $2,
+                                                               expires = $3`, [uuid, token, expires]);
     }
 
     static async deleteResetToken(token: string): Promise<DatabaseResult> {
-        return await sql`DELETE
-                         FROM reset_tokens
-                         WHERE token = ${token}`
-            .then(() => {
-                return {success:true};
-            })
-            .catch(error => {
-                console.error(`Failed to delete reset token '${token}'. Error: ${error}`);
-                return {success:false,message:`Failed to delete reset token '${token}'. Error: ${error}`};
-            });
+        return await Internal.execute(`DELETE
+                                       FROM reset_tokens
+                                       WHERE token = ?`, [token]);
     }
 }
 
