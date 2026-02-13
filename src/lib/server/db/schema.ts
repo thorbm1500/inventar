@@ -1,10 +1,12 @@
-export interface Currency {
+import type {RowDataPacket} from "mysql2";
+
+export interface Currency extends RowDataPacket {
     id: string,
     code: string,
     symbol?: string | null
 }
 
-export interface Inventory {
+export interface Inventory extends RowDataPacket {
     uuid: string,
     owner: string,
     name: string,
@@ -48,7 +50,7 @@ export interface LabelColors {
     dark_background: string
 }
 
-export interface Item {
+export interface Item extends RowDataPacket {
     inventory: string,
     uuid: string,
     name: string,
@@ -66,7 +68,7 @@ export interface Item {
 /**
  * User interface, to easily handle user data. The User interface should never contain or be able to contain any sensitive data.
  */
-export interface User {
+export interface User extends RowDataPacket {
     uuid: string,
     email: string,
     username: string,
@@ -77,13 +79,13 @@ export interface User {
     superuser: boolean
 }
 
-export interface Session {
+export interface Session extends RowDataPacket {
     uuid: string,
     session_id: string,
     expires: number
 }
 
-export interface ResetRequest {
+export interface ResetRequest extends RowDataPacket {
     uuid: string,
     token: string,
     expires: number

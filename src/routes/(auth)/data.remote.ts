@@ -87,7 +87,7 @@ export const resetPassword = form(
                 }
 
                 const passwordUpdate: boolean = result.result;
-                await db.Auth.deleteResetToken(_token);
+                await db.Auth.deleteResetToken(resetToken);
 
                 if (!passwordUpdate) {
                     console.error(`Failed to reset password for user '${resetRequest.uuid}'.`);
