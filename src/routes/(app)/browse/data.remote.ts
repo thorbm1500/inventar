@@ -2,7 +2,6 @@ import {query} from '$app/server';
 import * as db from '$lib/server/db/database'
 import util from '$lib/server/utilities';
 import * as v from "valibot";
-import type {DatabaseResult} from "$lib/server/db/database";
 import type {Inventory} from '$lib/server/db/schema';
 
 const inventoriesObj = v.object({
@@ -28,11 +27,8 @@ const inventoriesObj = v.object({
  */
 export const getInventories = query(inventoriesObj, async (data): Promise<Inventory[]> => {
     if (!util.isOffline()) {
-        const result: DatabaseResult = await db.Inventories.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
-
-        if (result.success) {
-            return result.result ?? [];
-        }
+        const inventories: Inventory[] = await db.Inventories.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+        return inventories;
     }
 
     return [];
@@ -40,11 +36,8 @@ export const getInventories = query(inventoriesObj, async (data): Promise<Invent
 
 export const getTotalInventoryCount = query(async (): Promise<number> => {
     if (util.isOffline()) {
-        const result: DatabaseResult = await db.Inventories.fetchTotalInventoryCount();
-
-        if (result.success) {
-            return result.result ?? 1;
-        }
+        const inventoryCount: number = await db.Inventories.fetchTotalInventoryCount();
+        return inventoryCount;
     }
 
     return 1;

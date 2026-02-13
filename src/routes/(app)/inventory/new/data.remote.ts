@@ -1,10 +1,11 @@
 import * as v from 'valibot';
 import {form} from "$app/server";
-import type {DatabaseResult} from "$lib/server/db/database";
 import * as db from '$lib/server/db/database';
 import {promises as fs} from "fs";
 import {getInventoryDirectory} from "$lib/server/internal/settings";
 import {redirect} from "@sveltejs/kit";
+import type {Inventory} from "$lib/server/db/schema";
+import Log from "$lib/server/internal/log";
 
 export const createInventory = form(
     v.object({
@@ -14,25 +15,24 @@ export const createInventory = form(
         image: v.optional(v.file(), undefined)
     }),
     async ({owner, name, description, image}) => {
-        const result: DatabaseResult = await db.Inventories.create(owner,name,description);
-        if (!result.success) {
-            return {success:false,message:result.message};
+        const inventory: Inventory | undefined = await db.Inventories.create(owner,name,description);
+        if (!inventory) {
+            Log.error(`Failed to create new inventory with name: ${name}`)
+            return {success:false,message: 'Failed to create new inventory!'};
         }
-
-        const uuid: string = result.result;
 
         if (image) {
             try {
-                await fs.mkdir(getInventoryDirectory(uuid,['images']),{recursive:true});
+                await fs.mkdir(getInventoryDirectory(inventory.uuid,['images']),{recursive:true});
 
-                const bytes = await (image as File).bytes();
-                await fs.writeFile(getInventoryDirectory(uuid,['images','thumbnail.png']), bytes);
+                const bytes: Uint8Array<ArrayBuffer> = await (image as File).bytes();
+                await fs.writeFile(getInventoryDirectory(inventory.uuid,['images','thumbnail.png']), bytes);
             } catch (error) {
                 console.error(`Error: Failed to write image. ${error}`);
                 return {success: false, failed: true, error: `Item has been created, but image upload failed: ${error}`}
             }
         }
 
-        return redirect(302, '/inventory/'.concat(uuid));
+        return redirect(302, '/inventory/'.concat(inventory.uuid));
     }
 );

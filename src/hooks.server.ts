@@ -3,8 +3,7 @@ import * as auth from '$lib/server/internal/auth';
 import * as db from '$lib/server/db/database'
 import initializeDatabase from '$lib/server/db/index';
 import {env} from "$env/dynamic/private";
-import type {DatabaseResult} from "$lib/server/db/database";
-import type {User} from "$lib/server/db/schema";
+import type {Session, User} from "$lib/server/db/schema";
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
@@ -38,38 +37,32 @@ const handleAuth: Handle = async ({event, resolve}) => {
         }
     }
 
-    const {uuid, session_id, expires} = await auth.validateSessionToken(sessionToken);
+    const session: Session | null = await auth.validateSessionToken(sessionToken);
 
-    if (!session_id) {
+    if (!session) {
         return redirect(302, '/login');
     }
 
     if (event.url.pathname === '/logout') {
-        await auth.invalidateSession(session_id);
+        await db.Auth.invalidateSession(session.session_id);
         auth.deleteSessionTokenCookie(event);
         return redirect(302, '/login');
     } else {
-        auth.setSessionTokenCookie(sessionToken, expires);
+        auth.setSessionTokenCookie(sessionToken, session.expires);
     }
 
     if (isPublicPath(event.url.pathname)) {
         return redirect(302, '/');
     }
 
-    const result: DatabaseResult = await db.Users.getFromUuid(uuid);
+    const user: User | undefined = await db.Users.getFromUuid(session.uuid);
 
-    if (!result.success) {
+    if (!user) {
         return redirect(302, '/login');
     }
 
-    const user: User = result.result as User;
-
-    if (!user) {
-        return redirect(302, '/login')
-    }
-
     event.locals.user = user;
-    event.locals.session_id = session_id;
+    event.locals.session_id = session.session_id;
 
     return resolve(event);
 };

@@ -1,56 +1,29 @@
 import {env} from "$env/dynamic/private";
-import mysql, {type Connection, type ConnectionOptions} from 'mysql2/promise';
+import Log from '$lib/server/internal/log';
+import mysql, {type Pool, type PoolConnection, type RowDataPacket} from 'mysql2/promise';
 import type {Currency, Inventory, Item, ResetRequest, Session, User} from "$lib/server/db/schema";
 import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
-import type {RowDataPacket} from "mysql2";
-import {create} from "node:domain";
 
-const sql: Connection = await mysql.createConnection({
+const pool: Pool = mysql.createPool({
     host: env.DB_HOST,
     port: Number.parseInt(env.DB_PORT) ?? undefined,
     database: env.DB_DATABASE,
     user: env.DB_USER,
     password: env.DB_PASSWORD,
-    supportBigNumbers: true
-} as ConnectionOptions);
+    supportBigNumbers: true,
+    connectionLimit: 20
+});
 
-/**
- * Attempts a simple query to check for database connectivity.
- * @returns True, if the attempt was successful, otherwise false to indicate to connection.
- */
-async function isDatabaseConnected(): Promise<boolean> {
-    //todo: Make optional reattempts
-    if (sql) {
-        try {
-            const [result] = await sql.query(`SELECT 1`) ?? undefined;
-            return Boolean(result);
-        } catch (error) {
-            console.error(error);
-        }
-    }
-
-    return false;
-}
-
-export interface DatabaseResult {
-    success: boolean,
-    result?: any,
-    message?: string
+export async function getConnection(): Promise<PoolConnection> {
+    return await pool.getConnection();
 }
 
 /**
  * Creates all the default tables, in the database, and adds the table's default values, if any.
  */
 export async function createTables(): Promise<void> {
-    console.log(`Creating database tables.`)
-    if (!(await isDatabaseConnected())) {
-        console.log(`Creation failed. No connection to database. Scheduling reattempt...`);
-        // Schedules a reattempt after a 10-second delay, to check for connectivity again.
-        setTimeout(async (): Promise<void> => await createTables(), 10000);
-    }
-
-    console.log(`Table creation starting...`)
+    Log.info(`Creating database tables.`)
     await createTableCurrencies();
     await createTableUsers();
     await createTableInventories();
@@ -61,25 +34,33 @@ export async function createTables(): Promise<void> {
     await createTableItemLabels();
     await createTableSessions();
     await createTableResetTokens();
-    console.log(`Table creation finished.`)
+    Log.done(`Table creation finished.`)
 }
 
 /**
  * Creates the table 'currencies', if it doesn't already exist.
  */
 export async function createTableCurrencies(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS currencies
-                       (
-                           id     VARCHAR(3) NOT NULL,
-                           code   VARCHAR(3) NOT NULL,
-                           symbol VARCHAR(255) DEFAULT NULL,
-                           PRIMARY KEY (id)
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists currencies
+                              (
+                                  id     varchar(3)   not null
+                                      primary key,
+                                  code   varchar(3)   not null,
+                                  symbol varchar(255) null,
+                                  constraint code
+                                      unique (code),
+                                  constraint id
+                                      unique (id)
+                              )`);
 
     for (const row of currencies) {
-        await sql.execute(`INSERT IGNORE INTO currencies (id, code)
-                           VALUES (?, ?)`, [row.id, row.code])
+        await connection.execute(`INSERT IGNORE INTO currencies (id, code)
+                                  VALUES (?, ?)`, [row.id, row.code])
     }
+
+    connection.release();
 }
 
 /**
@@ -87,19 +68,21 @@ export async function createTableCurrencies(): Promise<void> {
  * If the table creation is successful; Adds foreign key constraint on table 'users'.
  */
 export async function createTableInventories(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS inventories
-                       (
-                           uuid        CHAR(36)     NOT NULL DEFAULT (UUID()),
-                           owner       CHAR(36)     NOT NULL,
-                           name        VARCHAR(255) NOT NULL,
-                           description TEXT(255)             DEFAULT NULL,
-                           item_amount BIGINT(255)  NOT NULL DEFAULT 0,
-                           last_update BIGINT(255)  NOT NULL DEFAULT (UNIX_TIMESTAMP()),
-                           created_at  BIGINT(255)  NOT NULL DEFAULT (UNIX_TIMESTAMP()),
-                           PRIMARY KEY (uuid),
-                           FOREIGN KEY (owner) REFERENCES users (uuid)
-                       )`)
+    const connection: PoolConnection = await getConnection();
 
+    await connection.execute(`create table if not exists inventories
+                              (
+                                  uuid        char(36)  default (uuid())          not null
+                                      primary key,
+                                  owner       char(36)                            not null,
+                                  name        varchar(255)                        not null,
+                                  description text                                null,
+                                  item_amount bigint    default 0                 not null,
+                                  last_update timestamp default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+                                  created_at  timestamp default CURRENT_TIMESTAMP not null
+                              )`)
+
+    connection.release();
     //todo: Sync item amount every midnight, to ensure correct amount.
     /*
     todo: If account of owner is attempted deleted;
@@ -108,25 +91,33 @@ export async function createTableInventories(): Promise<void> {
 }
 
 export async function createTableInventoryAccessList(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS inventory_access_list
-                       (
-                           inventory        CHAR(36) NOT NULL,
-                           user_uuid        CHAR(36) NOT NULL,
-                           edit_inventory   BOOLEAN  NOT NULL DEFAULT FALSE,
-                           delete_inventory BOOLEAN  NOT NULL DEFAULT FALSE,
-                           view_items       BOOLEAN  NOT NULL DEFAULT FALSE,
-                           create_items     BOOLEAN  NOT NULL DEFAULT FALSE,
-                           edit_items       BOOLEAN  NOT NULL DEFAULT FALSE,
-                           delete_items     BOOLEAN  NOT NULL DEFAULT FALSE,
-                           view_users       BOOLEAN  NOT NULL DEFAULT FALSE,
-                           add_users        BOOLEAN  NOT NULL DEFAULT FALSE,
-                           edit_users       BOOLEAN  NOT NULL DEFAULT FALSE,
-                           remove_users     BOOLEAN  NOT NULL DEFAULT FALSE,
-                           view_audit       BOOLEAN  NOT NULL DEFAULT FALSE,
-                           PRIMARY KEY (inventory, user_uuid),
-                           FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
-                           FOREIGN KEY (user_uuid) REFERENCES users (uuid) ON DELETE CASCADE
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists inventory_access_list
+                              (
+                                  inventory        char(36)             not null,
+                                  user_uuid        char(36)             not null,
+                                  edit_inventory   tinyint(1) default 0 not null,
+                                  delete_inventory tinyint(1) default 0 not null,
+                                  view_items       tinyint(1) default 0 not null,
+                                  create_items     tinyint(1) default 0 not null,
+                                  edit_items       tinyint(1) default 0 not null,
+                                  delete_items     tinyint(1) default 0 not null,
+                                  view_users       tinyint(1) default 0 not null,
+                                  add_users        tinyint(1) default 0 not null,
+                                  edit_users       tinyint(1) default 0 not null,
+                                  remove_users     tinyint(1) default 0 not null,
+                                  view_audit       tinyint(1) default 0 not null,
+                                  primary key (inventory, user_uuid),
+                                  constraint inventory_access_list_ibfk_1
+                                      foreign key (inventory) references inventories (uuid)
+                                          on delete cascade,
+                                  constraint inventory_access_list_ibfk_2
+                                      foreign key (user_uuid) references users (uuid)
+                                          on delete cascade
+                              )`);
+
+    connection.release();
 }
 
 /**
@@ -134,136 +125,194 @@ export async function createTableInventoryAccessList(): Promise<void> {
  */
 export async function createTableLabels(): Promise<void> {
     //todo: Expand to allow for custom colors in the future.
-    await sql.execute(`CREATE TABLE IF NOT EXISTS labels
-                       (
-                           inventory CHAR(36)              NOT NULL,
-                           uuid      CHAR(36) UNIQUE       NOT NULL DEFAULT (UUID()),
-                           name      VARCHAR(255)          NOT NULL,
-                           color     TINYINT(255) UNSIGNED NOT NULL DEFAULT 1,
-                           PRIMARY KEY (inventory, uuid),
-                           FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists labels
+                              (
+                                  inventory char(36)                          not null,
+                                  uuid      char(36)         default (uuid()) not null,
+                                  name      varchar(255)                      not null,
+                                  color     tinyint unsigned default '1'      not null,
+                                  primary key (inventory, uuid),
+                                  constraint labels_pk
+                                      unique (uuid),
+                                  constraint labels_ibfk_1
+                                      foreign key (inventory) references inventories (uuid)
+                                          on delete cascade
+                              )`);
+
+    connection.release();
 }
 
 /**
  * Creates the table 'categories', if it doesn't already exist.
  */
 export async function createTableLabelColors(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS label_colors
-                       (
-                           id              TINYINT(255) UNSIGNED NOT NULL,
-                           border          CHAR(9)               NOT NULL,
-                           background      CHAR(9)               NOT NULL,
-                           dark_border     CHAR(9)               NOT NULL,
-                           dark_background CHAR(9)               NOT NULL,
-                           PRIMARY KEY (id)
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists label_colors
+                              (
+                                  id              int        not null
+                                      primary key,
+                                  border          varchar(9) not null,
+                                  background      varchar(9) not null,
+                                  dark_border     varchar(9) not null,
+                                  dark_background varchar(9) not null,
+                                  constraint id
+                                      unique (id)
+                              )`);
 
     for (const row of colors) {
-        await sql.execute(`INSERT IGNORE INTO label_colors (id, border, background, dark_border, dark_background)
-                           VALUES (?, ?, ?, ?, ?)`, [row.id, row.border, row.background, row.dark_border, row.dark_background]);
+        await connection.execute(`INSERT IGNORE INTO label_colors (id, border, background, dark_border, dark_background)
+                                  VALUES (?, ?, ?, ?, ?)`, [row.id, row.border, row.background, row.dark_border, row.dark_background]);
     }
+
+    connection.release();
 }
 
 /**
  * Creates the table 'items', if it doesn't already exist.
  */
 export async function createTableItems(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS items
-                       (
-                           inventory           CHAR(36)        NOT NULL,
-                           uuid                CHAR(36) UNIQUE NOT NULL DEFAULT (UUID()),
-                           name                VARCHAR(255)    NOT NULL,
-                           description         TEXT(255)                DEFAULT NULL,
-                           amount              BIGINT(255)     NOT NULL DEFAULT 0,
-                           reserved_amount     BIGINT(255)     NOT NULL DEFAULT 0,
-                           pending_amount      BIGINT(255)     NOT NULL DEFAULT 0,
-                           reserved_expiration BIGINT(255)              DEFAULT NULL,
-                           pending_expiration  BIGINT(255)              DEFAULT NULL,
-                           image               TEXT(255)                DEFAULT NULL,
-                           url                 TEXT(255)                DEFAULT NULL,
-                           price               NUMERIC(50, 2)  NOT NULL DEFAULT 0.0,
-                           currency            VARCHAR(3)      NOT NULL DEFAULT 'DKK',
-                           created_by          CHAR(36)        NOT NULL,
-                           last_update         BIGINT(255)     NOT NULL DEFAULT (UNIX_TIMESTAMP()),
-                           created_at          BIGINT(255)     NOT NULL DEFAULT (UNIX_TIMESTAMP()),
-                           PRIMARY KEY (inventory, uuid),
-                           FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
-                           FOREIGN KEY (currency) REFERENCES currencies (code),
-                           FOREIGN KEY (created_by) REFERENCES users (uuid)
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists items
+                              (
+                                  inventory           char(36)                                 not null,
+                                  uuid                char(36)       default (uuid())          not null,
+                                  name                varchar(255)                             not null,
+                                  description         text                                     null,
+                                  amount              bigint         default 0                 not null,
+                                  reserved_amount     bigint         default 0                 not null,
+                                  pending_amount      bigint         default 0                 not null,
+                                  reserved_expiration bigint                                   null,
+                                  pending_expiration  bigint                                   null,
+                                  image               text                                     null,
+                                  url                 text                                     null,
+                                  price               decimal(50, 2) default 0.00              not null,
+                                  currency            varchar(3)     default 'DKK'             not null,
+                                  created_by          char(36)                                 not null,
+                                  last_update         timestamp      default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+                                  created_at          timestamp      default CURRENT_TIMESTAMP not null,
+                                  primary key (inventory, uuid),
+                                  constraint items_pk
+                                      unique (uuid),
+                                  constraint items_ibfk_1
+                                      foreign key (inventory) references inventories (uuid)
+                                          on delete cascade,
+                                  constraint items_ibfk_2
+                                      foreign key (currency) references currencies (code),
+                                  constraint items_ibfk_3
+                                      foreign key (created_by) references users (uuid)
+                              )`);
+
+    connection.release();
 }
 
 /**
  * Creates the table 'item_categories', if it doesn't already exist.
  */
 export async function createTableItemLabels(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS item_labels
-                       (
-                           inventory CHAR(36) NOT NULL,
-                           item      CHAR(36) NOT NULL,
-                           label     CHAR(36) NOT NULL,
-                           PRIMARY KEY (inventory, item, label),
-                           FOREIGN KEY (inventory) REFERENCES inventories (uuid) ON DELETE CASCADE,
-                           FOREIGN KEY (item) REFERENCES items (uuid) ON DELETE CASCADE,
-                           FOREIGN KEY (label) REFERENCES labels (uuid) ON DELETE CASCADE
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists item_labels
+                              (
+                                  inventory char(36) not null,
+                                  item      char(36) not null,
+                                  label     char(36) not null,
+                                  primary key (inventory, item, label),
+                                  constraint item_labels_ibfk_1
+                                      foreign key (inventory) references inventories (uuid)
+                                          on delete cascade,
+                                  constraint item_labels_ibfk_2
+                                      foreign key (item) references items (uuid)
+                                          on delete cascade,
+                                  constraint item_labels_ibfk_3
+                                      foreign key (label) references labels (uuid)
+                                          on delete cascade
+                              )`);
+
+    connection.release();
 }
 
 /**
  * Creates the table 'users', if it doesn't already exist.
  */
 export async function createTableUsers(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS users
-                       (
-                           uuid              CHAR(36)     NOT NULL DEFAULT (UUID()),
-                           email             VARCHAR(255) NOT NULL,
-                           password_hash     TEXT(255)    NOT NULL,
-                           username          VARCHAR(255) NOT NULL,
-                           profile_picture   TEXT(255)             DEFAULT NULL,
-                           reset_token       TEXT(255)             DEFAULT NULL,
-                           primary_inventory CHAR(36)              DEFAULT NULL,
-                           last_login        BIGINT(255)  NOT NULL DEFAULT (UNIX_TIMESTAMP()),
-                           created_at        BIGINT(255)  NOT NULL DEFAULT (UNIX_TIMESTAMP()),
-                           superuser         BOOLEAN      NOT NULL DEFAULT false,
-                           PRIMARY KEY (uuid)
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists users
+                              (
+                                  uuid              char(36)   default (uuid())          not null
+                                      primary key,
+                                  email             varchar(255)                         not null,
+                                  password_hash     text                                 not null,
+                                  username          varchar(255)                         not null,
+                                  profile_picture   text                                 null,
+                                  reset_token       text                                 null,
+                                  primary_inventory char(36)                             null,
+                                  last_login        timestamp  default CURRENT_TIMESTAMP not null,
+                                  created_at        timestamp  default CURRENT_TIMESTAMP not null,
+                                  superuser         tinyint(1) default 0                 not null,
+                                  constraint users_inventory_fk
+                                      foreign key (primary_inventory) references inventories (uuid)
+                              )`);
+
+    await connection.execute(`ALTER TABLE inventories
+        ADD CONSTRAINT inventories_owner_fk
+            FOREIGN KEY (owner) REFERENCES users (uuid)`)
+
+    connection.release();
 }
 
 /**
  * Creates the table 'sessions', if it doesn't already exist.
  */
 export async function createTableSessions(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS sessions
-                       (
-                           uuid       CHAR(36)     NOT NULL,
-                           session_id VARCHAR(255) NOT NULL,
-                           expires    BIGINT(255)  NOT NULL,
-                           PRIMARY KEY (uuid),
-                           FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists sessions
+                              (
+                                  uuid       char(36)     not null
+                                      primary key,
+                                  session_id varchar(255) not null,
+                                  expires    bigint       not null,
+                                  constraint sessions_ibfk_1
+                                      foreign key (uuid) references users (uuid)
+                                          on delete cascade
+                              )`);
+
+    connection.release();
 }
 
 /**
  * Creates the table 'reset_tokens', if it doesn't already exist.
  */
 export async function createTableResetTokens(): Promise<void> {
-    await sql.execute(`CREATE TABLE IF NOT EXISTS reset_tokens
-                       (
-                           uuid    CHAR(36)     NOT NULL,
-                           token   VARCHAR(255) NOT NULL,
-                           expires BIGINT(255)  NOT NULL,
-                           PRIMARY KEY (uuid),
-                           FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
-                       )`);
+    const connection: PoolConnection = await getConnection();
+
+    await connection.execute(`create table if not exists reset_tokens
+                              (
+                                  uuid    char(36)     not null
+                                      primary key,
+                                  token   varchar(255) not null,
+                                  expires bigint       not null,
+                                  constraint reset_tokens_ibfk_1
+                                      foreign key (uuid) references users (uuid)
+                                          on delete cascade
+                              )`);
+
+    connection.release();
 }
 
 export async function getCurrencies(): Promise<Currency[]> {
-    const [result] = await sql.execute<Currency[]>(
-        `SELECT *
-         FROM currencies`
+    const connection: PoolConnection = await getConnection();
+
+    const [result] = await connection.query(`SELECT *
+                                             FROM currencies`
     );
-    return result;
+    connection.release();
+    return result as Currency[];
 }
 
 export class Inventories {
@@ -275,84 +324,102 @@ export class Inventories {
      * @return The UUID of the new inventory, or undefined if any errors occurred.
      */
     static async create(owner: string, name: string, description?: string): Promise<Inventory> {
-        await sql.execute(`INSERT IGNORE INTO inventories(owner, name, description)
-                           VALUES (?, ?, ?)`);
+        const connection: PoolConnection = await getConnection();
 
-        const [result] = await sql.execute<Inventory[]>(`SELECT *
-                                                         FROM inventories
-                                                         ORDER BY created_at DESC
-                                                         LIMIT 1;`, [owner, name, description ?? null]);
-        return result[0];
+        await connection.execute(`INSERT IGNORE INTO inventories(owner, name, description)
+                                  VALUES (?, ?, ?)`, [owner, name, description ?? null]);
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM inventories
+                                                 WHERE owner = ?
+                                                 ORDER BY created_at DESC
+                                                 LIMIT 1`, [owner]);
+
+        connection.release();
+        return (result as Inventory[])[0];
     }
 
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<Inventory[]> {
-        const [result] = await sql.execute<Inventory[]>(`SELECT *
-                                                         FROM inventories ${order_by === '' ?
-                                                                 `` : `ORDER BY ${order_by} ${order === 'ASC' ? `ASC` : `DESC`}`}
-                                                         LIMIT ? OFFSET ?`, [amount, offset]
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM inventories ${order_by === '' ? `` : `ORDER BY ${order_by} ${order === 'ASC' ? `ASC` : `DESC`}`}
+                                                 LIMIT ? OFFSET ?`, [amount, offset]
         );
-        return result;
+
+        connection.release();
+        return result as Inventory[];
     }
 
     static async fetchTotalInventoryCount(): Promise<number> {
-        const [result] = await sql.execute<RowDataPacket[]>(
-            `SELECT COUNT(uuid) AS amount
-             FROM inventories`
-        );
-        return result[0].amount;
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT COUNT(uuid) AS amount
+                                                 FROM inventories`);
+
+        connection.release();
+        return (result as RowDataPacket[])[0].amount ?? 0;
     }
 
     static async fetchInventoryByUuid(uuid: string): Promise<Inventory> {
-        const [result] = await sql.execute<Inventory[]>(
-            `SELECT *
-             FROM inventories
-             WHERE uuid = ?`, [uuid]
-        );
-        return result[0];
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM inventories
+                                                 WHERE uuid = ?`, [uuid]);
+
+        connection.release();
+        return (result as Inventory[])[0];
     }
 }
 
 export class Items {
     /* todo Add categories to itemCategories table */
     static async create(inventory: string, name: string, description?: string, amount: number = 0, categories: [] = [], image?: string,
-                        url?: string, price: number = 0, currency: string = 'DKK'): Promise<Item> {
-        await sql.execute<Item[]>(
-            `INSERT IGNORE INTO items (inventory, name, description, amount, image, url, price, currency)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [inventory, name, description ?? null, amount, image ?? null, url ?? null, price, currency]
-        );
+                        url?: string, price: number = 0, currency: string = 'DKK'): Promise<Item | undefined> {
+        const connection: PoolConnection = await getConnection();
 
-        const [result] = await sql.execute<Item[]>(
-            `SELECT *
-             FROM items
-             ORDER BY created_at DESC`, []
-        );
-        return result[0];
+        await connection.execute(`INSERT IGNORE INTO items (inventory, name, description, amount, image, url, price, currency)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [inventory, name, description ?? null, amount, image ?? null, url ?? null, price, currency]);
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM items
+                                                 ORDER BY created_at DESC`);
+
+        connection.release();
+        return (result as Item[])[0] ?? undefined;
     }
 
     static async fetch(amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<Item[]> {
-        const [result] = await sql.execute<Item[]>(
-            `SELECT *
-             FROM inventories ${order_by === '' ? `` : `ORDER BY ${order_by} ${order === 'ASC' ? `ASC` : `DESC`}`}
-             LIMIT ? OFFSET ?`, [amount, offset]
-        );
-        return result;
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM inventories ${order_by === '' ? `` : `ORDER BY ${order_by} ${order === 'ASC' ? `ASC` : `DESC`}`}
+                                                 LIMIT ? OFFSET ?`, [amount, offset]);
+
+        connection.release();
+        return result as Item[];
     }
 
     static async fetchTotalItemCount(inventory: string): Promise<number> {
-        const [result] = await sql.execute<RowDataPacket[]>(
-            `SELECT COUNT(uuid) AS amount
-             FROM items
-             WHERE inventory = ?`, [inventory]
-        );
-        return result[0].amount;
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT COUNT(uuid) AS amount
+                                                 FROM items
+                                                 WHERE inventory = ?`, [inventory]);
+
+        connection.release();
+        return (result as RowDataPacket[])[0].amount ?? 1;
     }
 
     static async deleteItem(uuid: string): Promise<void> {
-        await sql.execute(
-            `DELETE
-             FROM items
-             WHERE uuid = ?`, [uuid]
-        );
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`DELETE
+                                  FROM items
+                                  WHERE uuid = ?`, [uuid]);
+
+        connection.release();
     }
 }
 
@@ -365,71 +432,84 @@ export class Users {
      * @param superuser If the user should have administrator rights.
      */
     static async create(email: string, username: string, password_hash: string, superuser: boolean = false): Promise<User> {
-        await sql.execute(
-            `INSERT INTO users (email, username, password_hash, superuser)
-             VALUES (?, ?, ?, ?)`, [email, username, password_hash, superuser]
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`INSERT INTO users (email, username, password_hash, superuser)
+                                  VALUES (?, ?, ?, ?)`, [email, username, password_hash, superuser]);
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM users
+                                                 WHERE email = ?
+                                                   AND username = ?
+                                                 ORDER BY created_at DESC
+                                                 LIMIT 1`, [email, username]
         );
 
-        const [result] = await sql.execute<User[]>(
-            `SELECT uuid
-             FROM users
-             ORDER BY created_at DESC
-             LIMIT 1`
-        );
-        return result[0];
+        connection.release();
+        return (result as User[])[0];
     }
 
-    static async getFromUuid(uuid: string): Promise<User> {
-        const [result] = await sql.execute<User[]>(
-            `SELECT *
-             FROM users
-             WHERE uuid = ?`,
-            [uuid]
-        );
-        return result[0];
+    static async getFromUuid(uuid: string): Promise<User | undefined> {
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM users
+                                                 WHERE uuid = ?`, [uuid]);
+
+        connection.release();
+        return (result as User[])[0] ?? undefined;
     }
 
     static async getFromEmail(email: string): Promise<User> {
-        const [result] = await sql.execute<User[]>(
-            `SELECT *
-             FROM users
-             WHERE email = ?`,
-            [email]
-        );
-        return result[0];
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM users
+                                                 WHERE email = ?`, [email]);
+
+        connection.release();
+        return (result as User[])[0];
     }
 
     static async getPasswordHash(uuid: string): Promise<string> {
-        const [result] = await sql.execute<RowDataPacket[]>(
-            `SELECT password_hash
-             FROM users
-             WHERE uuid = ?`,
-            [uuid]
-        );
-        return result[0].password_hash;
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT password_hash
+                                                 FROM users
+                                                 WHERE uuid = ?`, [uuid]);
+
+        connection.release();
+        return (result as RowDataPacket[])[0].password_hash ?? '';
     }
 
     static async setPasswordHash(uuid: string, passwordHash: string): Promise<void> {
-        await sql.execute(
-            `UPDATE users
-             SET password_hash = ?
-             WHERE uuid = ?`, [passwordHash, uuid]
-        );
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`UPDATE users
+                                  SET password_hash = ?
+                                  WHERE uuid = ?`, [passwordHash, uuid]);
+
+        connection.release();
     }
 
     static async updateLastLogin(uuid: string): Promise<void> {
-        await sql.execute(`UPDATE users
-                           SET last_login = UNIX_TIMESTAMP()
-                           WHERE uuid = ?`, [uuid]
-        );
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`UPDATE users
+                                  SET last_login = UNIX_TIMESTAMP()
+                                  WHERE uuid = ?`, [uuid]);
+
+        connection.release();
     }
 
     static async getUserAmount(): Promise<number> {
-        const [result] = await sql.execute<RowDataPacket[]>(
-            `SELECT count(uuid) as amount
-             FROM users`
-        );
-        return result[0].amount;
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT count(uuid) as amount
+                                                 FROM users`);
+
+        connection.release();
+        return (result as RowDataPacket[])[0].amount ?? 1;
     }
 }
 
@@ -439,24 +519,27 @@ export class Auth {
      * @param session Session to cache.
      */
     static async newSession(session: Session): Promise<void> {
-        await sql.execute(`INSERT INTO sessions (uuid, session_id, expires)
-                           VALUES (?, ?, ?)
-                           ON DUPLICATE KEY UPDATE session_id = $2,
-                                                   expires    = $3`, [session.uuid, session.session_id, session.expires]
-        );
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`INSERT INTO sessions (uuid, session_id, expires)
+                                  VALUES (?, ?, ?)
+                                  ON DUPLICATE KEY UPDATE session_id = ?,
+                                                          expires    = ?`, [session.uuid, session.session_id, session.expires, session.session_id, session.expires]);
+
+        connection.release();
     }
 
     /**
      * Gets an existing session.
      * @param session_id Id of session to retrieve.
      */
-    static async getSession(session_id: string): Promise<Session> {
-        const [result] = await sql.execute<Session[]>(
-            `SELECT *
-             FROM sessions
-             WHERE session_id = ?`, [session_id]
-        );
-        return result[0];
+    static async getSession(session_id: string): Promise<Session | undefined> {
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM sessions
+                                                 WHERE session_id = ?`, [session_id]);
+        return (result as Session[])[0] ?? undefined;
     }
 
     /**
@@ -465,11 +548,13 @@ export class Auth {
      * @param expires New expiration date.
      */
     static async renewSession(session_id: string, expires: number): Promise<void> {
-        await sql.execute(
-            `UPDATE sessions
-             SET expires = ?
-             WHERE session_id = ?`, [expires, session_id]
-        );
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`UPDATE sessions
+                                  SET expires = ?
+                                  WHERE session_id = ?`, [expires, session_id]);
+
+        connection.release();
     }
 
     /**
@@ -477,46 +562,58 @@ export class Auth {
      * @param session_id Id of session to invalidate.
      */
     static async invalidateSession(session_id: string): Promise<void> {
-        await sql.execute(
-            `DELETE
-             FROM sessions
-             WHERE session_id = ?`, [session_id]
-        );
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`DELETE
+                                  FROM sessions
+                                  WHERE session_id = ?`, [session_id]);
+
+        connection.release();
     }
 
-    static async getResetToken(token: string): Promise<ResetRequest> {
-        const [result] = await sql.execute<ResetRequest[]>(
+    static async getResetRequest(token: string): Promise<ResetRequest | undefined> {
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(
             `SELECT *
              FROM reset_tokens
              WHERE token = ?`, [token]
         );
-        return result[0];
+
+        connection.release();
+        return (result as ResetRequest[])[0] ?? undefined;
     }
 
-    static async getResetTokenFromUuid(uuid: string): Promise<ResetRequest> {
-        const [result] = await sql.execute<ResetRequest[]>(
-            `SELECT *
-             FROM reset_tokens
-             WHERE uuid = ?`, [uuid]
-        );
-        return result[0];
+    static async getResetRequestFromUuid(uuid: string): Promise<ResetRequest | undefined> {
+        const connection: PoolConnection = await getConnection();
+
+        const [result] = await connection.query(`SELECT *
+                                                 FROM reset_tokens
+                                                 WHERE uuid = ?`, [uuid]);
+
+        connection.release();
+        return (result as ResetRequest[])[0] ?? undefined;
     }
 
     static async setResetToken(uuid: string, token: string, expires: number): Promise<void> {
-        await sql.execute(
-            `INSERT INTO reset_tokens(uuid, token, expires)
-             VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE token   = $2,
-                                     expires = $3`, [uuid, token, expires]
-        );
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`INSERT INTO reset_tokens(uuid, token, expires)
+                                  VALUES (?, ?, ?)
+                                  ON DUPLICATE KEY UPDATE token   = ?,
+                                                          expires = ?`, [uuid, token, expires, token, expires]);
+
+        connection.release();
     }
 
     static async deleteResetToken(token: string): Promise<void> {
-        await sql.execute(
-            `DELETE
-             FROM reset_tokens
-             WHERE token = ?`, [token]
-        );
+        const connection: PoolConnection = await getConnection();
+
+        await connection.execute(`DELETE
+                                  FROM reset_tokens
+                                  WHERE token = ?`, [token]);
+
+        connection.release();
     }
 }
 

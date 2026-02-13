@@ -1,18 +1,21 @@
-import {error, redirect} from '@sveltejs/kit';
+import {error} from '@sveltejs/kit';
 import {form, query} from '$app/server';
 import * as db from '$lib/server/db/database'
 import * as v from 'valibot';
 import util from "$lib/server/utilities";
 import type {Currency, Inventory, Item} from "$lib/server/db/schema";
-import type {DatabaseResult} from "$lib/server/db/database";
 import {promises as fs} from "fs";
-import {getInventoryDirectory} from "$lib/server/internal/settings";
+import Log from "$lib/server/internal/log";
+import id = $props.id;
 
 export const getInventory = query(v.string(), async (id: string): Promise<Inventory> => {
-    const result: DatabaseResult = await db.Inventories.fetchInventoryByUuid(id);
-    if (!result.success) error(500, "Failed to fetch inventory.");
+    const inventory: Inventory | undefined = await db.Inventories.fetchInventoryByUuid(id);
+    if (!inventory) {
+        Log.error(`Failed to fetch inventory with ID: ${id}`);
+        error(500, "Failed to fetch inventory.");
+    }
 
-    return result.result as Inventory;
+    return inventory;
 });
 
 const itemsObj = v.object({
@@ -24,43 +27,34 @@ const itemsObj = v.object({
 });
 
 export const getCurrencies = query(async (): Promise<Currency[]> => {
-    const result: DatabaseResult = await db.getCurrencies();
-    if (!result.success || !result.result) error(500, `Failed to fetch currencies: ${result.message}`);
+    const currencies: Currency[] = await db.getCurrencies();
+    if (!currencies) {
+        Log.error('Failed to fetch currencies.');
+        error(500, `Failed to fetch currencies.`);
+    }
 
-    const currencyList: Currency[] = [];
-    result.result.forEach((res: Currency) => currencyList.push(res));
-    const currencies = result.result as Currency[];
     return currencies;
 });
 
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
-    let items: Item[] = [];
     if (!util.isOffline()) {
-        const result: DatabaseResult = await db.Items.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
-        if (result.success) items = result.result as Item[];
+        const items: Item[] = await db.Items.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+        return items;
     }
-    return items;
+    return [];
 });
 
 export const getTotalItemCount = query(v.string(), async (id: string): Promise<number> => {
     if (!util.isOffline()) {
-        const result: DatabaseResult = await db.Items.fetchTotalItemCount(id);
-
-        if (result.success) {
-            return result.result;
-        }
+        const itemCount: number = await db.Items.fetchTotalItemCount(id);
+        return itemCount;
     }
 
     return 1;
 });
 
-export const deleteItem = query(v.string(), async (id: string): Promise<boolean> => {
-    if (!util.isOffline()) {
-        const result: DatabaseResult = await db.Items.deleteItem(id);
-        return result.result;
-    }
-
-    return false;
+export const deleteItem = query(v.string(), async (id: string): Promise<void> => {
+    if (!util.isOffline()) await db.Items.deleteItem(id);
 });
 
 export const createItem = form(
@@ -75,10 +69,11 @@ export const createItem = form(
         image: v.optional(v.file(), undefined)
     }),
     async ({inventoryUuid, name, description, amount, price, currency, external, image}) => {
-        const result: DatabaseResult = await db.Items.create(inventoryUuid, name, description, amount, [], (image as File)?.name ?? undefined, external, price, currency);
+        const item: Item | undefined = await db.Items.create(inventoryUuid, name, description, amount, [], (image as File)?.name ?? undefined, external, price, currency);
 
-        if (!result.success) {
-            return {success: false, failed: true, error: result.message ?? 'NONE'}
+        if (!item) {
+            Log.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);
+            return {success: false, failed: true, error: 'Failed to create item!'}
         }
 
         const UPLOAD_PATH = String('');
@@ -92,7 +87,7 @@ export const createItem = form(
                 const bytes = await (image as File).bytes();
                 await fs.writeFile(`${UPLOAD_PATH.toString().endsWith("/") ? UPLOAD_PATH.toString().concat('item-images/') : UPLOAD_PATH.toString().concat('/item-images/')}${image.name}`, bytes);
             } catch (error) {
-                console.error(`Failed to write image: ${error}`);
+                Log.error(`Failed to write image: ${error}`);
                 return {success: false, failed: true, error: `Item has been created, but image upload failed: ${error}`}
             }
         }

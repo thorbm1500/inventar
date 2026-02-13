@@ -1,11 +1,11 @@
-import { getRequestEvent } from '$app/server';
+import {getRequestEvent} from '$app/server';
 import type {Cookies, RequestEvent} from '@sveltejs/kit';
 import {sha256} from '@oslojs/crypto/sha2';
 import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
 import * as db from "$lib/server/db/database";
 import type {Session} from "$lib/server/db/schema";
-import { DAY_IN_MS } from '$lib/utilities';
-import type {DatabaseResult} from "$lib/server/db/database";
+import {DAY_IN_MS} from '$lib/utilities';
+import {EMAIL_REGEX} from "valibot";
 
 export const sessionCookieName = 'auth-session';
 
@@ -19,10 +19,9 @@ export function generateResetToken(): string {
     return encodeBase64url(bytes).toLowerCase();
 }
 
-export async function createResetRequest(token: string, uuid: string): Promise<boolean> {
+export async function createResetRequest(token: string, uuid: string): Promise<void> {
     const resetToken: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    const result: DatabaseResult = await db.Auth.setResetToken(uuid, resetToken, new Date(Date.now() + 1800000).getTime());
-    return result.success;
+    await db.Auth.setResetToken(uuid, resetToken, Date.now() + 1800000);
 }
 
 /**
@@ -30,55 +29,43 @@ export async function createResetRequest(token: string, uuid: string): Promise<b
  * @param token Token for the session id.
  * @param uuid The user's uuid.
  */
-export async function createSession(token: string, uuid: string): Promise<Session | null> {
+export async function createSession(token: string, uuid: string): Promise<Session> {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
     const session: Session = {
         uuid,
         session_id,
         expires: new Date(Date.now() + DAY_IN_MS * 7).getTime()
     };
-    const result: DatabaseResult = await db.Auth.newSession(session);
+    await db.Auth.newSession(session);
 
-    return result.success ? session : null;
+    return session;
 }
 
-export async function validateSessionToken(token: string) {
+export async function validateSessionToken(token: string): Promise<Session | null> {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    const result: DatabaseResult = await db.Auth.getSession(session_id);
+    const session: Session | undefined = await db.Auth.getSession(session_id);
 
-    if (!result.success || result.result.session_id === null) {
+    if (!session) {
         deleteSessionTokenCookie();
-        return {uuid: null, session_id: null, expires: null};
+        return null;
     }
 
-    const isSessionExpired: boolean = Date.now() >= result.result.expires;
+    const isSessionExpired: boolean = Date.now() >= session.expires;
     if (isSessionExpired) {
         await db.Auth.invalidateSession(session_id);
-        return {uuid: null, session_id: null, expires: null};
+        return null;
     }
 
-    const renewSession: boolean = Date.now() >= (result.result.expires - DAY_IN_MS * 3);
+    const renewSession: boolean = Date.now() >= (session.expires - DAY_IN_MS * 3);
     if (renewSession) {
-        result.result.expires = new Date(Date.now() + DAY_IN_MS * 7);
-        const renewalResult: DatabaseResult = await db.Auth.renewSession(session_id, result.result.expires);
-        if (!renewalResult.success) {
-            return {uuid: null, session_id: null, expires: null};
-        }
+        session.expires = new Date(Date.now() + DAY_IN_MS * 7).getTime();
+        await db.Auth.renewSession(session_id, session.expires);
     }
 
-    return {uuid: result.result.uuid, session_id: result.result.session_id, expires: result.result.expires};
+    return session;
 }
 
 export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionToken>>;
-
-/**
- * Invalidate the given session.
- * @param session_id Id of session to invalidate.
- */
-export async function invalidateSession(session_id: string): Promise<boolean> {
-    const result: DatabaseResult = await db.Auth.invalidateSession(session_id);
-    return result.success;
-}
 
 export function setSessionTokenCookie(token: string, expires: number, event: RequestEvent | undefined = undefined): void {
     const cookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
@@ -107,18 +94,9 @@ export function validateUsername(username: unknown): username is string {
 }
 
 export function validateEmail(email: unknown): email is string {
-    /* Regex Source: https://stackoverflow.com/a/201378 */
-    return (
-        typeof email === 'string' &&
-        email.length <= 64 &&
-        /(?:[a-z0-9!#$%&'*+\x2f=?^_`\x7b-\x7d~\x2d]+(?:\.[a-z0-9!#$%&'*+\x2f=?^_`\x7b-\x7d~\x2d]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9\x2d]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9\x2d]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9\x2d]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+))/.test(email)
-    );
+    return typeof email === 'string' && email.length <= 64 && EMAIL_REGEX.test(email);
 }
 
 export function validatePassword(password: unknown): password is string {
-    return (
-        typeof password === 'string' &&
-        password.length >= 32 &&
-        password.length <= 255
-    );
+    return typeof password === 'string' && password.length >= 32 && password.length <= 255;
 }
