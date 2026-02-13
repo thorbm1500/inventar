@@ -4,8 +4,9 @@ import type {Currency, Inventory, Item, ResetRequest, Session, User} from "$lib/
 import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
 import type {RowDataPacket} from "mysql2";
+import {create} from "node:domain";
 
-export const sql: Connection = await mysql.createConnection({
+const sql: Connection = await mysql.createConnection({
     host: env.DB_HOST,
     port: Number.parseInt(env.DB_PORT) ?? undefined,
     database: env.DB_DATABASE,
@@ -13,6 +14,24 @@ export const sql: Connection = await mysql.createConnection({
     password: env.DB_PASSWORD,
     supportBigNumbers: true
 } as ConnectionOptions);
+
+/**
+ * Attempts a simple query to check for database connectivity.
+ * @returns True, if the attempt was successful, otherwise false to indicate to connection.
+ */
+async function isDatabaseConnected(): Promise<boolean> {
+    //todo: Make optional reattempts
+    if (sql) {
+        try {
+            const [result] = await sql.query(`SELECT 1`) ?? undefined;
+            return Boolean(result);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    return false;
+}
 
 export interface DatabaseResult {
     success: boolean,
@@ -24,6 +43,13 @@ export interface DatabaseResult {
  * Creates all the default tables, in the database, and adds the table's default values, if any.
  */
 export async function createTables(): Promise<void> {
+    console.log(`Creating database tables.`)
+    if (!(await isDatabaseConnected())) {
+        console.log(`Creation failed. No connection to database. Scheduling reattempt...`);
+        // Schedules a reattempt after a 10-second delay, to check for connectivity again.
+        setTimeout(async (): Promise<void> => await createTables(), 10000);
+    }
+
     console.log(`Table creation starting...`)
     await createTableCurrencies();
     await createTableUsers();
@@ -249,25 +275,21 @@ export class Inventories {
      * @return The UUID of the new inventory, or undefined if any errors occurred.
      */
     static async create(owner: string, name: string, description?: string): Promise<Inventory> {
-        await sql.execute(
-            `INSERT IGNORE INTO inventories(owner, name, description)
-             VALUES (?, ?, ?)`
-        );
+        await sql.execute(`INSERT IGNORE INTO inventories(owner, name, description)
+                           VALUES (?, ?, ?)`);
 
-        const [result] = await sql.execute<Inventory[]>(
-            `SELECT *
-             FROM inventories
-             ORDER BY created_at DESC
-             LIMIT 1;`, [owner, name, description ?? null]
-        );
+        const [result] = await sql.execute<Inventory[]>(`SELECT *
+                                                         FROM inventories
+                                                         ORDER BY created_at DESC
+                                                         LIMIT 1;`, [owner, name, description ?? null]);
         return result[0];
     }
 
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<Inventory[]> {
-        const [result] = await sql.execute<Inventory[]>(
-            `SELECT *
-             FROM inventories ${order_by === '' ? `` : `ORDER BY ${order_by} ${order === 'ASC' ? `ASC` : `DESC`}`}
-             LIMIT ? OFFSET ?`, [amount, offset]
+        const [result] = await sql.execute<Inventory[]>(`SELECT *
+                                                         FROM inventories ${order_by === '' ?
+                                                                 `` : `ORDER BY ${order_by} ${order === 'ASC' ? `ASC` : `DESC`}`}
+                                                         LIMIT ? OFFSET ?`, [amount, offset]
         );
         return result;
     }

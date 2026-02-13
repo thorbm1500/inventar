@@ -1,6 +1,14 @@
 import type {RowDataPacket} from "mysql2";
 
-export interface Currency extends RowDataPacket {
+declare interface DatabaseItem {
+    constructor: {
+        name: 'RowDataPacket';
+    };
+    [column: string]: any | undefined;
+    [column: number]: any | undefined;
+}
+
+export interface Currency extends DatabaseItem {
     id: string,
     code: string,
     symbol?: string | null

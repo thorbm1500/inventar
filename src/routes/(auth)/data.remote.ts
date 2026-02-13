@@ -116,7 +116,9 @@ export const login = form(
             return {success: false, message: 'Invalid password (min 32, max 255 characters)'};
         }
 
-        const result: DatabaseResult = await db.Users.getFromEmail(email);
+        const result: User = await db.Users.getFromEmail(email);
+
+        console.log(`USER: ${user}`);
 
         if (!result.success) {
             return {success: false, message: 'Failed to login. If this continues, please contact the system administrator'};
