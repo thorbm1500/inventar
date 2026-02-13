@@ -15,9 +15,9 @@
     let inventories: Inventory[] = $state.raw([]);
     await refresh();
 
-    let inventoryCount: number = await getTotalInventoryCount() ?? 0;
+    let inventoryCount: number = Math.max(await getTotalInventoryCount(), 1);
 
-    let totalPages = Math.ceil(inventoryCount / 6);
+    let totalPages = Math.max(1,Math.ceil(inventoryCount / 6));
 
     let nameFilter = $state('DEFAULT');
     let itemsFilter = $state('DEFAULT');
@@ -113,7 +113,7 @@
         </div>
         <div class="inventory-list">
             {#if inventories.length > 0 }
-                {#each inventories as {uuid, name, description, image_path, item_amount, last_update}}
+                {#each inventories as {uuid, name, description, item_amount, last_update}}
                     <a href='/inventory/{uuid}' target='_parent' class="inventory-list-entry
                                 border-t-container-border dark:border-t-dark-container-border
                                 border-b-container-border dark:border-b-dark-container-border">

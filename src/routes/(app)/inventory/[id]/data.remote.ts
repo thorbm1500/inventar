@@ -6,7 +6,6 @@ import util from "$lib/server/utilities";
 import type {Currency, Inventory, Item} from "$lib/server/db/schema";
 import {promises as fs} from "fs";
 import Log from "$lib/server/internal/log";
-import id = $props.id;
 
 export const getInventory = query(v.string(), async (id: string): Promise<Inventory> => {
     const inventory: Inventory | undefined = await db.Inventories.fetchInventoryByUuid(id);

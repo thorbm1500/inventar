@@ -3,6 +3,7 @@ import * as db from '$lib/server/db/database'
 import util from '$lib/server/utilities';
 import * as v from "valibot";
 import type {Inventory} from '$lib/server/db/schema';
+import Log from "$lib/server/internal/log";
 
 const inventoriesObj = v.object({
     amount: v.number(),
@@ -29,16 +30,20 @@ export const getInventories = query(inventoriesObj, async (data): Promise<Invent
     if (!util.isOffline()) {
         const inventories: Inventory[] = await db.Inventories.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
         return inventories;
+    } else {
+        Log.warn(`Unable to fetch inventories from database. Browser is offline.`);
     }
 
     return [];
 });
 
 export const getTotalInventoryCount = query(async (): Promise<number> => {
-    if (util.isOffline()) {
+    if (!util.isOffline()) {
         const inventoryCount: number = await db.Inventories.fetchTotalInventoryCount();
         return inventoryCount;
+    } else {
+        Log.warn(`Unable to fetch inventory count from database. Browser is offline.`);
     }
 
-    return 1;
+    return 0;
 });

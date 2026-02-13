@@ -2,7 +2,6 @@
     import Header from './Header.svelte';
     import {setContext} from "svelte";
     import type {User} from "$lib/server/db/schema";
-    import Footer from "./Footer.svelte";
 
 	let { children,data } = $props();
 
