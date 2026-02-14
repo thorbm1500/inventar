@@ -5,6 +5,7 @@
     import type {Inventory, User} from "$lib/server/db/schema";
     import {getContext, onMount} from "svelte";
     import {getInventory, updateInventoryGeneral} from "../data.remote";
+    import type Toast from "../../../../../components/toast.svelte";
 
     if (!page.params.id || !validate(page.params.id)) {
         error(404, 'Inventory ID is required!');

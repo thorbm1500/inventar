@@ -173,6 +173,18 @@
     --theme-form-border-input-focus: #596269;
 
     /* Toasts */
+    --toast-background: rgba(from #0f0f11 r g b / 25%);
+    --toast-border: #5c5c79;
+
+    --toast-background-success: rgba(73, 155, 92, 0.25);
+    --toast-border-success: oklch(0.887 0.228 144.721);
+
+    --toast-background-error: rgba(42, 16, 16, 0.25);
+    --toast-border-error: #FF4F52FF;
+
+    --toast-background-warning: rgba(42, 37, 16, 0.25);
+    --toast-border-warning: #ffe24f;
+
     --theme-toast-success-background: oklch(0.475 0.112 144.968);
     --theme-toast-success-border: oklch(0.887 0.228 144.721);
     --theme-toast-success-glow: rgba(from oklch(0.887 0.228 144.721) r g b / .25);
@@ -364,7 +376,7 @@ body {
 
     .tippy-box[data-theme~='tooltip_theme'] {
         * {
-            font-family: "Kanit", sans-serif;
+            font-family: "FunnelSans", sans-serif;
             font-size: 1rem;
             font-weight: 550;
         }
