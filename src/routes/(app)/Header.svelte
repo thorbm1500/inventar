@@ -6,36 +6,20 @@
 
 <script lang="ts">
     import type {User} from "$lib/server/db/schema";
+    import tippy, {animateFill} from "tippy.js";
 
     let user: User | undefined = $state();
 
     let element: any = undefined;
     let isOnline = $state(true);
     let isDark = $state(true);
-    let accountHoverBoxOpen = $state(false);
 
-    onMount(() => {
-        user = getContext('user');
-
-        document.getElementById('account-button')?.addEventListener('mouseenter', () => {
-            if (accountHoverBoxOpen) {
-                accountHoverBoxOpen = false;
-                return;
-            }
-
-            accountHoverBoxOpen = true;
-            addEventListener('pointermove', () => {
-                document.getElementById('account-hover-box')?.addEventListener('mouseleave', () => {
-                    accountHoverBoxOpen = false;
-                })
-            })
-        });
-    })
+    onMount(() => user = getContext('user'));
 
     onMount(async () => {
         element = document.getElementsByTagName('body')[0]
         isDark = document.getElementsByClassName('dark').length > 0
-    })
+    });
 
     let theme = $derived(isDark ? 'light' : 'dark');
 
@@ -47,11 +31,68 @@
             : element.classList.remove('dark')
     }
 
+    function tooltip(node: HTMLAnchorElement) {
+        const accountTooltipElement: HTMLElement | null = document.getElementById('account-tooltip');
+        if (!accountTooltipElement) return;
+
+        accountTooltipElement.style.display = 'flex';
+
+        let tippyObj = tippy(node, {
+            content: accountTooltipElement,
+            theme: 'tooltip_theme',
+            plugins: [animateFill],
+            animateFill: true,
+            inertia: true,
+            interactive: true,
+            interactiveDebounce: 50,
+            allowHTML: true,
+            duration: [75, 225],
+            popperOptions: {
+                strategy: 'fixed'
+            },
+        });
+
+        return {
+            destroy: () => {
+                tippyObj.destroy();
+            }
+        }
+    }
+
     setInterval(() => {
         isOnline = navigator.onLine
     }, 2000)
-
 </script>
+
+<div class="account-tooltip" id="account-tooltip"
+     style="display:none;flex-flow:row nowrap;justify-content:center;align-items:center;width:6rem;height:fit-content;padding:.5rem 1rem !important;">
+    <button class="blue-hover page-theme-switch-button" id="dark-light-mode-switcher" style="transform:translateX(.1rem);" onclick={toggleTheme} title="Switch Theme">
+        {#if theme === 'dark'}
+            <svg class="blue-hover size-6" style="overflow:visible;height:1.5rem;width:1.5rem;" fill="none" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>
+            </svg>
+        {:else}
+            <svg class="blue-hover size-6" style="overflow:visible;height:1.425rem;width:1.425rem;" fill="none" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/>
+            </svg>
+        {/if}
+    </button>
+    <button class="blue-hover" type="button" title="Settings" style="transform:translateX(.15rem);">
+        <svg style="overflow:visible;height:1.5rem;width:1.5rem;" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="blue-hover size-6">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+        </svg>
+    </button>
+    <button class="red-hover logout-button" type="button" title="Logout" onclick="{() => window.location.href = '/logout'}">
+        <svg style="overflow:visible;height:1.5rem;width:1.5rem;" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="red-hover size-6">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"/>
+        </svg>
+    </button>
+</div>
 
 <section class="header-section">
     <div class="header-container">
@@ -82,45 +123,20 @@
             </nav>
             <div class="header-icons">
                 <div class="header-icon">
-                    <svg class="size-6" fill="none" viewBox="0 0 24 24">
+                    <svg class="blue-hover size-6" fill="none" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round"
                               d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/>
                     </svg>
                 </div>
                 <div class="header-icon">
-                    <a class="user-profile-button" id="account-button" href="/account/{user ? user.uuid : 'loading'}">
+                    <a use:tooltip class="user-profile-button" id="account-button" href="/account/{user ? user.uuid : 'loading'}">
                         <img src="{user && user.profile_picture ? user.profile_picture : DefaultProfilePicture}" alt="User profile button">
                     </a>
-                    {#if ($state.eager(accountHoverBoxOpen)) }
-                        <div class="account-hover-box" id="account-hover-box">
-                            <button class="hover-box-button settings-button" type="button" title="Settings">
-                                SETTINGS
-                            </button>
-                            <button class="hover-box-button logout-button" type="button" title="Logout" onclick="{ () => {
-                                window.location.href = '/logout';
-                            } }">
-                                LOGOUT
-                            </button>
-                        </div>
-                    {/if}
-                </div>
-                <div class="header-icon">
-                    <button class="page-theme-switch-button" id="dark-light-mode-switcher" onclick={toggleTheme} title="Page Theme Switcher">
-                        <svg class="size-6" fill="none" viewBox="0 0 24 24">
-                            {#if theme === 'dark'}
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>
-                            {:else}
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/>
-                            {/if}
-                        </svg>
-                    </button>
                 </div>
             </div>
         </div>
     </div>
-    <div class="browser-offline-section" style="opacity: { isOnline ? '0' : '1'} !important;">
+    <div class="browser-offline-section" style="opacity: { isOnline ? '0' : '1'};">
         <div class="offline-text">
             BROWSER OFFLINE
         </div>
@@ -139,6 +155,8 @@
     }
 
     .header-section {
+        width: 100vw;
+
         height: var(--theme-height-header);
 
         padding-left: 15%;
@@ -255,72 +273,22 @@
                             height: 1.45rem !important;
                             width: 1.45rem !important;
                             border-radius: 100%;
+                            aspect-ratio: 1/1 !important;
                         }
 
                         svg {
-                            stroke-width: 1.6;
-                            stroke: var(--theme-icon);
-                        }
-
-                        svg:hover {
                             cursor: pointer;
-                            stroke: var(--theme-text-accent);
-                            stroke-width: 1.65;
+                            stroke-width: 1.75;
+                            stroke: var(--theme-icon);
 
-                            transition-duration: 150ms;
+                            transition-duration: 125ms;
                         }
 
-                        .account-hover-box {
-                            position: absolute;
-                            transform: translateY(2.25rem) translateX(-4.25rem);
-                            --bg: #666;
-                            background-color: rgba(from var(--theme-background-container) r g b / 35%);
-                            border: var(--theme-border-width) solid var(--theme-border-button);
-                            backdrop-filter: blur(4px);
-                            color: var(--theme-text);
-                            border-radius: .45rem;
-                            padding: .75rem;
-                            filter: drop-shadow(1px 1px 3px rgb(0 0 0 / 0.1));
-                            width: 10rem;
-                            height: fit-content;
+                        .blue-hover:hover {
+                            stroke: var(--theme-text-accent);
+                            stroke-width: 2;
 
-                            z-index: 15000;
-
-                            * {
-                                transition: none;
-                            }
-
-                            .hover-box-button {
-                                font-family: 'FunnelSans', sans-serif;
-                                font-weight: 750;
-                                font-size: 1.025rem;
-                                text-align: center;
-                                width: 100%;
-                                border-radius: .5em;
-                                padding: 0.2rem 0.6rem;
-                                border-width: .12em;
-                                border-style: solid;
-                                box-shadow: 0 .1em .15em rgba(13 13 13 / 10%);
-                                margin-bottom: .5rem;
-
-                                cursor: pointer;
-                                user-select: none;
-                            }
-
-                            .hover-box-button:last-child {
-                                margin-bottom: 0;
-                            }
-
-                            .settings-button {
-                                background: var(--theme-background-button);
-                                border-color: var(--theme-border-button);
-                            }
-
-                            .logout-button {
-                                background: oklch(45.5% 0.188 13.697);
-                                border-color: oklch(64.5% 0.246 16.439);
-                                color: #FFFFF2;
-                            }
+                            transition-duration: 75ms;
                         }
                     }
                 }

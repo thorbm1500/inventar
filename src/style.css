@@ -169,6 +169,22 @@ body {
 
         border: var(--theme-border-width) solid #5c5c79;
         border-radius: var(--theme-border-radius);
+
+        .red-hover:hover {
+            color: var(--theme-text-danger) !important;
+            stroke: var(--theme-text-danger) !important;
+            stroke-width: 2;
+
+            transition-duration: 75ms;
+        }
+
+        #account-tooltip, #account-tooltip * {
+            opacity: 1 !important;
+            backdrop-filter: none !important;
+
+            margin: .125rem;
+            padding: 0 !important;
+        }
     }
 
     .theme-button {

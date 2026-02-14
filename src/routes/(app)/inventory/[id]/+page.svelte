@@ -187,7 +187,7 @@
                             <h1>{inventory ? inventory.name : 'Loading'}</h1>
                             <div class="primary-inventory-bookmark-icon">
                                 {#if user.primary_inventory === page.params.id }
-                                    <svg viewBox="0 0 24 24" fill="currentColor" class="size-6 primary-inventory-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" class="size-6 primary-inventory -icon">
                                         <path fill-rule="evenodd"
                                               d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z"
                                               clip-rule="evenodd"/>
@@ -204,6 +204,10 @@
                             <button id="filters-button" class="filters-button" title="Filters" onclick={() => {
                                 isItemCreatorOpen = false;
                                 isFilterContainerOpen = !isFilterContainerOpen;
+
+                                if (!isItemCreatorOpen) {
+                                    document.getElementById('item-creator-form-reset-button')?.click();
+                                }
                             }}>
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -214,6 +218,12 @@
                             <button id="create-item-button" class="create-item-button" onclick={() => {
                                 isFilterContainerOpen = false;
                                 isItemCreatorOpen = !isItemCreatorOpen;
+
+                                if (!isItemCreatorOpen) {
+                                    document.getElementById('item-creator-form-reset-button')?.click();
+                                }
+
+                                document.getElementById('DKK')?.setAttribute('selected', 'true');
                             }}>
                                 <svg width="19" height="19" viewBox="0 0 14 14">
                                     <path fill="currentColor" fill-rule="evenodd"
@@ -287,16 +297,24 @@
                                     <h1>Row Amount</h1>
                                 </div>
                                 <div style="display:flex;flex-flow:row nowrap;gap:.25rem;">
-                                    <button onclick={() => filterSettings.columnSize = 15} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 15 ? 'selected' : ''}">15</button>
-                                    <button onclick={() => filterSettings.columnSize = 30} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 30 ? 'selected' : ''}">30</button>
-                                    <button onclick={() => filterSettings.columnSize = 45} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 45 ? 'selected' : ''}">45</button>
-                                    <button onclick={() => filterSettings.columnSize = 60} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 60 ? 'selected' : ''}">60</button>
+                                    <button onclick={() => filterSettings.columnSize = 15} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 15 ? 'selected' : ''}">
+                                        15
+                                    </button>
+                                    <button onclick={() => filterSettings.columnSize = 30} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 30 ? 'selected' : ''}">
+                                        30
+                                    </button>
+                                    <button onclick={() => filterSettings.columnSize = 45} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 45 ? 'selected' : ''}">
+                                        45
+                                    </button>
+                                    <button onclick={() => filterSettings.columnSize = 60} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 60 ? 'selected' : ''}">
+                                        60
+                                    </button>
                                 </div>
                             </div>
                         </section>
                     </div>
                 {:else if (isItemCreatorOpen) }
-                    <div class="extra-container {isItemCreatorOpen?'open':'closed'} create-item-container" id="create-item-container">
+                    <div class="extra-container {isItemCreatorOpen?'open':'closed'} create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
                         <div class="header">
                             <h1>Item Creator</h1>
                             <div class="item-creation-buttons">
@@ -307,44 +325,64 @@
                         </div>
                         <form {...createItem} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                             <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden required/>
-                            <div class="option-container">
-                                <h1>Item Name</h1>
-                                <input {...createItem.fields.name.as('text')} id="item-name" placeholder="Name" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore required/>
-                            </div>
-                            <div class="option-container">
-                                <h1>Description</h1>
-                                <input {...createItem.fields.description.as('text')} id="description" name="description" placeholder="Description"/>
-                            </div>
-                            <div class="option-container">
-                                <h1>Amount</h1>
-                                <input {...createItem.fields.amount.as('number')} id="amount" value=0 required/>
-                            </div>
-                            <div class="option-container price-section">
-                                <div class="price-section-input">
-                                    <h1>Price</h1>
-                                    <input {...createItem.fields.price.as('number')} id="price" placeholder="0" min="0" value="0"/>
+                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
+                                   required/>
+                            <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
+                                <div class="option-container" style="width:52rem;">
+                                    <h1>Item Name</h1>
+                                    <input style="width:100%;" {...createItem.fields.name.as('text')} id="item-name" placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
+                                           data-1p-ignore data-bwignore required/>
                                 </div>
-                                <div class="price-section-input">
-                                    <h1>Currency</h1>
-                                    <select {...createItem.fields.currency.as('text')} id="currencies">
-                                        {#each currencies as currency}
-                                            {#if (currency.code === "DKK") }
-                                                <option value="{currency.code}" selected>{currency.code}</option>
-                                            {:else}
-                                                <option value="{currency.code}">{currency.code}</option>
-                                            {/if}
-                                        {/each}
-                                    </select>
+                                <div class="option-container">
+                                    <h1>Amount</h1>
+                                    <input {...createItem.fields.amount.as('number')} id="amount" value=0 required/>
+                                </div>
+                                <div class="option-container price-section" style="display:flex;flex-flow:row nowrap;">
+                                    <div class="price-section-input">
+                                        <h1>Price</h1>
+                                        <input {...createItem.fields.price.as('number')} id="price" placeholder="0" min="0" value="0"/>
+                                    </div>
+                                    <div class="price-section-input" style="margin-left:.75rem;">
+                                        <h1>Currency</h1>
+                                        <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')} id="currencies">
+                                            {#each currencies as currency}
+                                                {#if (currency.code === 'DKK')}
+                                                    <option selected id="{currency.code}" value="{currency.code}">{currency.code}</option>
+                                                {:else}
+                                                    <option value="{currency.code}">{currency.code}</option>
+                                                {/if}
+                                            {/each}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="option-container">
-                                <h1>Image</h1>
-                                <input {...createItem.fields.image.as('file')} id="image"/>
+                            <div class="options-mid-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;gap:1rem;">
+                                <div class="option-container" style="width:52rem;margin-right:.1rem;">
+                                    <h1>Description</h1>
+                                    <textarea {...createItem.fields.description.as('text')} style="height:14rem;width:52rem;" id="description" name="description"
+                                              placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit-. Integer at nibh nec quam laoreet molestie. Etiam commodo lorem velit, et dapibus est pulvinar a. Proin finibus elementum turpis in feugiat..."
+                                              spellcheck="false"></textarea>
+                                </div>
+                                <div class="option-container" style="width:100%;">
+                                    <h1>Image</h1>
+                                    <label>
+                                        <div style="display:flex;justify-content:center;cursor:pointer;width:100%;height:14rem;background:var(--theme-background-input);border-radius:var(--theme-border-radius);border:var(--theme-border-width) solid var(--theme-border-input);align-items:center;">
+                                            <svg width="48" height="48" viewBox="0 0 24 24">
+                                                <g fill="none">
+                                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 2v3m0 3V5m0 0h3m-3 0h-3"/>
+                                                    <path fill="currentColor" fill-rule="evenodd"
+                                                          d="M13 2H5a3 3 0 0 0-3 3v10.5q0 .13.032.25A1 1 0 0 0 2 16v3a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-7a1 1 0 0 0-.032-.25A1 1 0 0 0 22 11.5V11h-2v.016c-4.297.139-7.4 1.174-9.58 2.623c.826.293 1.75.71 2.656 1.256c1.399.84 2.821 2.02 3.778 3.583a1 1 0 1 1-1.706 1.044c-.736-1.203-1.878-2.178-3.102-2.913c-1.222-.734-2.465-1.192-3.327-1.392a15.5 15.5 0 0 0-3.703-.386h-.022q-.522.008-.994.045V5a1 1 0 0 1 1-1h8zM8.5 6a2.7 2.7 0 0 0-1.522.488C6.408 6.898 6 7.574 6 8.5s.408 1.601.978 2.011A2.67 2.67 0 0 0 8.5 11c.41 0 1.003-.115 1.522-.489c.57-.41.978-1.085.978-2.011s-.408-1.601-.978-2.012A2.67 2.67 0 0 0 8.5 6"
+                                                          clip-rule="evenodd"/>
+                                                </g>
+                                            </svg>
+                                        </div>
+                                        <input {...createItem.fields.image.as('file')} style="width:100%" id="image" hidden/>
+                                    </label>
+                                </div>
                             </div>
                             <div class="option-container">
                                 <h1>External</h1>
-                                <input {...createItem.fields.external.as('text')} id="external" placeholder="URL"/>
+                                <input {...createItem.fields.external.as('text')} style="width:100%;" id="external" placeholder="URL"/>
                             </div>
                         </form>
                     </div>
@@ -401,7 +439,7 @@
                             {#if inventory }
                                 {#if items.length > 0 }
                                     {#each items as item}
-                                        <a data-sveltekit-preload-data="tap" href='/' target='_parent' style="height:5.5rem !important;"
+                                        <a data-sveltekit-preload-data="tap" href='/' target='_parent' style="height:5.5rem;"
                                            class="inventory-list-entry">
                                             <div class="entry-item inventory-meta">
                                                 <div class="inventory-image">
@@ -455,9 +493,13 @@
                                     {/each}
                                 {:else}
                                     <div class="empty-inventory-list">
-                                    <span class="text-theme-text-third">{ navigator.onLine ?
-                                        'No items found. Create your first item now!' :
-                                        'No internet found. Reconnect to browse inventory.' }</span>
+                                        <span class="text-theme-text-third">
+                                            {#if navigator.onLine }
+                                                There are no items in this inventory yet. Add your first item now!
+                                            {:else}
+                                                No internet found. Reconnect to browse inventory.
+                                            {/if}
+                                        </span>
                                     </div>
                                 {/if}
                             {:else}
@@ -745,105 +787,40 @@
                 align-items: center;
             }
 
+            color: var(--theme-text);
+            font-family: 'FunnelDisplay', sans-serif;
+
             form {
-                display: flex;
-                flex-flow: column nowrap;
-                justify-content: center;
-                align-items: center;
-                height: 100%;
-
-                font-family: 'FunnelSans', sans-serif;
-
-                input, option, select {
+                input, option, select, textarea {
                     background: var(--theme-background-input);
                     border: var(--theme-border-width) solid var(--theme-border-input);
                     border-radius: var(--theme-border-radius);
+                    margin-bottom: .25rem;
 
+                    font-family: 'FunnelSans', sans-serif;
                     color: var(--theme-text);
                     caret-shape: underscore;
                     caret-color: var(--theme-text);
 
                     transition: border-color var(--theme-transition-out);
+
+                    resize: none;
                 }
 
-                input:focus,option:focus,select:focus {
+                input:focus, option:focus, select:focus, textarea:focus {
                     box-shadow: none;
                     border-color: var(--theme-border-input-focus);
 
                     transition: border-color var(--theme-transition-in),
-                                box-shadow 0ms linear;
+                    box-shadow 0ms linear;
                 }
 
                 .option-container {
-                    display: flex;
-                    flex-flow: column nowrap;
-
-                    width: 100%;
-
                     h1 {
-                        display: flex;
-                        flex-flow: row nowrap !important;
-                        font-size: 1.55rem;
-                        font-weight: 700;
+                        font-size: 1.15rem;
+                        margin-top: .5rem;
                         margin-bottom: .25rem;
-                        padding-left: .5rem;
-                        width: 5.5rem;
-                        letter-spacing: .05rem;
-
-                        user-select: none;
-                        color: var(--theme-text);
                     }
-
-                    input {
-                        background: var(--theme-background-input);
-                        appearance: none;
-                    }
-                }
-
-                .item-creation-buttons {
-                    font-family: 'FunnelDisplay', sans-serif;
-                }
-
-                #description {
-                    height: 3rem;
-                }
-
-                .price-section {
-                    display: flex;
-                    flex-flow: row nowrap;
-                    align-items: center;
-
-                    .price-section-input:first-child {
-                        flex-grow: 2;
-                    }
-
-                    .price-section-input {
-                        display: flex;
-                        flex-flow: column nowrap;
-                        align-items: center;
-                        flex-grow: 0;
-
-                        #currencies, #currencies * {
-                            background: var(--theme-background-input);
-                            border: var(--theme-border-width) solid var(--theme-border-input);
-                            border-radius: var(--theme-border-radius);
-
-                            scroll-behavior: smooth;
-                            scrollbar-width: none;
-                            appearance: none;
-                        }
-
-                        select option {
-                            color: var(--theme-text);
-                            appearance: none;
-                        }
-                    }
-                }
-
-                input {
-                    margin-top: .25rem;
-                    margin-bottom: 1.5rem;
-                    appearance: none;
                 }
             }
         }
@@ -932,7 +909,7 @@
             .inventory-list-container {
                 width: 90rem;
                 height: fit-content;
-                box-sizing:border-box;
+                box-sizing: border-box;
 
                 background: var(--theme-background-container);
 
