@@ -75,7 +75,7 @@
 
 <section>
     <div class="create-inventory-container">
-        <button class="create-inventory-button" onclick="{() => window.location.href='/inventory/new'}" title="Create New Inventory">
+        <button class="theme-button" onclick="{() => window.location.href='/inventory/new'}" title="Create New Inventory">
             Create
         </button>
     </div>
@@ -114,7 +114,7 @@
         <div class="inventory-list">
             {#if inventories.length > 0 }
                 {#each inventories as {uuid, name, description, item_amount, last_update}}
-                    <a href='/inventory/{uuid}' target='_parent' class="inventory-list-entry
+                    <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="inventory-list-entry
                                 border-t-container-border dark:border-t-dark-container-border
                                 border-b-container-border dark:border-b-dark-container-border">
                         <div class="entry-item inventory-meta">

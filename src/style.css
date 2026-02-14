@@ -111,7 +111,7 @@
     /* Global Light/Dark Variables */
     --theme-text: #0D0D0D;
     --theme-text-secondary: #363636;
-    --theme-text-third: #97999a;
+    --theme-text-third: #6a7282;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-text-danger: oklch(0.641 0.228 19.02);
     --theme-background: #f2f2f2;
@@ -141,12 +141,15 @@
     /* Variables */
     --theme-transition-in: 50ms ease-in-out;
     --theme-transition-out: 100ms ease-in-out;
+
+    /* Tooltip */
+    --theme-tooltip-background: rgba(from #0f0f11 r g b / 25%);
 }
 
 .dark {
     --theme-text: #FFFFF2;
     --theme-text-secondary: #c0c4cc;
-    --theme-text-third: #545454;
+    --theme-text-third: #6a7282;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-text-danger: oklch(0.641 0.228 19.02);
     --theme-background: #0f0f11;
@@ -358,6 +361,46 @@ body {
     width: 100vw;
     height: 100vh;
     overflow-x: hidden;
+
+    .tippy-box[data-theme~='tooltip_theme'] {
+        * {
+            font-family: "Kanit", sans-serif;
+            font-size: 1rem;
+            font-weight: 550;
+        }
+
+        *:nth-last-child(2),*:last-child {
+            background: rgba(from #0f0f11 r g b / 15%) !important;
+            backdrop-filter: blur(2px) brightness(1.35) !important;
+        }
+
+        *:last-child {
+            padding: .45rem .75rem;
+        }
+
+        border: .075em solid #5c5c79;
+        border-radius: .4rem;
+    }
+
+    .theme-button {
+        font-family: 'FunnelDisplay', sans-serif;
+        font-size: 1.15rem;
+        font-weight: 650;
+        text-transform: uppercase;
+        color: var(--theme-text);
+
+        background: var(--theme-background-container);
+        border: .075em solid var(--theme-border-container);
+        border-radius: var(--border-radius);
+        padding: .5rem 1rem;
+
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .theme-button:hover {
+        background: var(--theme-background-button-hover);
+    }
 }
 
 /* Tailwind Theme Variables */

@@ -301,7 +301,7 @@
                         <div class="header">
                             <h1>Item Creator</h1>
                             <div class="item-creation-buttons">
-                                <button type="{createItem.result ? 'button' : 'submit'}" class="extra-container-button item-confirm-creation-button bg-button-background dark:bg-dark-button-background border-button-border dark:border-dark-button-border
+                                <button type="{createItem.result ? 'button' : 'submit'}" class="theme-button item-confirm-creation-button bg-button-background dark:bg-dark-button-background border-button-border dark:border-dark-button-border
                 rounded-(--border-radius) text-text-primary dark:text-dark-text-primary">
                                     CREATE
                                 </button>
