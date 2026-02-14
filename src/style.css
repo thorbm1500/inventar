@@ -46,135 +46,49 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-    /* Colors */
-    --primary-color: oklch(48.8% 0.243 264.376);
-    --secondary-color: hsl(from var(--primary-color) h 25% l);
+    /* +Global Variables */
+    /* These are all variables, whose state does not change when the theme changes between Light and Dark mode. */
+    --theme-background-offline: oklch(58.6% 0.253 17.585);
 
-    --primary-text-dark: hsl(0, 0%, 95%);
-    --primary-text-light: hsl(0, 0%, 5%);
+    --theme-height-header: 3.5rem;
 
-    --dark-text-primary: hsl(0, 0%, 95%);
-    --text-primary: hsl(0, 0%, 5%);
+    --theme-max-page-height: calc(100vh - var(--theme-height-header));
+    --theme-border-width: .1rem;
+    --theme-border-radius: .65rem;
+    --theme-transition-in: 50ms ease-in-out;
+    --theme-transition-out: 100ms ease-in-out;
+    /* -Global Variables */
 
-    --primary-icon-dark: hsl(0, 0%, 95%);
-    --primary-icon-light: hsl(240, 4%, 5%);
-
-    --accent-text: oklch(62.3% 0.214 259.815);
-    --accent-icon: hsl(from var(--accent-text) h s l);
-
-    --background-color-dark: #0f0f11;
-    --background-color-light: #f2f2f2;
-
-    --dark-container-background: #151518;
-    --dark-container-border: #2E323D;
-
-    --container-background: #EAEAEA;
-    --container-border: #B9C1C9;
-
-    --container-color-dark: #151518;
-    --container-color-light: #eaeaea;
-
-    --header-color-dark: #111113;
-    --header-color-light: #ececea;
-    --header-border-color-dark: #2e323d;
-    --header-border-color-light: #b9c1c9;
-
-    --logo-dark: #FFFFF2;
-    --logo-light: #0d0d0d;
-
-    --browser-offline-background: oklch(58.6% 0.253 17.585);
-
-    /* Variables */
-    --header-height: 3.5rem;
-    --header-icon-gap: 1.5rem;
-
-    /* UI - Baseline */
-    --container-full-height: 87.5%;
-    --border-radius: .8rem;
-    --icon-border-radius: .65rem;
-    --theme-icon-disabled: #d0d0d0;
-    --border-width: .1em;
-    --form-input-border-radius: .4rem;
-    --form-input-background: #41414b;
-    --form-input-border: #575764;
-
-    --theme-border-radius: .8rem;
-
-    --theme-max-container-height: 42rem;
-    --theme-max-page-height: calc(100vh - var(--header-height));
-
-    /* UI - Forms */
-    --theme-form-background-input: #dadcde;
-    --theme-form-border-input: #bcc3cb;
-    --theme-form-border-input-focus: #979fa6;
-
-    /* Global Light/Dark Variables */
+    /* +Theme Dependent Variables */
+    /* These are all variables, whose state changes along with theme changes between Light and Dark mode. */
     --theme-text: #0D0D0D;
     --theme-text-secondary: #363636;
     --theme-text-third: #6a7282;
     --theme-text-accent: oklch(0.625 0.182 258.637);
     --theme-text-danger: oklch(0.641 0.228 19.02);
-    --theme-background: #f2f2f2;
-    --theme-background-highlight: #eef0f3;
-    --theme-background-container: #EAEAEA;
+
+    --theme-logo: #0D0D0D;
+    --theme-icon: var(--theme-text);
+
+    --theme-background: #eff0f1;
+    --theme-background-header: #eaebec;
+    --theme-background-container: #e6e6e8;
+    --theme-background-button: #e2e2e8;
+    --theme-background-button-hover: #ececf6;
+    --theme-background-button-selected: #cfcfd7;
+    --theme-background-input: #e2e2e8;
+    --theme-background-tooltip: rgba(210, 210, 231, 0.15);
+
+    --theme-border-header: #cfd6de;
     --theme-border-container: #B9C1C9;
     --theme-border-button: #B9C1C9;
-    --theme-button-idle-background: #232428;
-
-    --theme-form-input-background-dark: #1f2023;
-    --theme-form-input-border-dark: .122em solid #464b65;
-
-    --theme-header-color: #ececea;
-    --theme-header-secondary-color: #eaeae9;
-
-    /* Toasts */
-    --theme-toast-success-background: oklch(0.887 0.228 144.721);
-    --theme-toast-success-border: oklch(0.561 0.166 143.968);
-    --theme-toast-success-glow: oklch(0.887 0.228 144.721);
-
-    --theme-toast-error-background: oklch(0.21 0.013 18.24);
-    --theme-toast-error-border: oklch(70.4% 0.191 22.216);
-    --theme-toast-error-glow: oklch(0.632 0.254 29.988);
+    --theme-border-input: #bcc3cb;
+    --theme-border-input-focus: #979fa6;
 
     --error-page-icon-color: rgba(from var(--theme-text) r g b / .075);
 
-    /* Variables */
-    --theme-transition-in: 50ms ease-in-out;
-    --theme-transition-out: 100ms ease-in-out;
-
-    /* Tooltip */
-    --theme-tooltip-background: rgba(from #0f0f11 r g b / 25%);
-}
-
-.dark {
-    --theme-text: #FFFFF2;
-    --theme-text-secondary: #c0c4cc;
-    --theme-text-third: #6a7282;
-    --theme-text-accent: oklch(0.625 0.182 258.637);
-    --theme-text-danger: oklch(0.641 0.228 19.02);
-    --theme-background: #0f0f11;
-    --theme-background-highlight: #18181c;
-    --theme-background-container: #151518;
-    --theme-background-button: #151518;
-    --theme-background-button-hover: #232328;
-    --theme-border-container: #2E323D;
-    --theme-border-button: #2c303a;
-    --theme-icon-disabled: #2a2e31;
-
-    --theme-form-input-background-dark: #1f2023;
-    --theme-form-input-border-dark: .122em solid #464b65;
-
-    --theme-header-color: #111113;
-    --theme-header-secondary-color: #121215;
-
-    /* UI - Forms */
-    --theme-form-background-input: #21232a;
-    --theme-form-border-input: #3c4044;
-    --theme-form-border-input-focus: #596269;
-
-    /* Toasts */
     --toast-background: rgba(from #0f0f11 r g b / 25%);
-    --toast-border: #5c5c79;
+    --toast-border: oklch(0.887 0.228 144.721);
 
     --toast-background-success: rgba(73, 155, 92, 0.25);
     --toast-border-success: oklch(0.887 0.228 144.721);
@@ -184,226 +98,89 @@
 
     --toast-background-warning: rgba(42, 37, 16, 0.25);
     --toast-border-warning: #ffe24f;
+    /* -Theme Dependent Variables */
+}
 
-    --theme-toast-success-background: oklch(0.475 0.112 144.968);
-    --theme-toast-success-border: oklch(0.887 0.228 144.721);
-    --theme-toast-success-glow: rgba(from oklch(0.887 0.228 144.721) r g b / .25);
+.dark {
+    /* +Theme Dependent Variables */
+    /* These are all variables, whose state changes along with theme changes between Light and Dark mode. */
+    --theme-text: #FFFFF2;
+    --theme-text-secondary: #c0c4cc;
+    --theme-text-third: #6a7282;
+    --theme-text-accent: oklch(0.625 0.182 258.637);
+    --theme-text-danger: oklch(0.641 0.228 19.02);
 
-    --theme-toast-error-background: oklch(0.213 0.043 21.379);
-    --theme-toast-error-border: oklch(0.676 0.212 24.001);
-    --theme-toast-error-glow: rgba(from oklch(0.632 0.254 29.988) r g b / .25);
+    --theme-logo: #FFFFF2;
+    --theme-icon: var(--theme-text);
+
+    --theme-background: #0f0f11;
+    --theme-background-header: #111113;
+    --theme-background-container: #151518;
+    --theme-background-button: #151518;
+    --theme-background-button-hover: #1c1c21;
+    --theme-background-button-selected: #1c1c21;
+    --theme-background-input: #21232a;
+    --theme-background-tooltip: rgba(15, 15, 17, 0.25);
+
+    --theme-border-header: #1a1d23;
+    --theme-border-container: #2E323D;
+    --theme-border-button: #2c303a;
+    --theme-border-input: #3c4044;
+    --theme-border-input-focus: #596269;
 
     --error-page-icon-color: rgba(from var(--theme-text) r g b / .02);
-}
 
-.ui-container {
-    border-color: var(--theme-border-container);
-    border-width: var(--border-width);
-    border-radius: var(--border-radius);
-    background: var(--theme-background-container);
-    color: var(--theme-text);
-}
+    --toast-background: rgba(from #0f0f11 r g b / 25%);
+    --toast-border: oklch(0.887 0.228 144.721);
 
-.generic-toast-parent-class {
-    position: absolute;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    backdrop-filter: blur(2px);
-    visibility: hidden;
+    --toast-background-success: rgba(73, 155, 92, 0.25);
+    --toast-border-success: oklch(0.887 0.228 144.721);
 
-    * {
-        user-select: none;
-    }
-}
+    --toast-background-error: rgba(42, 16, 16, 0.25);
+    --toast-border-error: #FF4F52FF;
 
-.generic-toast-child-class {
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: center;
-    align-content: center;
-    justify-content: center;
-
-    width: fit-content;
-    max-width: 26rem;
-
-    border-width: .18em;
-    border-radius: 1.2rem;
-
-    .generic-toast-child-inner-container {
-        display: flex;
-        flex-flow: row nowrap;
-        align-items: center;
-        align-content: center;
-        justify-content: center;
-
-        gap: .75rem;
-
-        margin: 1.4rem 1.75rem;
-
-        width: fit-content;
-
-        font-family: 'Unbounded', sans-serif !important;
-        font-optical-sizing: auto;
-        font-style: normal;
-        font-weight: 450;
-        font-size: .95rem;
-
-        p,span {
-            padding: 0;
-            margin: 0;
-        }
-
-        svg {
-            width: 1.5rem;
-            height: 1.5rem;
-            stroke-width: 2;
-            padding: 0;
-            margin: 0;
-        }
-    }
-}
-
-.generic-toast-parent-class.play-animation {
-    transform: scale(0);
-    opacity: 0;
-
-    animation: toast-animation 15s;
-    animation-iteration-count: 1;
-
-    .error-toast-section {
-        animation: toast-shake linear 250ms;
-        animation-iteration-count: 1;
-        animation-delay: 150ms;
-    }
-}
-
-@keyframes toast-animation {
-    0% {
-        visibility: visible;
-        transform: scale(0);
-        opacity: 0;
-        animation-timing-function: linear;
-    }
-    0.35% {
-        transform: scale(.35);
-        opacity: .1;
-        animation-timing-function: ease-out;
-    }
-    1.25% {
-        transform: scale(1);
-        opacity: 1;
-        animation-timing-function: ease-in-out;
-    }
-    1.75% {
-        transform: scale(1.01);
-        animation-timing-function: linear;
-    }
-    2.5% {
-        transform: scale(.998);
-        animation-timing-function: ease-in;
-    }
-    3.5% {
-        transform: scale(1);
-        animation-timing-function: linear;
-    }
-    94.5% {
-        transform: scale(1);
-        opacity: 1;
-        animation-timing-function: ease-in;
-    }
-    97% {
-        transform: scale(1.035);
-        opacity: 1;
-        animation-timing-function: ease-in;
-    }
-    97.5% {
-        transform: scale(.85);
-        opacity: .7;
-        animation-timing-function: linear;
-    }
-    98.25% {
-        transform: scale(.35);
-        opacity: 0.26;
-        animation-timing-function: ease-out;
-    }
-    100% {
-        transform: scale(0);
-        opacity: 0;
-    }
-}
-
-@keyframes toast-shake {
-    0% {
-        transform: translate(-.175em,0);
-    }
-    10% {
-        transform: translate(.225em,0);
-    }
-    20% {
-        transform: translate(-.275em,0);
-    }
-    30% {
-        transform: translate(.275em,0);
-    }
-    40% {
-        transform: translate(-.250em,0);
-    }
-    50% {
-        transform: translate(.225em,0);
-    }
-    60% {
-        transform: translate(-.175em,0);
-    }
-    70% {
-        transform: translate(.125em,0);
-    }
-    80% {
-        transform: translate(-.1em,0);
-    }
-    90% {
-        transform: translate(.075em,0);
-    }
-    100% {
-        transform: translate(0,0);
-        animation-timing-function: ease-out;
-    }
+    --toast-background-warning: rgba(42, 37, 16, 0.25);
+    --toast-border-warning: #ffe24f;
+    /* -Theme Dependent Variables */
 }
 
 body {
     width: 100vw;
     height: 100vh;
     overflow-x: hidden;
+    background: var(--theme-background);
 
     .tippy-box[data-theme~='tooltip_theme'] {
         * {
+            color: var(--theme-text);
             font-family: "FunnelSans", sans-serif;
-            font-size: 1rem;
+            font-size: 1.025rem;
             font-weight: 550;
         }
 
         *:nth-last-child(2),*:last-child {
-            background: rgba(from #0f0f11 r g b / 15%) !important;
-            backdrop-filter: blur(2px) brightness(1.35) !important;
+            background: var(--theme-background-tooltip) !important;
+            backdrop-filter: blur(2px) brightness(1) !important;
         }
 
         *:last-child {
             padding: .45rem .75rem;
         }
 
-        border: .075em solid #5c5c79;
-        border-radius: .4rem;
+        border: var(--theme-border-width) solid #5c5c79;
+        border-radius: var(--theme-border-radius);
     }
 
     .theme-button {
         font-family: 'FunnelDisplay', sans-serif;
         font-size: 1.15rem;
-        font-weight: 650;
+        font-weight: 600;
         text-transform: uppercase;
         color: var(--theme-text);
 
         background: var(--theme-background-container);
-        border: .075em solid var(--theme-border-container);
-        border-radius: var(--border-radius);
+        border: var(--theme-border-width) solid var(--theme-border-container);
+        border-radius: var(--theme-border-radius);
         padding: .5rem 1rem;
 
         cursor: pointer;
@@ -412,6 +189,14 @@ body {
 
     .theme-button:hover {
         background: var(--theme-background-button-hover);
+    }
+}
+
+body.dark {
+    .tippy-box[data-theme~='tooltip_theme'] {
+        *:nth-last-child(2),*:last-child {
+            backdrop-filter: blur(2px) brightness(1.15) !important;
+        }
     }
 }
 
@@ -426,35 +211,11 @@ body {
     /* UI Colors */
     --color-theme-background: var(--theme-background);
 
-    /* Colors */
-    --color-dark-bg: var(--background-color-dark);
-    --color-light-bg: var(--background-color-light);
-
-    --color-dark-header: var(--header-color-dark);
-    --color-light-header: var(--header-color-light);
-    --color-dark-header-border: var(--header-border-color-dark);
-    --color-light-header-border: var(--header-border-color-light);
-
-    --color-dark-logo: var(--logo-dark);
-    --color-light-logo: var(--logo-light);
-
-    --color-dark-icon-primary: var(--primary-icon-dark);
-    --color-light-icon-primary: var(--primary-icon-light);
-
-    /* Typography */
-    --color-dark-text-primary: var(--dark-text-primary);
-    --color-text-primary: var(--text-primary);
-
     /* UI Baseline  */
-    --color-dark-container-background: var(--dark-container-background);
-    --color-dark-container-border: var(--dark-container-border);
     --color-dark-button-background: #1a1a1e;
     --color-dark-button-border: #2E323D;
 
-    --color-container-background: var(--container-background);
-    --color-container-border: var(--container-border);
     --color-button-background: #EAEAEA;
     --color-button-border: #B9C1C9;
-    --color-input-background: var(--form-input-background);
-    --color-input-border: var(--form-input-border);
+    --color-input-border: var(--theme-border-input);
 }

@@ -9,8 +9,6 @@
     import {getInventory, getItems, getTotalItemCount} from './data.remote.ts';
     import Utility from "../../browse/utility";
     import {createItem} from './data.remote.ts';
-    import ItemCreationSuccessfulToast from "../../../../components/Toasts/ItemCreationSuccessful.svelte";
-    import GenericErrorToast from "../../../../components/Toasts/GenericError.svelte";
     import {getCurrencies} from "./data.remote.ts";
 
     const currencies = await getCurrencies();
@@ -162,6 +160,7 @@
     }
 </script>
 
+<!-- todo - Convert to new toasts
 {#if createItem.result && createItem.result.success }
     <div class="item-creation-success-toast generic-toast-parent-class play-animation">
         <ItemCreationSuccessfulToast/>
@@ -176,7 +175,7 @@
             <GenericErrorToast/>
         {/if}
     </div>
-{/if}
+{/if}-->
 
 <div class="page-content">
     <div class="body-section">
@@ -301,18 +300,17 @@
                         <div class="header">
                             <h1>Item Creator</h1>
                             <div class="item-creation-buttons">
-                                <button type="{createItem.result ? 'button' : 'submit'}" class="theme-button item-confirm-creation-button bg-button-background dark:bg-dark-button-background border-button-border dark:border-dark-button-border
-                rounded-(--border-radius) text-text-primary dark:text-dark-text-primary">
+                                <button type="{createItem.result ? 'button' : 'submit'}" class="theme-button item-confirm-creation-button">
                                     CREATE
                                 </button>
                             </div>
                         </div>
                         <form {...createItem} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                             <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id}" hidden required/>
+                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden required/>
                             <div class="option-container">
                                 <h1>Item Name</h1>
-                                <input {...createItem.fields.name.as('text')} id="item-name" placeholder="Name" required/>
+                                <input {...createItem.fields.name.as('text')} id="item-name" placeholder="Name" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore required/>
                             </div>
                             <div class="option-container">
                                 <h1>Description</h1>
@@ -342,20 +340,18 @@
                             </div>
                             <div class="option-container">
                                 <h1>Image</h1>
-                                <input {...createItem.fields.image.as('file')} id="image"
-                                       class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
+                                <input {...createItem.fields.image.as('file')} id="image"/>
                             </div>
                             <div class="option-container">
                                 <h1>External</h1>
-                                <input {...createItem.fields.external.as('text')} id="external" placeholder="URL"
-                                       class="dark:bg-input-background border-button-border dark:border-input-border rounded-(--form-input-border-radius)"/>
+                                <input {...createItem.fields.external.as('text')} id="external" placeholder="URL"/>
                             </div>
                         </form>
                     </div>
                 {/if}
                 <section class="inventory-body-section">
-                    <div class="inventory-list-container ui-container" style="box-sizing:border-box;">
-                        <div class="inventory-header border-b-container-border dark:border-b-dark-container-border">
+                    <div class="inventory-list-container">
+                        <div class="inventory-header">
                             <div class="header-items">
                                 <div class="header-item name-filter">
                                     <button id="name-filter-button" title="Filter by name"
@@ -406,9 +402,7 @@
                                 {#if items.length > 0 }
                                     {#each items as item}
                                         <a data-sveltekit-preload-data="tap" href='/' target='_parent' style="height:5.5rem !important;"
-                                           class="inventory-list-entry
-                                border-t-container-border dark:border-t-dark-container-border
-                                border-b-container-border dark:border-b-dark-container-border">
+                                           class="inventory-list-entry">
                                             <div class="entry-item inventory-meta">
                                                 <div class="inventory-image">
                                                     {#if (item.image) }
@@ -493,7 +487,7 @@
                                 </div>
                             {/if}
                         </div>
-                        <div class="inventory-footer border-t-container-border dark:border-t-dark-container-border">
+                        <div class="inventory-footer">
                             <div class="inventory-footer-items">
                                 <button class="pagination-back-button pagination-button" style="visibility: { currentPage === 1 ? 'hidden' : 'visible' }"
                                         onclick={async () => { await goToFirstPage() } } title="Switch to previous page">
@@ -550,7 +544,7 @@
         box-sizing: border-box;
         width: 100%;
         position: absolute;
-        top: var(--header-height);
+        top: var(--theme-height-header);
         z-index: 10;
     }
 
@@ -653,15 +647,15 @@
                         stroke-width: 1.8;
 
                         background: var(--theme-background-container);
-                        border: var(--border-width) solid var(--theme-border-button);
-                        border-radius: var(--border-radius);
+                        border: var(--theme-border-width) solid var(--theme-border-button);
+                        border-radius: var(--theme-border-radius);
 
                         cursor: pointer;
                         user-select: none;
                     }
 
                     .refresh-button:hover, .filters-button:hover, .create-item-button:hover, .inventory-settings-button:hover {
-                        color: var(--accent-text);
+                        color: var(--theme-text-accent);
 
                         transition-duration: 75ms;
 
@@ -688,9 +682,9 @@
 
             transition: 125ms ease-in-out;
 
-            background: var(--theme-header-secondary-color);
+            background: var(--theme-background-container);
             border-color: var(--theme-border-container);
-            border-width: var(--border-width);
+            border-width: var(--theme-border-width);
             border-radius: var(--theme-border-radius);
 
             .header {
@@ -705,15 +699,18 @@
 
             .extra-container-button {
                 background: var(--theme-background-button);
-                color: var(--theme-text);
-                border: var(--theme-form-input-border-dark);
-                border-radius: .75rem;
+                border: var(--theme-border-width) solid var(--theme-border-button);
+                border-radius: var(--theme-border-radius);
                 padding: .75rem 1.5rem;
-                user-select: none;
+
+                color: var(--theme-text);
                 font-size: 1rem;
                 font-weight: 700;
-                cursor: pointer;
+
                 gap: .25rem;
+
+                cursor: pointer;
+                user-select: none;
 
                 transition: filter 100ms ease-in-out;
             }
@@ -758,9 +755,9 @@
                 font-family: 'FunnelSans', sans-serif;
 
                 input, option, select {
-                    background: var(--theme-form-background-input);
-                    border: .075em solid var(--theme-form-border-input);
-                    border-radius: var(--form-input-border-radius);
+                    background: var(--theme-background-input);
+                    border: var(--theme-border-width) solid var(--theme-border-input);
+                    border-radius: var(--theme-border-radius);
 
                     color: var(--theme-text);
                     caret-shape: underscore;
@@ -771,7 +768,7 @@
 
                 input:focus,option:focus,select:focus {
                     box-shadow: none;
-                    border-color: var(--theme-form-border-input-focus);
+                    border-color: var(--theme-border-input-focus);
 
                     transition: border-color var(--theme-transition-in),
                                 box-shadow 0ms linear;
@@ -795,6 +792,11 @@
 
                         user-select: none;
                         color: var(--theme-text);
+                    }
+
+                    input {
+                        background: var(--theme-background-input);
+                        appearance: none;
                     }
                 }
 
@@ -822,16 +824,18 @@
                         flex-grow: 0;
 
                         #currencies, #currencies * {
-                            background: var(--theme-form-input-background-dark);
-                            border: var(--theme-form-input-border-dark);
-                            border-radius: 0.5rem;
+                            background: var(--theme-background-input);
+                            border: var(--theme-border-width) solid var(--theme-border-input);
+                            border-radius: var(--theme-border-radius);
 
                             scroll-behavior: smooth;
                             scrollbar-width: none;
+                            appearance: none;
                         }
 
                         select option {
                             color: var(--theme-text);
+                            appearance: none;
                         }
                     }
                 }
@@ -839,6 +843,7 @@
                 input {
                     margin-top: .25rem;
                     margin-bottom: 1.5rem;
+                    appearance: none;
                 }
             }
         }
@@ -855,7 +860,8 @@
 
                 .filters-save-button.default {
                     svg {
-                        color: var(--theme-icon-disabled);
+                        color: var(--theme-text-third);
+                        opacity: .5;
                     }
                 }
 
@@ -914,7 +920,7 @@
                     justify-content: flex-start;
 
                     .row-amount.selected {
-                        background: #1F2023FF;
+                        background: var(--theme-background-button-selected);
                     }
                 }
             }
@@ -926,16 +932,21 @@
             .inventory-list-container {
                 width: 90rem;
                 height: fit-content;
+                box-sizing:border-box;
+
+                background: var(--theme-background-container);
+
+                border: var(--theme-border-width) solid var(--theme-border-container);
+                border-radius: var(--theme-border-radius);
+
+                color: var(--theme-text);
 
                 margin: 0 0 2.5rem 0;
-
-                border-width: var(--border-width);
-                border-radius: var(--border-radius);
 
                 .inventory-header {
                     border-color: transparent;
                     border-bottom-color: inherit;
-                    border-width: var(--border-width);
+                    border-width: var(--theme-border-width);
                     width: 100%;
                     height: 3rem !important;
 
@@ -1061,8 +1072,8 @@
                         align-items: center;
                         align-content: center;
 
-                        background: color-mix(var(--container-background) / 50%);
-                        border-width: var(--border-width);
+                        background: transparent;
+                        border-width: var(--theme-border-width);
                         border-top-color: transparent;
                         border-left-color: transparent;
                         border-right-color: transparent;
@@ -1192,7 +1203,7 @@
                     }
 
                     .inventory-list-entry:hover {
-                        background: var(--theme-background-highlight);
+                        background: var(--theme-background-button-hover);
 
                         .quick-delete {
                             opacity: 1;
@@ -1235,7 +1246,7 @@
                 .inventory-footer {
                     border-color: transparent;
                     border-top-color: inherit;
-                    border-width: var(--border-width);
+                    border-width: var(--theme-border-width);
                     width: 100%;
                     height: 3rem !important;
 

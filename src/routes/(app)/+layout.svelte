@@ -56,7 +56,7 @@
     }
 
     .main-container {
-        height: calc(var(--header-height) - 100vh);
+        height: calc(var(--theme-height-header) - 100vh);
         width: 100vw;
         scrollbar-width: none;
         z-index: 1;

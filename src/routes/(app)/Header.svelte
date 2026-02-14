@@ -53,11 +53,11 @@
 
 </script>
 
-<section class="bg-light-header dark:bg-dark-header border-b-[0.1em] border-light-header-border dark:border-dark-header-border z-99999">
+<section class="header-section">
     <div class="header-container">
         <div class="header-logo">
             <a href="/" title="inventar header logo">
-                <svg class="fill-light-logo dark:fill-dark-logo" viewBox="0 0 3013.54 659.04">
+                <svg class="inventar-logo" viewBox="0 0 3013.54 659.04">
                     <rect y="18.18" width="205.82" height="205.82"/>
                     <polygon points="71.81 295.81 71.81 573.45 416.45 573.45 416.45 434.81 555.27 434.81 555.27 89.99 277.63 89.99 277.63 295.81 71.81 295.81"/>
                     <path d="M738.02,165.97c-10.54,0-19.58-3.71-27.15-11.11-7.57-7.41-11.35-16.54-11.35-27.4,0-10.53,3.71-19.58,11.11-27.15,7.41-7.57,16.54-11.35,27.4-11.35,10.53,0,19.58,3.71,27.15,11.11,7.57,7.41,11.35,16.54,11.35,27.4,0,10.54-3.71,19.58-11.11,27.15-7.41,7.57-16.54,11.35-27.4,11.35ZM704.38,497.7l.06-296.2h67.14s-.06,296.21-.06,296.21h-67.14Z"/>
@@ -72,7 +72,7 @@
             </a>
         </div>
         <div class="header-links">
-            <nav class="text-text-primary dark:text-dark-text-primary">
+            <nav>
                 <a aria-current={page.url.pathname === '/'} title="Home" href="/">Home</a>
                 <a aria-current={page.url.pathname === '/browse'} title="Browse" href="/browse">Browse</a>
                 {#if (user && user.primary_inventory) }
@@ -82,7 +82,7 @@
             </nav>
             <div class="header-icons">
                 <div class="header-icon">
-                    <svg class="size-6 stroke-light-icon-primary dark:stroke-dark-icon-primary" fill="none" viewBox="0 0 24 24">
+                    <svg class="size-6" fill="none" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round"
                               d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/>
                     </svg>
@@ -106,7 +106,7 @@
                 </div>
                 <div class="header-icon">
                     <button class="page-theme-switch-button" id="dark-light-mode-switcher" onclick={toggleTheme} title="Page Theme Switcher">
-                        <svg class="size-6 stroke-light-icon-primary dark:stroke-dark-icon-primary" fill="none" viewBox="0 0 24 24">
+                        <svg class="size-6" fill="none" viewBox="0 0 24 24">
                             {#if theme === 'dark'}
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                       d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>
@@ -138,24 +138,26 @@
         user-select: none !important;
     }
 
-    section {
-        height: var(--header-height);
+    .header-section {
+        height: var(--theme-height-header);
 
         padding-left: 15%;
         padding-right: 15%;
 
         align-content: center;
         justify-content: center;
+        background: var(--theme-background-header);
+        border-bottom: var(--theme-border-width) solid var(--theme-border-header);
 
-        z-index: 10000 !important;
+        z-index: 99999 !important;
 
         .browser-offline-section {
             position: absolute;
-            top: var(--header-height);
+            top: var(--theme-height-header);
             left: 0;
             user-select: none;
             pointer-events: none;
-            z-index: 12000 !important;
+            z-index: 100000 !important;
 
             height: 1.8rem;
             width: 100%;
@@ -170,7 +172,7 @@
             font-family: 'ArchivoBold', sans-serif;
             color: #FFFFF2;
 
-            background: var(--browser-offline-background);
+            background: var(--theme-background-offline);
 
             transition: 300ms ease-in-out;
 
@@ -189,11 +191,13 @@
             flex-flow: row nowrap;
             justify-content: space-between;
 
+            --icon-gap: 1.5rem;
 
-            .header-logo svg {
+            .header-logo .inventar-logo {
                 align-self: center;
                 height: 2rem;
                 transition-duration: 200ms;
+                fill: var(--theme-logo);
             }
 
             .header-links {
@@ -204,7 +208,7 @@
                 nav {
                     display: flex;
                     flex-flow: row nowrap;
-                    gap: var(--header-icon-gap);
+                    gap: var(--icon-gap);
 
                     font-family: 'FunnelSans', serif;
                     align-self: center;
@@ -212,6 +216,8 @@
                     text-align: center;
 
                     justify-content: space-between;
+
+                    color: var(--theme-text);
 
                     a {
                         font-variation-settings: "wght" 400;
@@ -221,13 +227,13 @@
 
                     a:hover {
                         font-variation-settings: "wght" 700;
-                        color: var(--accent-text);
+                        color: var(--theme-text-accent);
 
                         transition-duration: 150ms;
                     }
 
                     a[aria-current=true] {
-                        color: var(--accent-text);
+                        color: var(--theme-text-accent);
                         font-variation-settings: "wght" 700;
                     }
                 }
@@ -238,12 +244,12 @@
                     align-items: center;
 
                     .header-icon:first-child {
-                        margin-left: var(--header-icon-gap);
+                        margin-left: var(--icon-gap);
                     }
 
                     .header-icon {
                         display: flex;
-                        margin-left: calc(var(--header-icon-gap) * .5);
+                        margin-left: calc(var(--icon-gap) * .5);
 
                         img {
                             height: 1.45rem !important;
@@ -253,11 +259,12 @@
 
                         svg {
                             stroke-width: 1.6;
+                            stroke: var(--theme-icon);
                         }
 
                         svg:hover {
                             cursor: pointer;
-                            stroke: var(--accent-text);
+                            stroke: var(--theme-text-accent);
                             stroke-width: 1.65;
 
                             transition-duration: 150ms;
@@ -268,7 +275,7 @@
                             transform: translateY(2.25rem) translateX(-4.25rem);
                             --bg: #666;
                             background-color: rgba(from var(--theme-background-container) r g b / 35%);
-                            border: .12em solid var(--theme-border-button);
+                            border: var(--theme-border-width) solid var(--theme-border-button);
                             backdrop-filter: blur(4px);
                             color: var(--theme-text);
                             border-radius: .45rem;

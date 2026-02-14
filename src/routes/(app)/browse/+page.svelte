@@ -79,8 +79,8 @@
             Create
         </button>
     </div>
-    <div class="inventory-list-container ui-container">
-        <div class="inventory-header border-b-container-border dark:border-b-dark-container-border">
+    <div class="inventory-list-container">
+        <div class="inventory-header">
             <div class="header-items">
                 <div class="header-item name-filter">
                     <button id="name-filter-button" title="Filter by name"
@@ -114,9 +114,7 @@
         <div class="inventory-list">
             {#if inventories.length > 0 }
                 {#each inventories as {uuid, name, description, item_amount, last_update}}
-                    <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="inventory-list-entry
-                                border-t-container-border dark:border-t-dark-container-border
-                                border-b-container-border dark:border-b-dark-container-border">
+                    <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="inventory-list-entry">
                         <div class="entry-item inventory-meta">
                             <div class="inventory-image">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
@@ -153,7 +151,7 @@
                 </div>
             {/if}
         </div>
-        <div class="inventory-footer border-t-container-border dark:border-t-dark-container-border">
+        <div class="inventory-footer">
             <div class="inventory-footer-items">
                 <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
                         onclick={async () => { await refresh(-1); } } title="Switch to previous page">
@@ -190,37 +188,26 @@
 
             width: 80rem;
             margin: 2.5rem calc(50vw - 40rem) 1.5rem calc(50vw - 40rem);
-
-            .create-inventory-button {
-                width: fit-content;
-                color: var(--theme-text);
-                background: var(--theme-background-button);
-                border: .122em solid var(--theme-border-button);
-                border-radius: var(--theme-border-radius);
-
-                padding: .5rem 1rem;
-                user-select: none;
-                cursor: pointer;
-            }
-
-            .create-inventory-button:hover {
-                background: var(--theme-background-button-hover);
-            }
         }
 
         .inventory-list-container {
             width: 90rem;
             height: 42rem;
+
+            background: var(--theme-background-container);
+
+            border: var(--theme-border-width) solid var(--theme-border-container);
+            border-radius: var(--theme-border-radius);
+
+            color: var(--theme-text);
+
             margin: 0 calc(50vw - 45rem);
             padding: 0;
-
-            border-width: var(--border-width);
-            border-radius: var(--border-radius);
 
             .inventory-header {
                 border-color: transparent;
                 border-bottom-color: inherit;
-                border-width: var(--border-width);
+                border-width: var(--theme-border-width);
                 width: 100%;
                 height: 3rem !important;
 
@@ -330,9 +317,10 @@
                     align-items: center;
                     align-content: center;
 
-                    background: color-mix(var(--container-background) / 50%);
-                    border-width: var(--border-width);
-                    border-top-color: transparent;
+                    background: color-mix(var(--theme-background-container) / 50%);
+                    border-width: var(--theme-border-width);
+                    border-top: none;
+                    border-bottom-color: var(--theme-border-container);
                     border-left-color: transparent;
                     border-right-color: transparent;
 
@@ -394,7 +382,7 @@
                 }
 
                 .inventory-list-entry:hover {
-                    background: var(--theme-background-highlight);
+                    background: var(--theme-background-button-hover);
 
                     svg {
                         stroke: var(--theme-text-accent);
@@ -423,7 +411,7 @@
             .inventory-footer {
                 border-color: transparent;
                 border-top-color: inherit;
-                border-width: var(--border-width);
+                border-width: var(--theme-border-width);
                 width: 100%;
                 height: 3rem !important;
 

@@ -5,7 +5,6 @@
     import type {Inventory, User} from "$lib/server/db/schema";
     import {getContext, onMount} from "svelte";
     import {getInventory, updateInventoryGeneral} from "../data.remote";
-    import type Toast from "../../../../../components/toast.svelte";
 
     if (!page.params.id || !validate(page.params.id)) {
         error(404, 'Inventory ID is required!');
@@ -59,7 +58,7 @@
                                   spellcheck="false"></textarea>
                     </label>
                     <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
-                        <button type="{(initialName!==currentName || initialDescription!==currentDescription)?'submit':'button'}" class="save-settings-button">Save</button>
+                        <button type="{(initialName!==currentName || initialDescription!==currentDescription)?'submit':'button'}" class="theme-button">Save</button>
                         {#if updateInventoryGeneral.result?.success}
                             <p class="form-submission-meta success">Changes saved.</p>
                         {:else if (updateInventoryGeneral.pending > 0) }
@@ -82,9 +81,9 @@
 
     form {
         input,textarea {
-            background: var(--theme-form-background-input);
-            border-radius: .55rem;
-            border: .075em solid var(--theme-form-border-input);
+            background: var(--theme-background-input);
+            border-radius: var(--theme-border-radius);
+            border: var(--theme-border-width) solid var(--theme-border-input);
 
             caret-shape: underscore;
             caret-color: var(--theme-text);
@@ -93,7 +92,7 @@
         }
 
         input:focus,textarea:focus {
-            border-color: var(--theme-form-border-input-focus);
+            border-color: var(--theme-border-input-focus);
             transition: border-color var(--theme-transition-in);
         }
     }
@@ -178,21 +177,6 @@
 
                 .form-submission-meta.unsaved {
                     color: var(--theme-text-third);
-                }
-
-                .save-settings-button {
-                    color: var(--theme-text);
-                    padding: .5rem 1rem;
-                    background: var(--theme-background-button);
-                    border: .122em solid var(--theme-border-button);
-                    border-radius: .65em;
-
-                    cursor: pointer;
-                    user-select: none;
-                }
-
-                .save-settings-button:hover {
-                    background: var(--theme-background-button-hover);
                 }
             }
 

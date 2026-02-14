@@ -26,7 +26,7 @@
 </script>
 
 <section class="profile-page-content">
-    <div class="profile-page-container ui-container">
+    <div class="profile-page-container">
         <div class="profile-picture">
             <img src="{userProfile.profile_picture ?? DefaultProfilePicture}" alt="{userProfile.username}'s profile picture">
         </div>
@@ -51,10 +51,16 @@
             display: flex;
             flex-flow: column nowrap;
 
+            background: var(--theme-background-container);
+            border: var(--theme-border-width) solid var(--theme-border-container);
+            border-radius: var(--theme-border-radius);
+
+            color: var(--theme-text);
+
             width: 72rem;
             height: 48rem;
 
-            margin: calc(50vh - (24rem + (var(--header-height) / 2))) auto;
+            margin: calc(50vh - (24rem + (var(--theme-height-header) / 2))) auto;
 
             p {
                 color: #FFFFF2;
