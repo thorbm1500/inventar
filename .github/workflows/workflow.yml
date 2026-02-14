@@ -1,20 +1,23 @@
 name: workflow.yml
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    name: my-job
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
 
-      - run: bun install
-      - run: bun index.ts
-      - run: bun run build
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
