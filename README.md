@@ -15,4 +15,10 @@ I wanted a place where I could store, and keep track of all sorts of components,
 
 An app, **full of features**, that's not just *another* monthly subscription.
 
-This project is still completely new, and I have ***so*** many features planned for it! *If you're interested, then stick around.*
+This project is still completely new, and I have ***so*** many features planned for it! *If you're interested, then stick around.*<br/>
+
+## Development status
+![inventar-login-screen](https://cdn.prodzeus.dev/brand-assets/inventar/previews/inventar-login.png)
+Above is the first public photo of inventar. There's not a lot to see, but I've wanted to start getting some pictures out. I'm spending all of my free time working on inventar, and I can't wait to have the first release out.
+
+I'll try my best to keep this page up-to-date, with any news and updates.
