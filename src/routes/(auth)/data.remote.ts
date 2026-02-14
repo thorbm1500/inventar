@@ -155,7 +155,7 @@ export const register = form(
         try {
             // Give administrator rights no users have been created yet.
             const userAmount: number = await db.Users.getUserAmount();
-            const user: User = await db.Users.create(email, username, passwordHash, userAmount === 0);
+            const user: User | undefined = await db.Users.create(email, username, passwordHash, userAmount === 0);
 
             if (!user) {
                 return {success: false, message: 'Failed to register new user. If this problem persists, please contact the system administrator'};

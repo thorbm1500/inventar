@@ -162,19 +162,9 @@
 
 <!-- todo - Convert to new toasts
 {#if createItem.result && createItem.result.success }
-    <div class="item-creation-success-toast generic-toast-parent-class play-animation">
-        <ItemCreationSuccessfulToast/>
-    </div>
 {/if}
 
 {#if createItem.result && !createItem.result.success }
-    <div class="item-creation-failed-toast generic-toast-parent-class play-animation">
-        {#if createItem.result?.error }
-            <GenericErrorToast error={String(createItem.result?.error)}/>
-        {:else}
-            <GenericErrorToast/>
-        {/if}
-    </div>
 {/if}-->
 
 <div class="page-content">
@@ -222,8 +212,6 @@
                                 if (!isItemCreatorOpen) {
                                     document.getElementById('item-creator-form-reset-button')?.click();
                                 }
-
-                                document.getElementById('DKK')?.setAttribute('selected', 'true');
                             }}>
                                 <svg width="19" height="19" viewBox="0 0 14 14">
                                     <path fill="currentColor" fill-rule="evenodd"
@@ -318,33 +306,33 @@
                         <div class="header">
                             <h1>Item Creator</h1>
                             <div class="item-creation-buttons">
-                                <button type="{createItem.result ? 'button' : 'submit'}" class="theme-button item-confirm-creation-button">
+                                <button form="item-creator-form" type="{createItem.result ? 'button' : 'submit'}" class="theme-button item-confirm-creation-button">
                                     CREATE
                                 </button>
                             </div>
                         </div>
                         <form {...createItem} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                             <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
+                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" id="inventoryUuid" name="inventoryUuid" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
                                    required/>
                             <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
                                 <div class="option-container" style="width:52rem;">
                                     <h1>Item Name</h1>
-                                    <input style="width:100%;" {...createItem.fields.name.as('text')} id="item-name" placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
+                                    <input style="width:100%;" {...createItem.fields.name.as('text')} name="name" id="name" placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
                                            data-1p-ignore data-bwignore required/>
                                 </div>
                                 <div class="option-container">
                                     <h1>Amount</h1>
-                                    <input {...createItem.fields.amount.as('number')} id="amount" value=0 required/>
+                                    <input {...createItem.fields.amount.as('number')} name="amount" id="amount" value=0 required/>
                                 </div>
                                 <div class="option-container price-section" style="display:flex;flex-flow:row nowrap;">
                                     <div class="price-section-input">
                                         <h1>Price</h1>
-                                        <input {...createItem.fields.price.as('number')} id="price" placeholder="0" min="0" value="0"/>
+                                        <input {...createItem.fields.price.as('number')} name="price" id="price" placeholder="0" step="0.01" min="0" value="0"/>
                                     </div>
                                     <div class="price-section-input" style="margin-left:.75rem;">
                                         <h1>Currency</h1>
-                                        <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')} id="currencies">
+                                        <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')} name="currencies" id="currencies">
                                             {#each currencies as currency}
                                                 {#if (currency.code === 'DKK')}
                                                     <option selected id="{currency.code}" value="{currency.code}">{currency.code}</option>
@@ -376,13 +364,13 @@
                                                 </g>
                                             </svg>
                                         </div>
-                                        <input {...createItem.fields.image.as('file')} style="width:100%" id="image" hidden/>
+                                        <input {...createItem.fields.image.as('file')} style="width:100%" name="image" id="image" hidden/>
                                     </label>
                                 </div>
                             </div>
                             <div class="option-container">
                                 <h1>External</h1>
-                                <input {...createItem.fields.external.as('text')} style="width:100%;" id="external" placeholder="URL"/>
+                                <input {...createItem.fields.external.as('url')} type="url" style="width:100%;" name="external" id="external" placeholder="URL"/>
                             </div>
                         </form>
                     </div>

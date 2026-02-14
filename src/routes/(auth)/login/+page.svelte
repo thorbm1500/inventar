@@ -91,7 +91,7 @@
                 input {
                     border-radius: .6em;
                     width: 16rem;
-                    margin: .15rem;
+                    margin: .18rem;
                     font-weight: 400;
                     background: #1f2023;
                     border-width: .122em;
@@ -99,10 +99,16 @@
                     border-color: #464b65;
                     color: #FFFFF2;
                     accent-color: var(--theme-text-accent);
+                    caret-shape: underscore;
                 }
 
                 input:invalid {
                     border-color: oklch(64.5% 0.246 16.439);
+                }
+
+                input:focus {
+                    box-shadow: none;
+                    border-color: var(--theme-border-input-focus);
                 }
             }
 

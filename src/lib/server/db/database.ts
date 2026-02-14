@@ -149,8 +149,8 @@ export async function createTableLabelColors(): Promise<void> {
 /**
  * Creates the table 'items', if it doesn't already exist.
  */
-export async function createTableItems(): Promise<void> {
-    await connection.query(`create table if not exists items
+export async function createTableItems(): Promise<void> { //todo - Add 'Part Number'
+    await connection.query(`create table if not exists items 
                             (
                                 inventory           char(36)                                 not null,
                                 uuid                char(36)       default (uuid())          not null,
@@ -264,7 +264,8 @@ export async function createTableResetTokens(): Promise<void> {
 export async function getCurrencies(): Promise<Currency[]> {
     try {
         const [result] = await connection.query(`SELECT *
-                                                 FROM currencies`
+                                                 FROM currencies
+                                                 ORDER BY code ASC`
         );
         return result as Currency[];
     } catch (error) {
@@ -345,11 +346,13 @@ export class Inventories {
 
 export class Items {
     /* todo Add categories to itemCategories table */
-    static async create(inventory: string, name: string, description?: string, amount: number = 0, categories: [] = [], image?: string,
+    static async create(inventory: string, name: string, description?: string, amount: number = 0, image?: string,
                         url?: string, price: number = 0, currency: string = 'DKK'): Promise<Item | undefined> {
         try {
-            await connection.execute(`INSERT IGNORE INTO items (inventory, name, description, amount, image, url, price, currency)
+            const [insertResult] = await connection.execute(`INSERT IGNORE INTO items (inventory, name, description, amount, image, url, price, currency)
                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [inventory, name, description ?? null, amount, image ?? null, url ?? null, price, currency]);
+
+            Log.info(`Item Created: ${insertResult}`)
 
             const [result] = await connection.query(`SELECT *
                                                      FROM items
