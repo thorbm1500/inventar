@@ -41,7 +41,7 @@ const itemsObj = v.object({
 
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
     if (!util.isOffline()) {
-        const items: Item[] = await db.Items.fetch(data.amount, data.order_by, data.order == '' ? 'ASC' : data.order, data.offset);
+        const items: Item[] = await db.Items.fetch(data.inventory, data.amount, data.order_by, data.order == '' ? 'ASC' : data.order, data.offset);
         return items;
     }
     return [];

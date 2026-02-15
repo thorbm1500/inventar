@@ -74,6 +74,8 @@
     --theme-background: #eff0f1;
     --theme-background-header: #eaebec;
     --theme-background-container: #e6e6e8;
+    --theme-background-list-even: #e3e3e7;
+    --theme-background-list-odd: #e6e6e8;
     --theme-background-button: #e2e2e8;
     --theme-background-button-hover: #ececf6;
     --theme-background-button-selected: #cfcfd7;
@@ -114,9 +116,11 @@
     --theme-logo: #FFFFF2;
     --theme-icon: var(--theme-text);
 
-    --theme-background: #0f0f11;
+    --theme-background: #0e0e10;
     --theme-background-header: #111113;
     --theme-background-container: #151518;
+    --theme-background-list-even: #161619;
+    --theme-background-list-odd: #151518;
     --theme-background-button: #151518;
     --theme-background-button-hover: #1c1c21;
     --theme-background-button-selected: #1c1c21;

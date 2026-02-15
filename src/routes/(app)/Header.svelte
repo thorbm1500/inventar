@@ -228,7 +228,6 @@
                     flex-flow: row nowrap;
                     gap: var(--icon-gap);
 
-                    font-family: 'FunnelSans', serif;
                     align-self: center;
                     align-content: center;
                     text-align: center;
@@ -238,7 +237,8 @@
                     color: var(--theme-text);
 
                     a {
-                        font-variation-settings: "wght" 400;
+                        font-family: 'FunnelDisplay', serif;
+                        font-variation-settings: "wght" 500;
 
                         transition-duration: 350ms;
                     }

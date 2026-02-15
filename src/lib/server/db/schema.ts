@@ -9,7 +9,6 @@ export interface Inventory {
     owner: string,
     name: string,
     description?: string,
-    image_path?: string,
     item_amount: number,
     labels: Label[],
     last_update: number,

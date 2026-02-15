@@ -73,7 +73,6 @@ export async function createTableInventories(): Promise<void> {
                                 owner       char(36)                            not null,
                                 name        varchar(255)                        not null,
                                 description text                                null,
-                                item_amount bigint    default 0                 not null,
                                 last_update timestamp default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
                                 created_at  timestamp default CURRENT_TIMESTAMP not null
                             )`)
@@ -331,12 +330,32 @@ export class Inventories {
 
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<Inventory[]> {
         try {
-            const [result] = await connection.execute(`SELECT *
-                                                       FROM inventories
-                                                       ORDER BY ${order_by === '' ? 'created_at' : order_by} ${order}
-                                                       LIMIT ${amount} OFFSET ${offset}`);
+            const [inventories] = await connection.execute(`
+                SELECT uuid,
+                       owner,
+                       name,
+                       description,
+                       last_update,
+                       created_at
+                FROM inventories
+                ORDER BY ${order_by === '' ? 'created_at' : order_by} ${order}
+                LIMIT ${amount} OFFSET ${offset}`);
 
-            return result as Inventory[];
+            const list: Inventory[] = inventories as Inventory[];
+
+            const [itemAmounts] = await connection.query(`SELECT COUNT(amount) as item_amount,inventory FROM items GROUP BY inventory`);
+
+            for (const inventory of list) {
+                for (const result of itemAmounts as RowDataPacket[]) {
+                    if (inventory.uuid === result.inventory) {
+                        inventory.item_amount = result.item_amount;
+                        continue;
+                    }
+                    inventory.item_amount = 0;
+                }
+            }
+
+            return list;
         } catch (error) {
             Log.error(String(error));
         }
@@ -406,7 +425,7 @@ export class Items {
         return undefined;
     }
 
-    static async fetch(amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<Item[]> {
+    static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<Item[]> {
         try {
             const [result] = await connection.execute(`
                 SELECT items.uuid        as uuid,
@@ -422,8 +441,9 @@ export class Items {
                        currencies.format as currency_format
                 FROM items
                          LEFT JOIN currencies ON items.currency = currencies.code
+                WHERE items.inventory = ?
                 ORDER BY ${order_by === '' ? 'created_at' : order_by} ${order}
-                LIMIT ${amount} OFFSET ${offset}`);
+                LIMIT ${amount} OFFSET ${offset}`, [inventory]);
 
             return result as Item[];
         } catch (error) {

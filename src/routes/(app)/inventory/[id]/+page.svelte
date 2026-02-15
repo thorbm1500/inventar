@@ -10,6 +10,7 @@
     import Utility from "../../browse/utility";
     import {createItem} from './data.remote.ts';
     import {getCurrencies} from "./data.remote.ts";
+    import { slide } from 'svelte/transition';
 
     const currencies = await getCurrencies();
 
@@ -251,7 +252,7 @@
                     </div>
                 </section>
                 {#if (isFilterContainerOpen) }
-                    <div class="extra-container {isFilterContainerOpen?'open':'closed'} inventory-filter-container">
+                    <div class="extra-container {isFilterContainerOpen?'open':'open'} inventory-filter-container">
                         <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
                             <h1>Filters</h1>
                             <button class="filters-save-button {filterSettings.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
@@ -347,7 +348,7 @@
                         </section>
                     </div>
                 {:else if (isItemCreatorOpen) }
-                    <div class="extra-container {isItemCreatorOpen?'open':'closed'} create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
+                    <div class="extra-container {isItemCreatorOpen?'open':'open'} create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
                         <div class="header">
                             <h1>Item Creator</h1>
                             <div class="item-creation-buttons">
@@ -648,6 +649,7 @@
             flex-flow: column nowrap;
             align-items: center;
             align-content: center;
+            margin: .5rem 0;
 
             width: 100%;
 
@@ -742,11 +744,12 @@
                         svg {
                             stroke-width: 2.25;
 
+
                             transition: 75ms ease-in-out;
                         }
                     }
 
-                    .refresh-button {
+                    .refresh-button, .inventory-settings-button {
                         svg {
                             transform: rotate(0deg);
                             transition-duration: 500ms;
@@ -758,7 +761,7 @@
                         svg {
                             transform: rotate(360deg);
                             transition-duration: 250ms;
-                            transition-timing-function: cubic-bezier(1, .4, .4, 1.5) !important;
+                            transition-timing-function: cubic-bezier(1, .4, .4, 1) !important;
                         }
                     }
 
@@ -980,7 +983,7 @@
 
                 color: var(--theme-text);
 
-                margin: 0 0 2.5rem 0;
+                margin: 0 0 4rem 0;
 
                 .inventory-header {
                     border-color: transparent;
@@ -1098,8 +1101,12 @@
                         }
                     }
 
-                    .inventory-list-entry:last-child {
-                        border-bottom-color: transparent;
+                    .inventory-list-entry:first-child {
+                        border-top-color: transparent;
+                    }
+
+                    .inventory-list-entry:nth-of-type(odd) {
+                        background: var(--theme-background-list-odd);
                     }
 
                     .inventory-list-entry {
@@ -1111,9 +1118,11 @@
                         align-items: center;
                         align-content: center;
 
-                        background: transparent;
+                        background: var(--theme-background-list-even);
+                        border-style: solid;
                         border-width: var(--theme-border-width);
-                        border-top-color: transparent;
+                        border-top-color: var(--theme-border-container);
+                        border-bottom-color: transparent;
                         border-left-color: transparent;
                         border-right-color: transparent;
 
@@ -1214,10 +1223,16 @@
                                 flex-flow: column nowrap;
                                 justify-content: flex-start;
                                 align-content: flex-start;
+                                max-width: 54rem;
 
                                 h1 {
                                     font-weight: 700;
                                     font-size: 1.5rem;
+                                    max-width: 50rem;
+                                    line-clamp: 1 !important;
+                                    text-overflow: ellipsis;
+                                    overflow: hidden;
+                                    text-wrap: nowrap;
                                 }
 
                                 span {
@@ -1225,6 +1240,8 @@
                                     color: var(--theme-text-third);
                                     line-clamp: 2 !important;
                                     text-overflow: ellipsis;
+                                    max-width: 50rem;
+                                    overflow: hidden;
 
                                     transition: 450ms 100ms ease-in-out;
                                 }
@@ -1327,5 +1344,4 @@
 
         }
     }
-
 </style>
