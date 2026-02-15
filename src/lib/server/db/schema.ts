@@ -16,6 +16,12 @@ export interface Inventory {
     created_at: number
 }
 
+export interface InventoryGeneralSettings {
+    uuid: string,
+    hide_empty_descriptions: boolean,
+    last_update: number
+}
+
 export interface userInventoryPermissions {
     inventory: string,
     user_uuid: string,
@@ -57,10 +63,12 @@ export interface Item {
     image?: string,
     url?: string,
     price: number,
-    currency: string,
+    currency: string | null,
+    currency_format: string,
     labels: Label[],
     last_update: number,
-    created_at: number
+    created_at: number,
+    created_by: string
 }
 
 /**

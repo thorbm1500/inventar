@@ -6,7 +6,7 @@
 
     let {children, data} = $props();
 
-    const user: User | undefined = data.user ?? undefined;
+    const user: User = $state(data.user);
 
     const toastHandler = new Toast();
 

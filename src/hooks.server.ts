@@ -69,7 +69,7 @@ const handleAuth: Handle = async ({event, resolve}) => {
         return redirect(302, '/login');
     }
 
-    event.locals.user = user;
+    if (!event.locals.user) event.locals.user = user;
     event.locals.session_id = session.session_id;
 
     return resolve(event);

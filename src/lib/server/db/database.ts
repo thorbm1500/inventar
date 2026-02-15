@@ -1,14 +1,15 @@
 import {env} from "$env/dynamic/private";
 import Log from '$lib/server/internal/log';
 import mysql, {type Pool, type RowDataPacket} from 'mysql2/promise';
-import type {Currency, Inventory, Item, ResetRequest, Session, User} from "$lib/server/db/schema";
+import type {Currency, Inventory, InventoryGeneralSettings, Item, ResetRequest, Session, User} from "$lib/server/db/schema";
 import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
+import {uuid} from "valibot";
 
 const connection: Pool = mysql.createPool({
     host: env.DB_HOST,
-    port: Number.parseInt(env.DB_PORT) ?? undefined,
-    database: env.DB_DATABASE,
+    port: Number.parseInt(env.DB_PORT) ?? 3306,
+    database: env.DB_DATABASE ?? 'inventar',
     user: env.DB_USER,
     password: env.DB_PASSWORD,
     supportBigNumbers: true,
@@ -23,6 +24,7 @@ export async function createTables(): Promise<void> {
     await createTableCurrencies();
     await createTableUsers();
     await createTableInventories();
+    await createTableInventoryGeneralSettings();
     await createTableInventoryAccessList();
     await createTableLabels();
     await createTableLabelColors();
@@ -43,6 +45,7 @@ export async function createTableCurrencies(): Promise<void> {
                                     primary key,
                                 code   varchar(3)   not null,
                                 symbol varchar(255) null,
+                                format varchar(255) default '%value%',
                                 constraint code
                                     unique (code),
                                 constraint id
@@ -50,8 +53,11 @@ export async function createTableCurrencies(): Promise<void> {
                             )`);
 
     for (const row of currencies) {
-        await connection.execute(`INSERT IGNORE INTO currencies (id, code)
-                                  VALUES (?, ?)`, [row.id, row.code])
+        await connection.execute(`INSERT INTO currencies (id, code, format)
+                                  VALUES (?, ?, ?)
+                                  ON DUPLICATE KEY UPDATE code=?,
+                                                          format=?`,
+            [row.id, row.code, row.format ?? '%value%', row.code, row.format ?? '%value%'])
     }
 }
 
@@ -76,6 +82,19 @@ export async function createTableInventories(): Promise<void> {
     todo: If account of owner is attempted deleted;
      Check for other members with access, prompt if inventory should be deleted, or transferred. If not other accounts has access, delete inventory.
      */
+}
+
+export async function createTableInventoryGeneralSettings(): Promise<void> {
+    await connection.query(`create table if not exists inventory_general_settings
+                            (
+                                uuid                    char(36)                             not null
+                                    primary key,
+                                hide_empty_descriptions tinyint(1) default 1,
+                                last_update             timestamp  default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+                                constraint inventory_settings_fk
+                                    foreign key (uuid) references inventories (uuid)
+                                        on delete cascade
+                            )`)
 }
 
 export async function createTableInventoryAccessList(): Promise<void> {
@@ -150,7 +169,7 @@ export async function createTableLabelColors(): Promise<void> {
  * Creates the table 'items', if it doesn't already exist.
  */
 export async function createTableItems(): Promise<void> { //todo - Add 'Part Number'
-    await connection.query(`create table if not exists items 
+    await connection.query(`create table if not exists items
                             (
                                 inventory           char(36)                                 not null,
                                 uuid                char(36)       default (uuid())          not null,
@@ -164,7 +183,7 @@ export async function createTableItems(): Promise<void> { //todo - Add 'Part Num
                                 image               text                                     null,
                                 url                 text                                     null,
                                 price               decimal(50, 2) default 0.00              not null,
-                                currency            varchar(3)     default 'DKK'             not null,
+                                currency            varchar(3)     default 'N/A'             not null,
                                 created_by          char(36)                                 not null,
                                 last_update         timestamp      default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
                                 created_at          timestamp      default CURRENT_TIMESTAMP not null,
@@ -224,9 +243,18 @@ export async function createTableUsers(): Promise<void> {
                                     foreign key (primary_inventory) references inventories (uuid)
                             )`);
 
-    await connection.query(`ALTER TABLE inventories
-        ADD CONSTRAINT inventories_owner_fk
-            FOREIGN KEY (owner) REFERENCES users (uuid)`)
+    const [existingConstraint] = await connection.query(`SELECT CONSTRAINT_NAME as name,
+                                                                CONSTRAINT_TYPE as type
+                                                         FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+                                                         WHERE TABLE_SCHEMA = 'inventar'
+                                                           AND TABLE_NAME = 'inventories'
+                                                           AND CONSTRAINT_NAME = 'inventories_owner_fk'`)
+
+    if (!existingConstraint || (existingConstraint as RowDataPacket[]).length === 0) {
+        await connection.query(`ALTER TABLE inventories
+            ADD CONSTRAINT inventories_owner_fk
+                FOREIGN KEY (owner) REFERENCES users (uuid)`)
+    }
 }
 
 /**
@@ -342,17 +370,29 @@ export class Inventories {
 
         return undefined;
     }
+
+    static async fetchGeneralSettings(uuid: string): Promise<InventoryGeneralSettings | undefined> {
+        try {
+            const [result] = await connection.execute(`SELECT *
+                                                       FROM inventory_general_settings
+                                                       WHERE uuid = ?`, [uuid]);
+
+            return (result as InventoryGeneralSettings[])[0];
+        } catch (error) {
+            Log.error(String(error));
+        }
+
+        return undefined;
+    }
 }
 
 export class Items {
     /* todo Add categories to itemCategories table */
-    static async create(inventory: string, name: string, description?: string, amount: number = 0, image?: string,
+    static async create(uuid: string, inventory: string, name: string, description?: string, amount: number = 0, image?: string,
                         url?: string, price: number = 0, currency: string = 'DKK'): Promise<Item | undefined> {
         try {
-            const [insertResult] = await connection.execute(`INSERT IGNORE INTO items (inventory, name, description, amount, image, url, price, currency)
-                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [inventory, name, description ?? null, amount, image ?? null, url ?? null, price, currency]);
-
-            Log.info(`Item Created: ${insertResult}`)
+            await connection.execute(`INSERT INTO items (created_by, inventory, name, description, amount, image, url, price, currency)
+                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [uuid, inventory, name, description ?? null, amount, image ?? null, url ?? null, price, currency]);
 
             const [result] = await connection.query(`SELECT *
                                                      FROM items
@@ -368,10 +408,22 @@ export class Items {
 
     static async fetch(amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<Item[]> {
         try {
-            const [result] = await connection.execute(`SELECT *
-                                                       FROM items
-                                                       ORDER BY ${order_by === '' ? 'created_at' : order_by} ${order}
-                                                       LIMIT ${amount} OFFSET ${offset}`);
+            const [result] = await connection.execute(`
+                SELECT items.uuid        as uuid,
+                       items.inventory   as inventory,
+                       items.name        as name,
+                       items.description as description,
+                       items.amount      as amount,
+                       items.image       as image,
+                       items.url         as url,
+                       items.price       as price,
+                       items.last_update as last_update,
+                       items.currency    as currency,
+                       currencies.format as currency_format
+                FROM items
+                         LEFT JOIN currencies ON items.currency = currencies.code
+                ORDER BY ${order_by === '' ? 'created_at' : order_by} ${order}
+                LIMIT ${amount} OFFSET ${offset}`);
 
             return result as Item[];
         } catch (error) {
@@ -507,6 +559,16 @@ export class Users {
         }
 
         return 1;
+    }
+
+    static async setPrimaryInventory(uuid: string, inventory: string | null): Promise<void> {
+        try {
+            await connection.execute(`UPDATE users
+                                      SET primary_inventory = ?
+                                      WHERE uuid = ?`, [inventory, uuid]);
+        } catch (error) {
+            Log.error(String(error));
+        }
     }
 }
 

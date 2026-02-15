@@ -32,20 +32,23 @@
 </script>
 
 <script lang="ts">
-    import {deleteItem} from "./data.remote";
+    import {deleteItem, updatePrimaryIvnentory} from "./data.remote";
 
     if (!page.params.id || !validate(page.params.id)) {
         error(404, 'Inventory ID is required!');
     }
 
-    const id = page.params.id;
+    const id: string = String(page.params.id);
 
-    const user: User = getContext('user');
+    const user: User | undefined = $state(getContext('user'));
+    if (!user) error(500, 'Failed to fetch user information.');
+
+    let addItemHover = $state(false);
 
     //todo: Add option to save filters, and make them persistent for the user.
     const filterSettings: FilterSettings = new FilterSettings();
 
-    let inventory: Inventory | undefined = $state(undefined);
+    let inventory: Inventory | undefined = $state();
     let itemCount: number = $state(0);
     let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filterSettings.columnSize) ?? 1));
     let items: Item[] = $state([]);
@@ -55,9 +58,12 @@
         if (!rawInventory) error(404, 'Failed to find inventory!');
         inventory = rawInventory;
 
-        itemCount = await getTotalItemCount(String(id)) ?? 0;
+        itemCount = await getTotalItemCount(id);
         // const userFilterSettings = getUserFilterSettings();
         // filterSettings.load(userFilterSettings); Set filter settings loaded from user data.
+
+        document.getElementById('create-item-button')?.addEventListener('mouseover', () => addItemHover = true);
+        document.getElementById('create-item-button')?.addEventListener('mouseout', () => addItemHover = false);
     })
 
     let isItemCreatorOpen: boolean = $state(false);
@@ -93,9 +99,9 @@
     async function refresh(force = false) {
         const offset = filterSettings.columnSize * (currentPage - 1);
 
-        if (force) await getItems({inventory: String(page.params.id), amount: filterSettings.columnSize, order_by, order, offset}).refresh();
+        if (force) await getItems({inventory: id, amount: filterSettings.columnSize, order_by, order, offset}).refresh();
         else {
-            const newItems: Item[] = await getItems({inventory: String(page.params.id), amount: filterSettings.columnSize, order_by, order, offset}) || [];
+            const newItems: Item[] = await getItems({inventory: id, amount: filterSettings.columnSize, order_by, order, offset});
             items = newItems;
         }
     }
@@ -175,20 +181,23 @@
                     <div class="inventory-header-content">
                         <div class="inventory-name">
                             <h1>{inventory ? inventory.name : 'Loading'}</h1>
-                            <div class="primary-inventory-bookmark-icon">
-                                {#if user.primary_inventory === page.params.id }
-                                    <svg viewBox="0 0 24 24" fill="currentColor" class="size-6 primary-inventory -icon">
-                                        <path fill-rule="evenodd"
-                                              d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z"
-                                              clip-rule="evenodd"/>
+                            <button class="primary-inventory-bookmark-icon" onclick="{() =>{
+                                updatePrimaryIvnentory({user:user.uuid,inventory:user.primary_inventory === id ? undefined : id});
+                                user.primary_inventory = user.primary_inventory === id ? '' : id;
+                            }}">
+                                {#if user.primary_inventory === id }
+                                    <svg style="color:var(--theme-text-accent);" width="24" height="24" viewBox="0 0 24 24">
+                                        <path fill="currentColor" fill-rule="evenodd" d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6" clip-rule="evenodd"/>
                                     </svg>
                                 {:else}
-                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                              d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"/>
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <g fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 16.09v-4.992c0-4.29 0-6.433-1.318-7.766C18.364 2 16.242 2 12 2S5.636 2 4.318 3.332S3 6.81 3 11.098v4.993c0 3.096 0 4.645.734 5.321c.35.323.792.526 1.263.58c.987.113 2.14-.907 4.445-2.946c1.02-.901 1.529-1.352 2.118-1.47c.29-.06.59-.06.88 0c.59.118 1.099.569 2.118 1.47c2.305 2.039 3.458 3.059 4.445 2.945c.47-.053.913-.256 1.263-.579c.734-.676.734-2.224.734-5.321Z"/>
+                                            <path stroke-linecap="round" d="M15 6H9" opacity="0.5"/>
+                                        </g>
                                     </svg>
                                 {/if}
-                            </div>
+                            </button>
                         </div>
                         <div class="header-buttons">
                             <button id="filters-button" class="filters-button" title="Filters" onclick={() => {
@@ -211,25 +220,28 @@
 
                                 if (!isItemCreatorOpen) {
                                     document.getElementById('item-creator-form-reset-button')?.click();
-                                }
-                            }}>
-                                <svg width="19" height="19" viewBox="0 0 14 14">
-                                    <path fill="currentColor" fill-rule="evenodd"
-                                          d="M1.5 1.784c0-.157.127-.284.284-.284h3.182c.157 0 .284.127.284.284v3.182a.284.284 0 0 1-.284.284H1.784a.284.284 0 0 1-.284-.284zM1.784.25C.937.25.25.937.25 1.784v3.182C.25 5.813.937 6.5 1.784 6.5h3.182c.847 0 1.534-.687 1.534-1.534V1.784C6.5.937 5.813.25 4.966.25zM8.75 9.034c0-.157.127-.284.284-.284h3.182c.157 0 .284.127.284.284v3.182a.284.284 0 0 1-.284.284H9.034a.284.284 0 0 1-.284-.284zM9.034 7.5c-.847 0-1.534.687-1.534 1.534v3.182c0 .847.687 1.534 1.534 1.534h3.182c.847 0 1.534-.687 1.534-1.534V9.034c0-.847-.687-1.534-1.534-1.534zM.25 9.034C.25 8.187.937 7.5 1.784 7.5h3.182c.847 0 1.534.687 1.534 1.534v3.182c0 .847-.687 1.534-1.534 1.534H1.784A1.534 1.534 0 0 1 .25 12.216zM10.625.25a.75.75 0 0 1 .75.75v1.625H13a.75.75 0 0 1 0 1.5h-1.625V5.75a.75.75 0 0 1-1.5 0V4.125H8.25a.75.75 0 0 1 0-1.5h1.625V1a.75.75 0 0 1 .75-.75"
-                                          clip-rule="evenodd"/>
-                                </svg>
+                                }}}>
+                                {#if isItemCreatorOpen || addItemHover}
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <path fill="currentColor"
+                                              d="M2 10.96a.985.985 0 0 1-.37-1.37L3.13 7c.11-.2.28-.34.47-.42l7.83-4.4c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.19.1.35.26.44.46l1.45 2.52c.28.48.11 1.09-.36 1.36l-1 .58v4.96c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-5.54c-.3.17-.68.18-1 0m10-6.81v6.7l5.96-3.35zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-3.22l-5 2.9c-.33.18-.7.17-1 .01v3.69zm-5.15-2.55l6.28-3.63l-.58-1.01l-6.28 3.63z"/>
+                                    </svg>
+                                {:else}
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <path fill="currentColor"
+                                              d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88zM12 4.15l-1.89 1.07L16 8.61l1.96-1.11zM6.04 7.5L12 10.85l1.96-1.1l-5.88-3.4zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-6.7l-6 3.37v6.71z"/>
+                                    </svg>
+                                {/if}
                                 Add Item
                             </button>
-                            <button id="refresh-button" class="refresh-button" title="Refresh" onclick="{async () => {
-                                await refresh();
-                            }}">
+                            <button id="refresh-button" class="refresh-button" title="Refresh" onclick="{async () => await refresh()}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
                                 </svg>
                             </button>
                             <button id="inventory-settings-button" class="inventory-settings-button" title="Settings" onclick="{() => window.location.href=`/inventory/${id}/settings`}">
-                                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
@@ -252,23 +264,56 @@
                         <section class="filters">
                             <div class="filter columns">
                                 <div style="display:flex;flex-flow:row nowrap;gap:.2rem;">
-                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                                         <path fill="currentColor"
-                                              d="M17.75 20.25q-1.575 0-2.662-1.088T14 16.5t1.088-2.662t2.662-1.088t2.663 1.088T21.5 16.5t-1.088 2.663t-2.662 1.087M11 17.5H5q-.425 0-.712-.288T4 16.5t.288-.712T5 15.5h6q.425 0 .713.288T12 16.5t-.288.713T11 17.5m-4.75-6.25q-1.575 0-2.662-1.088T2.5 7.5t1.088-2.662T6.25 3.75t2.663 1.088T10 7.5t-1.088 2.663T6.25 11.25M19 8.5h-6q-.425 0-.712-.288T12 7.5t.288-.712T13 6.5h6q.425 0 .713.288T20 7.5t-.288.713T19 8.5"/>
+                                              d="M14 12v7.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0l-2.01-2.01a.99.99 0 0 1-.29-.83V12h-.03L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L14.03 12z"/>
                                     </svg>
                                     <h1>Columns</h1>
                                 </div>
                                 <div class="buttons">
-                                    <button class="extra-container-button price filter-button {filterSettings.price ? '' : 'off'}" style="order:{filterSettings.price ? 1 : 101}"
+                                    <button class="extra-container-button price filter-button {filterSettings.price ? '' : 'off'}"
+                                            style="order:{filterSettings.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
                                             onclick={() => filterSettings.price = !filterSettings.price}>
+                                        {#if filterSettings.price }
+                                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="currentColor"
+                                                      d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
+                                            </svg>
+                                        {:else}
+                                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            </svg>
+                                        {/if}
                                         Prices
                                     </button>
-                                    <button class="extra-container-button last-updated filter-button {filterSettings.lastUpdated ? '' : 'off'}" style="order:{filterSettings.lastUpdated ? 2 : 102}"
+                                    <button class="extra-container-button last-updated filter-button {filterSettings.lastUpdated ? '' : 'off'}"
+                                            style="order:{filterSettings.lastUpdated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
                                             onclick={() => filterSettings.lastUpdated = !filterSettings.lastUpdated}>
+                                        {#if filterSettings.lastUpdated }
+                                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="currentColor"
+                                                      d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
+                                            </svg>
+                                        {:else}
+                                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            </svg>
+                                        {/if}
                                         Last Updated
                                     </button>
-                                    <button class="extra-container-button description filter-button {filterSettings.description ? '' : 'off'}" style="order:{filterSettings.description ? 3 : 103}"
+                                    <button class="extra-container-button description filter-button {filterSettings.description ? '' : 'off'}"
+                                            style="order:{filterSettings.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
                                             onclick={() => filterSettings.description = !filterSettings.description}>
+                                        {#if filterSettings.description }
+                                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="currentColor"
+                                                      d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
+                                            </svg>
+                                        {:else}
+                                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            </svg>
+                                        {/if}
                                         Description
                                     </button>
                                 </div>
@@ -306,33 +351,35 @@
                         <div class="header">
                             <h1>Item Creator</h1>
                             <div class="item-creation-buttons">
-                                <button form="item-creator-form" type="{createItem.result ? 'button' : 'submit'}" class="theme-button item-confirm-creation-button">
+                                <button form="item-creator-form" type="submit" class="theme-button item-confirm-creation-button">
                                     CREATE
                                 </button>
                             </div>
                         </div>
                         <form {...createItem} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                             <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" id="inventoryUuid" name="inventoryUuid" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
+                            <input {...createItem.fields.user.as('text')} value="{user?.uuid??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
+                                   required/>
+                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
                                    required/>
                             <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
                                 <div class="option-container" style="width:52rem;">
                                     <h1>Item Name</h1>
-                                    <input style="width:100%;" {...createItem.fields.name.as('text')} name="name" id="name" placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
+                                    <input style="width:100%;" {...createItem.fields.name.as('text')} placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
                                            data-1p-ignore data-bwignore required/>
                                 </div>
                                 <div class="option-container">
                                     <h1>Amount</h1>
-                                    <input {...createItem.fields.amount.as('number')} name="amount" id="amount" value=0 required/>
+                                    <input {...createItem.fields.amount.as('number')} value=0 required/>
                                 </div>
                                 <div class="option-container price-section" style="display:flex;flex-flow:row nowrap;">
                                     <div class="price-section-input">
                                         <h1>Price</h1>
-                                        <input {...createItem.fields.price.as('number')} name="price" id="price" placeholder="0" step="0.01" min="0" value="0"/>
+                                        <input {...createItem.fields.price.as('number')} placeholder="0" step="0.01" min="0" value="0"/>
                                     </div>
                                     <div class="price-section-input" style="margin-left:.75rem;">
                                         <h1>Currency</h1>
-                                        <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')} name="currencies" id="currencies">
+                                        <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')}>
                                             {#each currencies as currency}
                                                 {#if (currency.code === 'DKK')}
                                                     <option selected id="{currency.code}" value="{currency.code}">{currency.code}</option>
@@ -347,7 +394,7 @@
                             <div class="options-mid-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;gap:1rem;">
                                 <div class="option-container" style="width:52rem;margin-right:.1rem;">
                                     <h1>Description</h1>
-                                    <textarea {...createItem.fields.description.as('text')} style="height:14rem;width:52rem;" id="description" name="description"
+                                    <textarea {...createItem.fields.description.as('text')} style="height:14rem;width:52rem;"
                                               placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit-. Integer at nibh nec quam laoreet molestie. Etiam commodo lorem velit, et dapibus est pulvinar a. Proin finibus elementum turpis in feugiat..."
                                               spellcheck="false"></textarea>
                                 </div>
@@ -364,13 +411,13 @@
                                                 </g>
                                             </svg>
                                         </div>
-                                        <input {...createItem.fields.image.as('file')} style="width:100%" name="image" id="image" hidden/>
+                                        <input {...createItem.fields.image.as('file')} style="width:100%" hidden/>
                                     </label>
                                 </div>
                             </div>
                             <div class="option-container">
-                                <h1>External</h1>
-                                <input {...createItem.fields.external.as('url')} type="url" style="width:100%;" name="external" id="external" placeholder="URL"/>
+                                <h1>External Link</h1>
+                                <input {...createItem.fields.external.as('url')} type="url" style="width:100%;" placeholder="URL"/>
                             </div>
                         </form>
                     </div>
@@ -455,12 +502,12 @@
                                             </div>
                                             {#if (filterSettings.lastUpdated) }
                                                 <div class="entry-item inventory-item-last_change">
-                                                    {parseTimestamp(String(item.last_update))}
+                                                    {parseTimestamp(item?.last_update)}
                                                 </div>
                                             {/if}
                                             {#if (filterSettings.price) }
                                                 <div class="entry-item inventory-item-price">
-                                                    {item.price}
+                                                    {item.currency_format.replace('%value%', String(item.price ?? 0))}
                                                 </div>
                                             {/if}
                                             <div class="entry-item inventory-item-amount">
@@ -642,6 +689,7 @@
                             align-self: center;
                             margin-left: .35rem;
                             padding-top: .1em;
+                            cursor: pointer;
                         }
 
                         .primary-inventory-icon {
@@ -650,7 +698,9 @@
                     }
 
                     .primary-inventory-bookmark-icon:hover {
-                        cursor: pointer;
+                        svg {
+                            color: var(--theme-text-accent);
+                        }
                     }
                 }
 
@@ -693,6 +743,30 @@
                             stroke-width: 2.25;
 
                             transition: 75ms ease-in-out;
+                        }
+                    }
+
+                    .refresh-button {
+                        svg {
+                            transform: rotate(0deg);
+                            transition-duration: 500ms;
+                            transition-timing-function: cubic-bezier(.5, .5, -.1, 3) !important;
+                        }
+                    }
+
+                    .refresh-button:hover {
+                        svg {
+                            transform: rotate(360deg);
+                            transition-duration: 250ms;
+                            transition-timing-function: cubic-bezier(1, .4, .4, 1.5) !important;
+                        }
+                    }
+
+                    .refresh-button:active {
+                        svg {
+                            transform: rotate(580deg);
+                            transition-duration: 50ms;
+                            transition-timing-function: cubic-bezier(.25, .4, .1, 2) !important;
                         }
                     }
                 }
@@ -1052,7 +1126,8 @@
                             align-items: center;
                             opacity: 0;
 
-                            transition: 50ms ease-in-out;
+                            transition: 200ms 100ms;
+                            transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
                             user-select: none;
 
                             z-index: 25;
@@ -1061,29 +1136,29 @@
                                 cursor: pointer;
                                 width: 2.25rem;
                                 height: 2.25rem;
+
+                                svg {
+                                    justify-self: center;
+                                    stroke: var(--theme-text);
+                                    width: 100%;
+                                    height: 100%;
+
+                                    padding: .5em .25em;
+
+                                    background: var(--theme-background-button);
+                                    border: .122em solid var(--theme-border-button);
+                                    border-radius: .7em;
+                                    transition: 50ms ease-in-out;
+                                }
                             }
 
-                            svg {
-                                justify-self: center;
-                                stroke: var(--theme-text);
-                                width: 100%;
-                                height: 100%;
-
-                                padding: .5em .25em;
-
-                                background: var(--theme-background-button);
-                                border: .122em solid var(--theme-border-button);
-                                border-radius: .7em;
-                                transition: 50ms ease-in-out;
-                            }
-                        }
-
-                        .quick-delete button:hover {
-                            svg {
-                                background: var(--theme-background-button-hover);
-                                stroke: oklch(58.6% 0.253 17.585) !important;
-                                stroke-width: 2.25;
-                                transition: 50ms ease-out;
+                            button:hover {
+                                svg {
+                                    background: var(--theme-background-button-hover);
+                                    stroke: oklch(58.6% 0.253 17.585) !important;
+                                    stroke-width: 2.25;
+                                    transition: 50ms ease-out;
+                                }
                             }
                         }
 
@@ -1105,30 +1180,32 @@
                             align-items: center;
 
                             .inventory-image {
-                                margin: 0 1rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+
                                 width: 5rem;
                                 height: 5rem;
 
                                 svg {
                                     width: 2.5rem;
                                     height: 2.5rem;
-                                    margin: 1rem;
-                                    transition: 450ms 100ms ease-in-out;
+                                    transition: 1400ms ease;
                                 }
 
                                 img {
                                     width: 100%;
                                     height: 100%;
-                                    border-radius: .75em;
+                                    border-radius: var(--theme-border-radius);
 
-                                    transition: 400ms 100ms ease-in-out;
+                                    transition: 400ms ease;
                                 }
 
                                 img:hover {
                                     transform: scale(1.75);
                                     border-radius: .2em;
 
-                                    transition: 125ms ease-in-out;
+                                    transition: 50ms ease;
                                 }
                             }
 
@@ -1172,22 +1249,25 @@
 
                         .quick-delete {
                             opacity: 1;
-                            transition: 25ms ease-in-out;
+                            transition: 50ms;
+                            transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
 
                             svg {
                                 stroke: var(--theme-text);
                             }
                         }
 
-                        svg {
-                            stroke: var(--theme-text-accent);
-                            transition: 50ms ease-out;
-                        }
-
                         .inventory-meta {
+                            .inventory-image {
+                                svg {
+                                    stroke: var(--theme-text-accent);
+                                    transition: stroke 75ms ease;
+                                }
+                            }
+
                             span {
                                 color: var(--theme-text-accent);
-                                transition: 50ms ease-in-out;
+                                transition: 75ms ease;
                             }
                         }
                     }

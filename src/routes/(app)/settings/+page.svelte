@@ -187,6 +187,7 @@
                     transition: 200ms ease-in-out;
                 }
                 .nav-link.selected {
+                    text-shadow: 0 0 .45rem rgba(0, 0, 0, 0.5);
                     background: var(--theme-text-accent);
                     border-radius: .4em;
 
