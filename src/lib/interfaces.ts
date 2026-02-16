@@ -1,28 +1,3 @@
-const mockSettingList: Setting[] = [
-    {
-        type: 'text',
-        value: '?',
-        title: 'UUID',
-        readonly: true
-    },
-    {
-        type: 'text',
-        value: 'Spare Parts',
-        title: 'Name',
-        readonly: false
-    },
-    {
-        type: 'textarea',
-        value: null,
-        title: 'Description',
-        readonly: false
-    }];
-
-const mockSubCategoryGeneral: SettingSubCategory[] = [{
-    name: 'General',
-    settings: mockSettingList
-}]
-
 const enum SettingType {
     INVENTORY,
     ACCOUNT
@@ -57,12 +32,90 @@ export const mockSettings: GenericSettings = {
     settingCategories: [
         {
             name: 'General',
-            SettingSubCategories: mockSubCategoryGeneral,
+            SettingSubCategories: [{
+                name: 'General',
+                settings: [
+                    {
+                        type: 'text',
+                        value: '03885557-0a94-11f1-9199-1eb353fe8132',
+                        title: 'UUID',
+                        readonly: true
+                    },
+                    {
+                        type: 'text',
+                        value: 'Spare Parts',
+                        title: 'Name',
+                        readonly: false
+                    },
+                    {
+                        type: 'textarea',
+                        value: null,
+                        title: 'Description',
+                        readonly: false
+                    },
+                    {
+                        type: 'text',
+                        value: 'Mock',
+                        title: 'Mock',
+                        readonly: false
+                    },
+                    {
+                        type: 'text',
+                        value: 'Mock',
+                        title: 'Mock',
+                        readonly: false
+                    },
+                    {
+                        type: 'text',
+                        value: 'Mock',
+                        title: 'Mock',
+                        readonly: false
+                    },
+                    {
+                        type: 'text',
+                        value: 'Mock',
+                        title: 'Mock',
+                        readonly: false
+                    },
+                    {
+                        type: 'text',
+                        value: 'Mock',
+                        title: 'Mock',
+                        readonly: false
+                    },
+                    {
+                        type: 'text',
+                        value: 'Mock',
+                        title: 'Mock',
+                        readonly: false
+                    },
+                    {
+                        type: 'text',
+                        value: 'Mock',
+                        title: 'Mock',
+                        readonly: false
+                    }]
+            }],
             superUserRequired: true,
         },
         {
             name: 'Customization',
-            SettingSubCategories: mockSubCategoryGeneral,
+            SettingSubCategories: [{
+                name: 'General',
+                settings: [
+                    {
+                        type: 'text',
+                        value: 'Spare Parts',
+                        title: 'Name',
+                        readonly: false
+                    },
+                    {
+                        type: 'textarea',
+                        value: null,
+                        title: 'Description',
+                        readonly: false
+                    }]
+            }],
             superUserRequired: true,
         }]
 };
