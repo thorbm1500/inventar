@@ -116,9 +116,7 @@
             <nav>
                 <a aria-current={page.url.pathname === '/'} title="Home" href="/">Home</a>
                 <a aria-current={page.url.pathname === '/browse'} title="Browse" href="/browse">Browse</a>
-                {#if (user && user.primary_inventory) }
-                    <a aria-current={page.url.pathname === '/inventory/'+user.primary_inventory} title="Browse" href="/inventory/{user.primary_inventory}">Inventory</a>
-                {/if}
+                <a aria-current={Boolean(user && user.primary_inventory && page.url.pathname === '/inventory/'+user.primary_inventory)} title="Browse" href="/inventory/{user?.primary_inventory ?? ''}">Inventory</a>
                 <a aria-current={page.url.pathname === '/projects'} title="Projects" href="/projects">Projects</a>
             </nav>
             <div class="header-icons">

@@ -192,6 +192,12 @@ body {
         }
     }
 
+    .tip-toolbox {
+        color: var(--theme-text);
+        font-family: 'FunnelSans', sans-serif;
+        font-weight: 450;
+    }
+
     .theme-button {
         font-family: 'FunnelDisplay', sans-serif;
         font-size: 1.15rem;

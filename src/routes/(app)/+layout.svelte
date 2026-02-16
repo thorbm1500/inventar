@@ -2,7 +2,7 @@
     import Header from './Header.svelte';
     import {setContext} from "svelte";
     import type {User} from "$lib/server/db/schema";
-    import Toast from "../../components/toast.svelte";
+    import Toast from "$lib/components/toast.svelte";
 
     let {children, data} = $props();
 

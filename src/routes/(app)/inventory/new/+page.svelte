@@ -6,7 +6,7 @@
     import 'tippy.js/dist/tippy.css';
     import 'tippy.js/dist/backdrop.css';
     import 'tippy.js/animations/shift-away.css';
-    import Toast from "../../../../components/toast.svelte";
+    import Toast from "$lib/components/toast.svelte";
 
     let user: User | undefined = $state();
     let toast: Toast
