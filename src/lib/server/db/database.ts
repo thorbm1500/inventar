@@ -4,7 +4,6 @@ import mysql, {type Pool, type RowDataPacket} from 'mysql2/promise';
 import type {Currency, Inventory, InventoryGeneralSettings, Item, ResetRequest, Session, User} from "$lib/server/db/schema";
 import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
-import {uuid} from "valibot";
 
 const connection: Pool = mysql.createPool({
     host: env.DB_HOST,
@@ -23,8 +22,9 @@ export async function createTables(): Promise<void> {
     Log.info(`Creating database tables.`)
     await createTableCurrencies();
     await createTableUsers();
+    await createTableUserSettings();
     await createTableInventories();
-    await createTableInventoryGeneralSettings();
+    await createTableInventorySettings();
     await createTableInventoryAccessList();
     await createTableLabels();
     await createTableLabelColors();
@@ -83,16 +83,20 @@ export async function createTableInventories(): Promise<void> {
      */
 }
 
-export async function createTableInventoryGeneralSettings(): Promise<void> {
-    await connection.query(`create table if not exists inventory_general_settings
+export async function createTableInventorySettings(): Promise<void> {
+    await connection.query(`create table if not exists inventory_settings
                             (
-                                uuid                    char(36)                             not null
-                                    primary key,
-                                hide_empty_descriptions tinyint(1) default 1,
-                                last_update             timestamp  default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+                                uuid        varchar(36)          not null,
+                                category    varchar(128)         not null,
+                                subcategory varchar(128)         not null,
+                                type        varchar(128)         not null,
+                                value       varchar(255)         not null,
+                                title       varchar(128)         not null,
+                                subtitle    TEXT(255)            null,
+                                readonly    tinyint(1) default 0 not null,
+                                primary key (uuid, category, subcategory, title),
                                 constraint inventory_settings_fk
-                                    foreign key (uuid) references inventories (uuid)
-                                        on delete cascade
+                                    foreign key (uuid) references inventories (uuid) on delete cascade
                             )`)
 }
 
@@ -256,6 +260,23 @@ export async function createTableUsers(): Promise<void> {
     }
 }
 
+export async function createTableUserSettings(): Promise<void> {
+    await connection.query(`create table if not exists user_settings
+                            (
+                                uuid        varchar(36)          not null,
+                                category    varchar(128)         not null,
+                                subcategory varchar(128)         not null,
+                                type        varchar(128)         not null,
+                                value       varchar(255)         not null,
+                                title       varchar(128)         not null,
+                                subtitle    TEXT(255)            null,
+                                readonly    tinyint(1) default 0 not null,
+                                primary key (uuid, category, subcategory, title),
+                                constraint user_settings_fk
+                                    foreign key (uuid) references users (uuid) on delete cascade
+                            )`);
+}
+
 /**
  * Creates the table 'sessions', if it doesn't already exist.
  */
@@ -266,7 +287,7 @@ export async function createTableSessions(): Promise<void> {
                                     primary key,
                                 session_id varchar(255) not null,
                                 expires    bigint       not null,
-                                constraint sessions_fk_1
+                                constraint sessions_fk
                                     foreign key (uuid) references users (uuid)
                                         on delete cascade
                             )`);
@@ -282,7 +303,7 @@ export async function createTableResetTokens(): Promise<void> {
                                     primary key,
                                 token   varchar(255) not null,
                                 expires bigint       not null,
-                                constraint reset_tokens_ibfk_1
+                                constraint reset_tokens_fk
                                     foreign key (uuid) references users (uuid)
                                         on delete cascade
                             )`);

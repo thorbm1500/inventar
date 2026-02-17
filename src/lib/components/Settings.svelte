@@ -2,6 +2,7 @@
     import {accountSettings} from "../../routes/(app)/settings/data.remote";
     import type {User} from "$lib/server/db/schema";
     import {getContext} from "svelte";
+    import {updateInventoryGeneral} from "../../routes/(app)/inventory/[id]/settings/data.remote";
 
     let {settings = $bindable()} = $props();
 
@@ -30,23 +31,35 @@
                     {#if currentSettingsPage === `${categories.name}_${category.name}`}
                         {#each category.settings as setting}
                             <div class="setting-item">
-                                {#if (setting.type === 'text')}
-                                    <div class="option text">
+                                <div class="option {setting.type}">
+                                    <div class="top-section">
                                         <h1>{setting.title}</h1>
-                                        {#if (setting.readonly) }
-                                            <input bind:value={setting.value} name="name" id="name" placeholder="{setting.title}..." spellcheck="false"
-                                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore readonly>
-                                        {:else}
-                                            <input bind:value={setting.value} name="name" id="name" placeholder="Inventory Name..." spellcheck="false"
-                                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                                        {#if (setting.type === 'text')}
+                                            {#if (setting.readonly) }
+                                                <input bind:value={setting.value} name="name" id="name" placeholder="{setting.title}..." spellcheck="false"
+                                                       data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore readonly>
+                                            {:else}
+                                                <input bind:value={setting.value} name="name" id="name" placeholder="Inventory Name..." spellcheck="false"
+                                                       data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                                            {/if}
+                                        {:else if (setting.type === 'textarea')}
+                                        <textarea {...accountSettings.fields.email.as('text')} bind:value={setting.value} name="name" id="name" placeholder="{setting.title}..." spellcheck="false"
+                                                  data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore></textarea>
+                                        {:else if (setting.type === 'toggle')}
+                                            <label class="toggle-container {Boolean(setting.value) ? 'on' : ''}">
+                                                <div id="toggle-slider"></div>
+                                                <input type="checkbox" class="toggle-button" {...updateInventoryGeneral.fields.hideEmptyDescriptions.as('checkbox')}
+                                                       bind:checked={setting.value}
+                                                       hidden>
+                                            </label>
                                         {/if}
                                     </div>
-                                {:else if (setting.type === 'textarea')}
-                                    <div class="option textarea">
-                                        <h1>{setting.title}</h1>
-                                        <textarea {...accountSettings.fields.email.as('text')} bind:value={setting.value} name="name" id="name" placeholder="{setting.title}..." spellcheck="false" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore></textarea>
-                                    </div>
-                                {/if}
+                                    {#if (setting.subtitle)}
+                                        <div class="bottom-section">
+                                            <h3>{@html setting.subtitle}</h3>
+                                        </div>
+                                    {/if}
+                                </div>
                             </div>
                         {/each}
                         <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
@@ -89,7 +102,7 @@
             user-select: none;
         }
 
-        input,textarea {
+        input, textarea {
             width: 100%;
 
             background: var(--theme-background-input);
@@ -116,7 +129,7 @@
             background: var(--theme-text-accent);
         }
 
-        input:focus,textarea:focus {
+        input:focus, textarea:focus {
             border-color: var(--theme-border-input-focus);
             user-select: text;
             transition: border-color var(--theme-transition-in);
@@ -134,6 +147,73 @@
         input:hover, input:focus {
             color: var(--theme-text-secondary);
             transition: border-color var(--theme-transition-in);
+        }
+    }
+
+    .option.toggle {
+        h1 {
+            padding-left: 0;
+        }
+
+        .top-section {
+            display: flex;
+            flex-flow: row nowrap;
+            justify-content: space-between;
+            align-items: center;
+
+            .toggle-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                width: 4rem;
+                height: 2rem;
+
+                background: var(--theme-background-input);
+                border-radius: 1rem;
+                border-style: solid;
+                border-width: var(--theme-border-width);
+
+                border-color: var(--theme-border-input);
+
+                cursor: pointer;
+
+                transition: background 150ms ease;
+
+                #toggle-slider {
+                    height: 1.4rem;
+                    width: 1.4rem;
+
+                    transform: translateX(-.925rem);
+
+                    background: #FFFFF2;
+                    border-radius: 100%;
+
+                    transition: 100ms;
+                    transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
+                }
+            }
+
+            .toggle-container.on {
+                background: var(--theme-text-accent) !important;
+                border-color: oklch(0.676 0.173 130.222) !important;
+                filter: drop-shadow(0 0 .4rem rgba(from var(--theme-text-accent) r g b / 15%));
+
+                #toggle-slider {
+                    transform: translateX(.925rem);
+                    filter: drop-shadow(0 0 .6rem rgba(0, 0, 0, 0.4));
+                }
+            }
+        }
+
+        .bottom-section {
+            max-width: 65%;
+
+            h3 {
+                font-family: 'FunnelSans', sans-serif;
+                font-size: .9rem;
+                color: var(--theme-text-secondary);
+            }
         }
     }
 

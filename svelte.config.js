@@ -7,6 +7,7 @@ const config = {
 	// for more information about preprocessors
 	preprocess: vitePreprocess(),
 
+	//todo - Add trusted origins
 	kit: {
 		adapter: adapter(),
 		experimental: {

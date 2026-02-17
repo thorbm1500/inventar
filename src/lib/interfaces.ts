@@ -21,7 +21,7 @@ export interface SettingSubCategory {
 
 export interface Setting {
     type: string,
-    value: string | null,
+    value: string | boolean | null,
     title: string,
     subtitle?: string,
     readonly: boolean
@@ -54,9 +54,10 @@ export const mockSettings: GenericSettings = {
                         readonly: false
                     },
                     {
-                        type: 'text',
-                        value: 'Mock',
-                        title: 'Mock',
+                        type: 'toggle',
+                        value: false,
+                        title: 'Hide Empty Descriptions',
+                        subtitle: 'Hides all empty descriptions, when browsing the contents of the inventory, instead of displaying <i>"No description has been set."</i>',
                         readonly: false
                     },
                     {
