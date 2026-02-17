@@ -5,7 +5,6 @@ import * as db from '$lib/server/db/database'
 import initializeDatabase from '$lib/server/db/index';
 import {env} from "$env/dynamic/private";
 import type {Session, User} from "$lib/server/db/schema";
-import Log from "$lib/server/internal/log";
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.

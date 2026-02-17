@@ -14,9 +14,6 @@
     setContext('toasts', toastHandler);
 </script>
 
-<svelte:head>
-</svelte:head>
-
 <section class="header">
     <Header/>
 </section>

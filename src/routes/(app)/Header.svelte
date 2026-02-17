@@ -236,13 +236,12 @@
 
                     a {
                         font-family: 'FunnelDisplay', serif;
-                        font-variation-settings: "wght" 500;
+                        font-variation-settings: "wght" 600;
 
                         transition-duration: 350ms;
                     }
 
                     a:hover {
-                        font-variation-settings: "wght" 700;
                         color: var(--theme-text-accent);
 
                         transition-duration: 150ms;
@@ -250,7 +249,6 @@
 
                     a[aria-current=true] {
                         color: var(--theme-text-accent);
-                        font-variation-settings: "wght" 700;
                     }
                 }
 

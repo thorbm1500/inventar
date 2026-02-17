@@ -6,6 +6,7 @@ export const settings = {
 /**
  * Returns the inventory's directory with a trailing slash.
  * @param uuid UUID of the inventory.
+ * @param concat Strings to concat to the path before returning it.
  * @return string Path of inventory directory.
  */
 export function getInventoryDirectory(uuid: string, concat?: string[]): string {

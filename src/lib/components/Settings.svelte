@@ -24,20 +24,24 @@
             {/each}
         </nav>
     </div>
-    <div>
+    <div class="settings-container">
         <div class="container">
             {#each settings.settingCategories as categories }
                 {#each categories.SettingSubCategories as category}
                     {#if currentSettingsPage === `${categories.name}_${category.name}`}
                         {#each category.settings as setting}
                             <div class="setting-item">
-                                <div class="option {setting.type}">
+                                <div class="option {setting.type} {setting.readonly ? 'readonly' : ''}">
                                     <div class="top-section">
                                         <h1>{setting.title}</h1>
                                         {#if (setting.type === 'text')}
                                             {#if (setting.readonly) }
-                                                <input bind:value={setting.value} name="name" id="name" placeholder="{setting.title}..." spellcheck="false"
-                                                       data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore readonly>
+                                                <div class="readonly-container select-all">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                                    </svg>
+                                                    {setting.value}
+                                                </div>
                                             {:else}
                                                 <input bind:value={setting.value} name="name" id="name" placeholder="Inventory Name..." spellcheck="false"
                                                        data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
@@ -76,9 +80,7 @@
                 {/each}
             {/each}
         </div>
-        <p class="uuid"
-           style="position:absolute;margin-top:.5rem;margin-left:.5rem;color:var(--theme-text-third);font-family:'JetBrains Mono', sans-serif;font-weight:700;opacity:.25;font-size:.75rem;user-select:text;cursor:default;">{user?.uuid ?? 'Loading...'}
-            <br/>Version: 0.0.1-ALPHA</p>
+        <p class="version-tag">Version: 0.0.1-ALPHA</p>
     </div>
 </section>
 
@@ -86,135 +88,6 @@
     *:focus {
         box-shadow: none !important;
         transition: box-shadow 0ms linear;
-    }
-
-    .option {
-        transition: var(--theme-transition-out);
-
-        h1 {
-            font-family: 'FunnelDisplay', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            margin-bottom: .25rem;
-            padding-left: .5rem;
-            width: 5.5rem;
-
-            user-select: none;
-        }
-
-        input, textarea {
-            width: 100%;
-
-            background: var(--theme-background-input);
-            border-radius: var(--theme-border-radius);
-            border: var(--theme-border-width) solid var(--theme-border-input);
-
-            font-size: 1.05rem;
-            font-weight: 600;
-            caret-shape: underscore;
-            caret-color: var(--theme-text);
-
-            user-select: none;
-            transition: border-color var(--theme-transition-out);
-        }
-
-        textarea {
-            resize: none;
-            height: fit-content;
-            max-height: 12rem;
-        }
-
-        input::selection {
-            color: #FFFFF2;
-            background: var(--theme-text-accent);
-        }
-
-        input:focus, textarea:focus {
-            border-color: var(--theme-border-input-focus);
-            user-select: text;
-            transition: border-color var(--theme-transition-in);
-        }
-    }
-
-    .option.readonly {
-        transition: var(--theme-transition-out);
-
-        input {
-            color: var(--theme-text-third);
-            transition: var(--theme-transition-out);
-        }
-
-        input:hover, input:focus {
-            color: var(--theme-text-secondary);
-            transition: border-color var(--theme-transition-in);
-        }
-    }
-
-    .option.toggle {
-        h1 {
-            padding-left: 0;
-        }
-
-        .top-section {
-            display: flex;
-            flex-flow: row nowrap;
-            justify-content: space-between;
-            align-items: center;
-
-            .toggle-container {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-
-                width: 4rem;
-                height: 2rem;
-
-                background: var(--theme-background-input);
-                border-radius: 1rem;
-                border-style: solid;
-                border-width: var(--theme-border-width);
-
-                border-color: var(--theme-border-input);
-
-                cursor: pointer;
-
-                transition: background 150ms ease;
-
-                #toggle-slider {
-                    height: 1.4rem;
-                    width: 1.4rem;
-
-                    transform: translateX(-.925rem);
-
-                    background: #FFFFF2;
-                    border-radius: 100%;
-
-                    transition: 100ms;
-                    transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
-                }
-            }
-
-            .toggle-container.on {
-                background: var(--theme-text-accent) !important;
-                border-color: oklch(0.676 0.173 130.222) !important;
-                filter: drop-shadow(0 0 .4rem rgba(from var(--theme-text-accent) r g b / 15%));
-
-                #toggle-slider {
-                    transform: translateX(.925rem);
-                    filter: drop-shadow(0 0 .6rem rgba(0, 0, 0, 0.4));
-                }
-            }
-        }
-
-        .bottom-section {
-            max-width: 65%;
-
-            h3 {
-                font-family: 'FunnelSans', sans-serif;
-                font-size: .9rem;
-                color: var(--theme-text-secondary);
-            }
-        }
     }
 
     .inventory-settings-page {
@@ -242,8 +115,9 @@
                 align-items: flex-start;
 
                 color: var(--theme-text);
-                font-family: 'FunnelSans', sans-serif;
-                font-size: 1.1rem;
+                font-family: 'FunnelDisplay', sans-serif;
+                font-size: 1.125rem;
+                font-weight: 600;
 
                 .nav-category:first-child {
                     margin-top: 0;
@@ -268,7 +142,7 @@
                 }
 
                 .nav-link.selected {
-                    text-shadow: 0 0 .45rem rgba(0, 0, 0, 0.5);
+                    color: #0D0D0D;
                     background: var(--theme-text-accent);
                     border-radius: .4em;
 
@@ -277,82 +151,275 @@
             }
         }
 
-        .container {
-            width: 58rem;
-            height: fit-content;
-            max-height: 70vh !important;
-            overflow-x: hidden;
-            overflow-y: scroll;
-            overflow: auto;
-            scrollbar-gutter: stable;
-            scrollbar-width: thin;
-            scrollbar-color: var(--theme-text-accent) transparent;
-            min-height: 20rem;
-            border: .122em solid var(--theme-border-container);
-            border-radius: .65em;
+        .settings-container {
+            .container {
+                width: 58rem;
+                height: fit-content;
+                max-height: 70vh !important;
+                overflow-x: hidden;
+                overflow-y: scroll;
+                overflow: auto;
+                scrollbar-gutter: stable;
+                scrollbar-width: thin;
+                scrollbar-color: var(--theme-text-accent) transparent;
+                min-height: 20rem;
+                border: .122em solid var(--theme-border-container);
+                border-radius: .65em;
 
-            background: var(--theme-background-container);
+                background: var(--theme-background-container);
 
-            margin-left: .35rem;
-            padding: 1rem;
+                margin-left: .35rem;
+                padding: 3rem;
 
-            .save-settings-div {
-                .form-submission-meta {
-                    margin-left: .75rem;
+                .save-settings-div {
+                    margin-top: 1.5rem;
+
+                    .form-submission-meta {
+                        margin-left: .75rem;
+                    }
+
+                    .form-submission-meta.success {
+                        color: greenyellow;
+                    }
+
+                    .form-submission-meta.saving {
+                        color: var(--theme-text-accent);
+                    }
+
+                    .form-submission-meta.unsaved {
+                        color: var(--theme-text-third);
+                    }
                 }
 
-                .form-submission-meta.success {
-                    color: greenyellow;
+                .setting-item:first-child {
+                    padding-top: 0;
                 }
 
-                .form-submission-meta.saving {
-                    color: var(--theme-text-accent);
-                }
+                .setting-item {
+                    color: var(--theme-text);
+                    padding: .75rem 0;
 
-                .form-submission-meta.unsaved {
-                    color: var(--theme-text-third);
-                }
-            }
+                    .option {
+                        transition: var(--theme-transition-out);
 
-            .setting-item {
-                color: var(--theme-text);
-                padding: 1rem 1.5rem;
+                        h1 {
+                            display: flex;
+                            flex-flow: row nowrap;
+                            align-items: center;
 
-                form {
-                    display: flex;
-                    flex-flow: column nowrap;
-                    gap: 1.5rem;
+                            font-family: 'FunnelDisplay', sans-serif;
+                            font-size: 1.2rem;
+                            font-weight: 700;
+                            text-wrap: nowrap;
 
-                    min-width: fit-content;
+                            margin-bottom: .25rem;
 
-                    label {
-                        font-family: 'FunnelDisplay', sans-serif;
+                            width: 5.5rem;
 
-                        input {
-                            font-size: 1.5rem;
-                            font-weight: 550;
+                            pointer-events: none;
+                            user-select: none;
+                        }
 
-                            padding: .75rem 1.25rem;
+                        h3 {
+                            max-width: 80%;
+                            margin-top: .5rem;
 
+                            font-family: 'FunnelSans', sans-serif;
+                            font-size: .9rem;
+                            text-wrap-style: pretty;
+                            color: var(--theme-text-secondary);
+                        }
+
+                        input, textarea {
                             width: 100%;
+
+                            background: var(--theme-background-input);
+                            border-radius: var(--theme-border-radius);
+                            border: var(--theme-border-width) solid var(--theme-border-input);
+
+                            font-size: 1.05rem;
+                            font-weight: 600;
+                            caret-shape: underscore;
+                            caret-color: var(--theme-text);
+
+                            user-select: none;
+                            transition: border-color var(--theme-transition-out);
                         }
 
                         textarea {
-                            color: var(--theme-text);
-                            appearance: none;
-                            outline: none;
-                            width: 100%;
-                            field-sizing: content;
-                            min-height: 12rem !important;
-                            max-height: 18rem !important;
-                            scrollbar-width: thin;
-                            scrollbar-gutter: stable;
-                            scroll-behavior: smooth;
-                            scrollbar-color: var(--theme-text-accent) transparent;
+                            min-height: 6rem;
+                            height: fit-content;
+                            max-height: 22rem;
+
                             resize: none;
+                        }
+
+                        input::selection {
+                            color: #0D0D0D;
+                            background: var(--theme-text-accent);
+                        }
+
+                        input:focus, textarea:focus {
+                            border-color: var(--theme-border-input-focus);
+                            user-select: text;
+                            transition: border-color var(--theme-transition-in);
+                        }
+                    }
+
+                    .option.readonly {
+                        transition: var(--theme-transition-out);
+
+                        .readonly-container {
+                            display: flex;
+                            flex-flow: row nowrap;
+                            align-items: center;
+
+                            width: 100%;
+
+                            background: var(--theme-background-input);
+                            border-radius: var(--theme-border-radius);
+                            border: var(--theme-border-width) solid var(--theme-border-input);
+
+                            font-size: 1.05rem;
+                            font-weight: 600;
+                            color: var(--theme-text-third);
+
+                            padding: .5rem 1rem .5rem .5rem;
+
+                            transition: var(--theme-transition-out);
+
+                            svg {
+                                margin-right: .25rem;
+
+                                height: 1.25rem;
+                                width: 1.25rem;
+                            }
+                        }
+
+                        .readonly-container:hover, .readonly-container:focus {
+                            border-color: var(--theme-border-input-focus);
+                            color: var(--theme-text-secondary);
+                            transition: border-color var(--theme-transition-in);
+                        }
+
+                        .readonly-container::selection {
+                            color: #141514;
+                            background: var(--theme-text-accent);
+                        }
+                    }
+
+                    .option.toggle {
+                        h1 {
+                            padding-left: 0;
+                        }
+
+                        h3 {
+                            margin-top: 0;
+                        }
+
+                        .top-section {
+                            display: flex;
+                            flex-flow: row nowrap;
+                            justify-content: space-between;
+                            align-items: center;
+
+                            .toggle-container {
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+
+                                width: 4rem;
+                                height: 2rem;
+
+                                background: var(--theme-background-input);
+                                border-radius: 1rem;
+                                border-style: solid;
+                                border-width: var(--theme-border-width);
+
+                                border-color: var(--theme-border-input);
+
+                                cursor: pointer;
+
+                                transition: background 150ms ease;
+
+                                #toggle-slider {
+                                    height: 1.4rem;
+                                    width: 1.4rem;
+
+                                    transform: translateX(-.925rem);
+
+                                    background: #FFFFF2;
+                                    border-radius: 100%;
+
+                                    transition: 100ms;
+                                    transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
+                                }
+                            }
+
+                            .toggle-container.on {
+                                background: var(--theme-text-accent) !important;
+                                border-color: oklch(0.676 0.173 130.222) !important;
+                                filter: drop-shadow(0 0 .4rem rgba(from var(--theme-text-accent) r g b / 15%));
+
+                                #toggle-slider {
+                                    transform: translateX(.925rem);
+                                    filter: drop-shadow(0 0 .6rem rgba(0, 0, 0, 0.4));
+                                }
+                            }
+                        }
+                    }
+
+                    form {
+                        display: flex;
+                        flex-flow: column nowrap;
+                        gap: 1.5rem;
+
+                        min-width: fit-content;
+
+                        label {
+                            font-family: 'FunnelDisplay', sans-serif;
+
+                            input {
+                                font-size: 1.5rem;
+                                font-weight: 550;
+
+                                padding: .75rem 1.25rem;
+
+                                width: 100%;
+                            }
+
+                            textarea {
+                                color: var(--theme-text);
+                                appearance: none;
+                                outline: none;
+                                width: 100%;
+                                field-sizing: content;
+                                min-height: 12rem !important;
+                                max-height: 18rem !important;
+                                scrollbar-width: thin;
+                                scrollbar-gutter: stable;
+                                scroll-behavior: smooth;
+                                scrollbar-color: var(--theme-text-accent) transparent;
+                                resize: none;
+                            }
                         }
                     }
                 }
+            }
+
+            .version-tag {
+                margin-top: .5rem;
+                margin-left: 1rem;
+
+                color:var(--theme-text-third);
+                font-family:'JetBrains Mono', sans-serif;
+                font-weight:700;
+                font-size:.75rem;
+
+                opacity:.25;
+
+                user-select: text;
+                cursor: default;
             }
         }
     }

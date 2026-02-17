@@ -64,6 +64,7 @@ export const mockSettings: GenericSettings = {
                         type: 'text',
                         value: 'Mock',
                         title: 'Mock',
+                        subtitle: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin hendrerit urna non enim gravida, id rhoncus nibh placerat. In varius ligula lacinia, laoreet eros in, tempor lacus.',
                         readonly: false
                     },
                     {

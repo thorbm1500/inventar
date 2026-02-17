@@ -2,8 +2,8 @@
     import {page} from "$app/state";
     import {validate} from "uuid";
     import {error} from "@sveltejs/kit";
-    import type {Inventory, InventoryGeneralSettings, User} from "$lib/server/db/schema";
-    import {getContext, onMount} from "svelte";
+    import type {Inventory, InventoryGeneralSettings} from "$lib/server/db/schema";
+    import {onMount} from "svelte";
     import {getInventory} from "../data.remote";
     import {getGeneralSettings, updateInventoryGeneral} from "./data.remote";
 

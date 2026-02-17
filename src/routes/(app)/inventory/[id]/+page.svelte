@@ -10,7 +10,6 @@
     import Utility from "../../browse/utility";
     import {createItem} from './data.remote.ts';
     import {getCurrencies} from "./data.remote.ts";
-    import { slide } from 'svelte/transition';
 
     const currencies = await getCurrencies();
 

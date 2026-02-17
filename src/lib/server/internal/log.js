@@ -8,6 +8,7 @@ import path from "node:path";
 
 const appNameFromPackageJson = await fs.readFile(path.resolve("./package.json"), "utf-8").then(d => JSON.parse(d).name);
 
+// noinspection JSIgnoredPromiseFromCall
 /**
  * Logging utility class
  *
