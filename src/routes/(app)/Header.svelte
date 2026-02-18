@@ -1,15 +1,13 @@
 <script module>
-    import {page} from "$app/state";
-    import {getContext, onMount} from 'svelte';
     import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
 </script>
-
 <script lang="ts">
+    import {page} from "$app/state";
+    import {getContext, onMount} from 'svelte';
     import type {User} from "$lib/server/db/schema";
     import tippy, {animateFill} from "tippy.js";
 
     let user: User | undefined = $state();
-
     let element: any = undefined;
     let isOnline = $state(true);
     let isDark = $state(true);
@@ -17,8 +15,8 @@
     onMount(() => user = getContext('user'));
 
     onMount(async () => {
-        element = document.getElementsByTagName('body')[0]
-        isDark = document.getElementsByClassName('dark').length > 0
+        element = document.getElementsByTagName('body')[0];
+        isDark = document.getElementsByClassName('dark').length > 0;
     });
 
     let theme = $derived(isDark ? 'light' : 'dark');

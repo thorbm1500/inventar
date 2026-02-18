@@ -1,12 +1,12 @@
 <script lang="ts">
     import type {User} from "$lib/server/db/schema";
     import {getContext} from "svelte";
-    import { mockSettings } from "\$lib/interfaces";
+    import { defaultInventorySettings } from "$lib/settings";
     import Settings from "$lib/components/Settings.svelte";
 
     let user: User | undefined = $state(getContext('user'));
 
-    let settings = $state(mockSettings);
+    let settings = $state(defaultInventorySettings);
 </script>
 
 <section class="inventory-settings-page">

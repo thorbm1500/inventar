@@ -8,14 +8,14 @@
 
     let user: User = $state(getContext('user'));
 
-    let currentSettingsPage = $state(`${settings.settingCategories[0].name}_${settings.settingCategories[0].SettingSubCategories[0].name}`);
+    let currentSettingsPage = $state(`${settings[0].name}_${settings[0].SettingSubCategories[0].name}`);
     let hasUnsavedChanges = $state(false);
 </script>
 
 <section class="inventory-settings-page">
     <div class="sidebar">
         <nav class="inventory-settings-nav">
-            {#each settings.settingCategories as categories }
+            {#each settings as categories }
                 <p class="nav-category">{String(categories.name).toUpperCase()}</p>
                 {#each categories.SettingSubCategories as category}
                     <button class="nav-link {currentSettingsPage===`${categories.name}_${category.name}`?'selected':''}"
@@ -26,7 +26,7 @@
     </div>
     <div class="settings-container">
         <div class="container">
-            {#each settings.settingCategories as categories }
+            {#each settings as categories }
                 {#each categories.SettingSubCategories as category}
                     {#if currentSettingsPage === `${categories.name}_${category.name}`}
                         {#each category.settings as setting}
