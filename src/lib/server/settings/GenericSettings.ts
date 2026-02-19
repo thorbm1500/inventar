@@ -15,10 +15,6 @@ export class GenericSettings {
         this.uuid = uuid;
     }
 
-    hasUnsaved(): boolean {
-        return this.unsavedSettings.size !== 0;
-    }
-
     updateSetting(setting: Setting, value: string | boolean): void {
         let unsaved: UnsavedSetting;
         if (this.unsavedSettings.has(setting)) {
@@ -38,8 +34,12 @@ export class GenericSettings {
         } else this.unsavedSettings.set(setting, unsaved);
     }
 
-    isLoaded(): boolean {
-        return this.settings.length > 0;
+    hasUnsaved(): boolean {
+        return this.unsavedSettings.size !== 0;
+    }
+
+    isLoaded(): void {
+        //todo - Implement
     }
 
     load(): void {

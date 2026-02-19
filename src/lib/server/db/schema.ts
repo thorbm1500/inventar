@@ -15,12 +15,6 @@ export interface Inventory {
     created_at: number
 }
 
-export interface InventoryGeneralSettings {
-    uuid: string,
-    hide_empty_descriptions: boolean,
-    last_update: number
-}
-
 export interface userInventoryPermissions {
     inventory: string,
     user_uuid: string,

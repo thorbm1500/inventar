@@ -21,7 +21,7 @@ export function generateResetToken(): string {
 
 export async function createResetRequest(token: string, uuid: string): Promise<void> {
     const resetToken: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    await db.Auth.setResetToken(uuid, resetToken, Date.now() + 1800000);
+    await db.Auth.setResetToken(uuid, resetToken);
 }
 
 /**
@@ -34,7 +34,7 @@ export async function createSession(token: string, uuid: string): Promise<Sessio
     const session: Session = {
         uuid,
         session_id,
-        expires: new Date(Date.now() + DAY_IN_MS * 7).getTime()
+        expires: 0
     };
     await db.Auth.newSession(session);
 
@@ -58,8 +58,7 @@ export async function validateSessionToken(token: string): Promise<Session | nul
 
     const renewSession: boolean = Date.now() >= (session.expires - DAY_IN_MS * 3);
     if (renewSession) {
-        session.expires = new Date(Date.now() + DAY_IN_MS * 7).getTime();
-        await db.Auth.renewSession(session_id, session.expires);
+        await db.Auth.renewSession(session);
     }
 
     return session;

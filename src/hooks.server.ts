@@ -1,10 +1,10 @@
-import { building } from '$app/environment';
-import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
-import * as auth from '$lib/server/internal/auth';
-import * as db from '$lib/server/db/database'
 import initializeDatabase from '$lib/server/db/index';
-import {env} from "$env/dynamic/private";
 import type {Session, User} from "$lib/server/db/schema";
+import * as auth from '$lib/server/internal/auth';
+import * as db from '$lib/server/db/database';
+import {building} from '$app/environment';
+import {env} from "$env/dynamic/private";
+import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
