@@ -1,7 +1,7 @@
 <script lang="ts">
     import type {Session, User} from "$lib/server/db/interfaces";
     import {getContext} from "svelte";
-    import {getSessions} from "../../routes/(app)/settings/data.remote.ts";
+    import {endSession, getSessions} from "../../routes/(app)/settings/data.remote.ts";
     import moment from "moment";
 
     const user: User = $derived(getContext('user'));
@@ -32,7 +32,7 @@
                 {#if (session?.device === 'Computer')}
                     <div class="session">
                         <div class="icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
                                  stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-devices-2">
                                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                                 <path d="M10 15h-6a1 1 0 0 1 -1 -1v-8a1 1 0 0 1 1 -1h6"/>
@@ -46,13 +46,32 @@
                                 {moment.duration({from: session.last_accessed, to: Date.now()}).minutes() > 5 ? 'Inactive' : 'Active'}
                             </div>
                         </div>
+                        <div class="platform">
+                            <p class="name">{session.platform}</p>
+                            <p class="ip">{session.ip}</p>
+                        </div>
                         <div class="meta">
-                            {session.ip}
                             {#if (session.continent && session.country && session.region)}
-                                {session.continent}, {session.country}, {session.region}
+                                <div class="top">
+                                    {session.continent}, {session.country}
+                                </div>
+                                <div class="bottom">
+                                    {session.region}, {session.city}
+                                </div>
                             {:else}
                                 {session.continent ?? 'Unknown'} {session.country ? `, ${session.country}` : ''} {session.city ? `, ${session.city}` : ''}
                             {/if}
+                        </div>
+                        <div class="timestamps">
+                            <button onclick="{() => endSession(session.session_id)}" title="End Session">End Session</button>
+                            <div class="last_seen">
+                                <p>Last Seen</p>
+                                <p>{moment(session.last_accessed).calendar()}</p>
+                            </div>
+                            <div class="created_at">
+                                <p>Created</p>
+                                <p>{moment(session.created_at).calendar()}</p>
+                            </div>
                         </div>
                     </div>
                 {/if}
@@ -65,18 +84,48 @@
                 {#if (session.device === 'Mobile')}
                     <div class="session">
                         <div class="icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-device-ipad"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 3a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2l12 0" /><path d="M9 18h6" /></svg>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                 stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-device-mobile">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14"/>
+                                <path d="M11 4h2"/>
+                                <path d="M12 17v.01"/>
+                            </svg>
                             <div class="last_active {moment.duration({from: session.last_accessed, to: Date.now()}).minutes() > 5 ? 'inactive' : 'active'}">
                                 {moment.duration({from: session.last_accessed, to: Date.now()}).minutes() > 5 ? 'Inactive' : 'Active'}
                             </div>
                         </div>
+                        <div class="platform">
+                            <p class="name">{session.platform}</p>
+                            <p class="ip">{session.ip}</p>
+                        </div>
                         <div class="meta">
-                            {session.ip}
                             {#if (session.continent && session.country && session.region)}
-                                {session.continent}, {session.country}, {session.region}
+                                <div class="top">
+                                    {session.continent}, {session.country}
+                                </div>
+                                <div class="bottom">
+                                    {session.region}, {session.city}
+                                </div>
                             {:else}
-                                {session.continent ?? 'Unknown'} {session.country ? `, ${session.country}` : ''} {session.city ? `, ${session.city}` : ''}
+                                <div class="top">
+                                    {session.continent ?? 'Unknown'} {session.country ? `, ${session.country}` : ''}
+                                </div>
+                                <div class="bottom">
+                                    {session.region ?? ''} {session.city ? `, ${session.city}` : ''}
+                                </div>
                             {/if}
+                        </div>
+                        <div class="timestamps">
+                            <button onclick="{() => endSession(session.session_id)}" title="End Session">End Session</button>
+                            <div class="last_seen">
+                                <p>Last Seen</p>
+                                <p>{moment(session.last_accessed).calendar()}</p>
+                            </div>
+                            <div class="created_at">
+                                <p>Created</p>
+                                <p>{moment(session.created_at).calendar()}</p>
+                            </div>
                         </div>
                     </div>
                 {/if}
@@ -90,7 +139,7 @@
         display: flex;
         flex-flow: column nowrap;
         align-items: center;
-        justify-content: center;
+        justify-content: stretch;
 
         width: 100%;
         height: fit-content;
@@ -99,6 +148,7 @@
 
         .session-list {
             width: 100%;
+            height: fit-content;
 
             h1 {
                 font-family: 'FunnelDisplay', sans-serif;
@@ -113,19 +163,25 @@
             }
 
             .header-seperator {
-                width: 100%;
+                width: 80%;
                 background: var(--theme-border-container);
                 height: .1rem;
-                border-radius: var(--theme-border-radius);
-                opacity: .5;
-                margin-bottom: .5rem;
+                border-radius: 100%;
+                opacity: .25;
+                margin: .25rem 0 .75rem 0;
+                justify-self: center;
+            }
+
+            .sessions.mobile .session .icon svg {
+                width: 2.4rem;
+                height: 2.4rem;
             }
 
             .sessions {
                 display: flex;
                 flex-flow: column nowrap;
-
                 width: 100%;
+                gap: .75rem;
 
                 .session {
                     display: flex;
@@ -133,6 +189,9 @@
                     justify-content: space-between;
 
                     width: 100%;
+                    height: fit-content;
+
+                    padding: 1.25rem 1.5rem;
 
                     background: var(--theme-background-container);
                     border: var(--theme-border-width) solid var(--theme-border-container);
@@ -146,14 +205,12 @@
                         align-items: center;
                         justify-content: center;
 
-                        height: 5rem;
+                        height: fit-content;
                         width: 5rem;
 
-                        margin: 1rem;
-
                         svg {
-                            width: 100%;
-                            height: 100%;
+                            width: 2.5rem;
+                            height: 2.5rem;
                         }
 
                         .last_active {
@@ -165,7 +222,8 @@
 
                             font-weight: 700;
                             letter-spacing: .05rem;
-                            font-size: .925rem;
+                            font-size: .875rem;
+                            margin-top: .25rem;
 
                             font-family: 'FunnelDisplay', sans-serif;
                         }
@@ -176,8 +234,8 @@
 
                         .last_active.active::before, .last_active.inactive::before {
                             content: '';
-                            height: .5rem;
-                            width: .5rem;
+                            height: .475rem;
+                            width: .475rem;
                             border-radius: 100%;
                             margin-right: .25rem;
                         }
@@ -192,24 +250,91 @@
                         }
                     }
 
+                    .platform {
+                        display: flex;
+                        flex-flow: column nowrap;
+                        align-items: center;
+                        justify-content: center;
+                        align-content: center;
+
+                        margin: 0 1.5rem;
+
+                        font-family: 'FunnelDisplay', sans-serif;
+                        font-size: 1.2rem;
+                        font-weight: 600;
+
+                        .ip {
+                            font-size: .95rem;
+                            color: var(--theme-text-secondary);
+                        }
+                    }
+
                     .meta {
                         display: flex;
+                        flex-flow: column nowrap;
                         align-items: center;
                         justify-content: center;
 
+                        margin: 0 1.5rem;
+
                         width: 100%;
 
-                        font-size: 1.1rem;
+                        .top {
+                            font-family: 'FunnelDisplay', sans-serif;
+                            font-size: 1.1rem;
+                            font-weight: 750;
+                        }
+                        .bottom {
+                            font-weight: 650;
+                            font-family: 'FunnelSans', sans-serif;
+                            font-size: .85rem;
+                            color: var(--theme-text-secondary);
+                        }
+                    }
+
+                    .timestamps {
+                        display: flex;
+                        flex-flow: column nowrap;
+                        align-items: flex-end;
+                        justify-content: center;
+
+                        button {
+                            color: var(--theme-text);
+                            font-family: 'FunnelSans', sans-serif;
+                            font-size: .95rem;
+                            font-weight: 550;
+
+                            cursor: pointer;
+                        }
+
+                        button:hover {
+                            color: var(--theme-text-danger);
+                        }
+
+                        .created_at,.last_seen {
+                            display: flex;
+                            flex-flow: row nowrap;
+                            align-items: flex-start;
+                            justify-content: center;
+                            text-wrap: nowrap;
+
+                            font-family: 'FunnelDisplay', sans-serif;
+                            font-weight: 600;
+
+                            p:first-child {
+                                font-size: .75rem;
+                                color: var(--theme-text-secondary);
+                                text-wrap: nowrap;
+                                margin-right: .15rem;
+                            }
+                            p:last-child {
+                                font-size: .75rem;
+                                color: var(--theme-text-secondary);
+                                text-wrap: nowrap;
+                            }
+                        }
                     }
                 }
-            }
-
-            .sessions.computer {
-
-            }
-
-            .sessions.mobile {
-
             }
         }
     }

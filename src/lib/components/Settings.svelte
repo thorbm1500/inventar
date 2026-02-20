@@ -172,6 +172,10 @@
 
         .settings-container {
             .container {
+                display: flex;
+                justify-content: center;
+                align-content: center;
+
                 width: 58rem;
                 height: fit-content;
                 max-height: 70vh !important;
@@ -181,9 +185,9 @@
                 scrollbar-gutter: stable;
                 scrollbar-width: thin;
                 scrollbar-color: var(--theme-text-accent) transparent;
-                min-height: 20rem;
-                border: .122em solid var(--theme-border-container);
-                border-radius: .65em;
+                min-height: 18rem;
+                border: var(--theme-border-width) solid var(--theme-border-container);
+                border-radius: var(--theme-border-radius);
 
                 background: var(--theme-background-container);
 
