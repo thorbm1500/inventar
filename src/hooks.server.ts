@@ -6,6 +6,8 @@ import {building} from '$app/environment';
 import {env} from "$env/dynamic/private";
 import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
 import utilities from "$lib/server/internal/utilities";
+import cron from "$lib/server/internal/cron";
+
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
@@ -18,6 +20,8 @@ export const init: ServerInit = async (): Promise<void> => {
     if (!building) {
         await initializeDatabase();
     }
+
+    cron.initializeJobs();
 }
 
 const public_paths = [
@@ -70,6 +74,8 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
     const user: User | undefined = await db.Users.getFromUuid(session.uuid);
 
     if (!user) {
+        await db.Auth.invalidateSession(session.session_id);
+        auth.deleteSessionTokenCookie(event);
         return redirect(302, '/login');
     }
 

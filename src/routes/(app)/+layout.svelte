@@ -1,16 +1,15 @@
 <script lang="ts">
     import Header from './Header.svelte';
     import {setContext} from "svelte";
-    import type {User} from "$lib/server/db/schema";
+    import type {User} from "$lib/server/db/interfaces";
     import Toast from "$lib/components/toast.svelte";
-    import {redirect} from "@sveltejs/kit";
 
     let {children, data} = $props();
 
     // svelte-ignore state_referenced_locally
     const user: User = $state(data.user);
 
-    if (!user) redirect(302, '/logout');
+    if (!user) window.location.href = "/logout";
 
     const toastHandler = new Toast();
 
@@ -19,7 +18,7 @@
 </script>
 
 <section class="header">
-    <Header/>
+    <Header />
 </section>
 
 <div class="toasts">

@@ -1,7 +1,7 @@
 <script module lang="ts">
     import {getInventories, getTotalInventoryCount} from './data.remote.ts';
     import Utility from './utility.ts';
-    import type {Inventory} from "$lib/server/db/schema";
+    import type {Inventory} from "$lib/server/db/interfaces";
     import {parseTimestamp} from "$lib/utilities";
 
     /* todo Make inventory fetch async, to allow page loading from cache if there's no connection to the database. */
@@ -17,7 +17,7 @@
 
     let inventoryCount: number = Math.max(await getTotalInventoryCount(), 1);
 
-    let totalPages = Math.max(1,Math.ceil(inventoryCount / 6));
+    let totalPages = Math.max(1, Math.ceil(inventoryCount / 6));
 
     let nameFilter = $state('DEFAULT');
     let itemsFilter = $state('DEFAULT');
@@ -290,7 +290,7 @@
                     height: 36rem;
                     gap: .35em;
 
-                    span,a {
+                    span, a {
                         font-size: 1.05rem;
                     }
 

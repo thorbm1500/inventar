@@ -1,12 +1,10 @@
 <script lang="ts">
-    import type { PageProps } from './$types';
-    import {getContext} from "svelte";
+    import type {PageProps} from './$types';
     import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
-    import type {User} from "$lib/server/db/schema";
+    import type {User} from "$lib/server/db/interfaces";
 
-    let { data }: PageProps = $props();
+    let {data}: PageProps = $props();
 
-    const user: User = getContext('user');
     const userProfile: User = data.user;
 </script>
 

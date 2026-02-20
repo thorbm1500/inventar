@@ -4,9 +4,8 @@ import {sha256} from '@oslojs/crypto/sha2';
 import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
 import * as db from "$lib/server/db/database";
 import type {Session} from "$lib/server/db/interfaces";
-import {formatString, DAY_IN_MS} from '$lib/utilities';
+import {DAY_IN_MS} from '$lib/utilities';
 import {EMAIL_REGEX} from "valibot";
-import Log from "$lib/server/internal/log";
 import utilities from "$lib/server/internal/utilities";
 import {Auth} from "$lib/server/db/database";
 
@@ -71,7 +70,7 @@ export async function validateSessionToken(token: string, event: RequestEvent): 
     }
 
     await Auth.updateLastAccess(session_id);
-    await ensureSessionInformation(session_id,event);
+    await ensureSessionInformation(session_id, event);
 
     return session;
 }

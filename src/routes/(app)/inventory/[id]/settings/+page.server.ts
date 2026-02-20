@@ -1,11 +1,10 @@
 import type { PageServerLoad } from './$types';
-import type {Inventory} from "$lib/server/db/schema";
-import {validate} from "uuid";
+import type {Inventory} from "$lib/server/db/interfaces";
 import {error} from "@sveltejs/kit";
 import {getInventory} from "../data.remote";
 
 export const load: PageServerLoad = async ({ params }): Promise<{inventory: Inventory}> => {
-    if (!params.id || !validate(params.id)) {
+    if (!params.id) {
         error(404, 'Inventory ID is required!');
     }
 

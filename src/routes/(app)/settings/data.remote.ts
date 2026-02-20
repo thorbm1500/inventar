@@ -18,7 +18,7 @@ export const accountSettings = form(
     });
 
 export const getSessions = query(v.string(), async (id: string): Promise<Session[]> => {
-    return await Auth.getSessions(id);
+    return Auth.getSessions(id);
 });
 
 export const endSession = query(v.string(), async (session_id: string): Promise<void> => {

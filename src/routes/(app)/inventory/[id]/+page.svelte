@@ -21,7 +21,7 @@
     import type {PageProps} from './$types';
     import {getContext, onMount} from "svelte";
     import {page} from "$app/state";
-    import type {Inventory, Item, User} from "$lib/server/db/schema";
+    import type {Inventory, Item, User} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/utilities'
     import FilterSettings from "./utilities.svelte.ts";
     import {getItems, getTotalItemCount} from './data.remote.ts';

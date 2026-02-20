@@ -2,9 +2,6 @@
     let { children } = $props();
 </script>
 
-<svelte:head>
-</svelte:head>
-
 <section class="main-container">
     {@render children()}
 </section>

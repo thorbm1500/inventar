@@ -59,7 +59,7 @@
 
             svg {
                 justify-self: center;
-                max-width: clamp(22rem, 26rem,75vw);
+                max-width: clamp(22rem, 26rem, 75vw);
                 height: auto;
                 margin: 0;
             }

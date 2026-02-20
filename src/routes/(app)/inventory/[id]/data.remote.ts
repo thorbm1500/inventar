@@ -2,8 +2,8 @@ import {redirect} from '@sveltejs/kit';
 import {command, form, query} from '$app/server';
 import * as db from '$lib/server/db/database'
 import * as v from 'valibot';
-import util from "$lib/server/internal/utilities.ts";
-import type {Inventory, Item} from "$lib/server/db/schema";
+import util from "$lib/server/internal/utilities";
+import type {Inventory, Item} from "$lib/server/db/interfaces";
 import {promises as fs} from "fs";
 import Log from "$lib/server/internal/log";
 
@@ -90,7 +90,8 @@ export const createItem = form(
 export const updatePrimaryIvnentory = command(
     v.object({
         user: v.pipe(v.string(), v.nonEmpty()),
-        inventory: v.optional(v.string(), undefined)}),
+        inventory: v.optional(v.string(), undefined)
+    }),
     async ({user, inventory}) => {
         await db.Users.setPrimaryInventory(user, inventory ?? null);
     });

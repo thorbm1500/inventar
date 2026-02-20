@@ -50,8 +50,6 @@ function extractHeaderData(header: string | null, options?: HeaderExtractionOpti
     let platform;
 
     if (header) {
-        Log.debug(`Extracting data from header: ${header}`);
-
         if (!options || options.device) {
             if (MOBILE_REGEX.test(header)) device = 'Mobile';
             else if (COMPUTER_REGEX.test(header)) device = 'Computer';
@@ -67,16 +65,12 @@ function extractHeaderData(header: string | null, options?: HeaderExtractionOpti
             else if (IPAD_REGEX.test(header)) platform = 'iPad';
             else if (MAC_REGEX.test(header)) platform = 'MacOS';
         }
-
-        Log.debug(`Extraction complete. Device: ${device}. Platform: ${platform}.`);
-    } else {
-        Log.debug(`Skipping data extraction. No header provided.`);
     }
     return {device, platform};
 }
 
 async function handleSessionInformation(session_id: string, event: RequestEvent): Promise<void> {
-    if (!await Auth.isSessionInformationMissing(session_id)) return;
+    if (!(await Auth.isSessionInformationMissing(session_id))) return;
 
     get(`http://ip-api.com/json/${event.getClientAddress() === '::1' ? '' : event.getClientAddress()}?fields=1056793`,(res: IncomingMessage): void => {
         res.setEncoding('utf8');

@@ -1,13 +1,11 @@
-<script module>
-    import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
-</script>
 <script lang="ts">
     import {page} from "$app/state";
     import {getContext, onMount} from 'svelte';
-    import type {User} from "$lib/server/db/schema";
+    import type {User} from "$lib/server/db/interfaces";
     import tippy, {animateFill} from "tippy.js";
+    import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
 
-    let user: User = $state(getContext('user'));
+    let user: User = $derived(getContext('user'));
     let element: any = undefined;
     let isOnline = $state(true);
     let isDark = $state(true);
