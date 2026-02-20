@@ -3,10 +3,13 @@
     import {setContext} from "svelte";
     import type {User} from "$lib/server/db/schema";
     import Toast from "$lib/components/toast.svelte";
+    import {redirect} from "@sveltejs/kit";
 
     let {children, data} = $props();
 
     const user: User = $state(data.user);
+
+    if (!user) redirect(302, '/logout');
 
     const toastHandler = new Toast();
 

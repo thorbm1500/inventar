@@ -5,7 +5,6 @@ import * as db from '$lib/server/db/database';
 import {building} from '$app/environment';
 import {env} from "$env/dynamic/private";
 import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
-
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
@@ -47,6 +46,7 @@ const handleAuth: Handle = async ({event, resolve}) => {
     const session: Session | null = await auth.validateSessionToken(sessionToken);
 
     if (!session) {
+        auth.deleteSessionTokenCookie(event);
         return redirect(302, '/login');
     }
 
@@ -69,6 +69,7 @@ const handleAuth: Handle = async ({event, resolve}) => {
     }
 
     if (!event.locals.user) event.locals.user = user;
+    if (!event.locals.uuid) event.locals.uuid = user.uuid;
     event.locals.session_id = session.session_id;
 
     return resolve(event);

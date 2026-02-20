@@ -1,13 +1,11 @@
 <script lang="ts">
     import {getContext} from "svelte";
-    import {error, redirect} from "@sveltejs/kit";
+    import {redirect} from "@sveltejs/kit";
     import type { User } from "\$lib/server/db/schema";
     import tippy, {animateFill} from "tippy.js";
 
-    const user: User | undefined = getContext('user');
-    if (!user) {
-        error(500, 'Failed to load user!');
-    } else if (user.primary_inventory && user.primary_inventory !== '') {
+    const user: User = getContext('user');
+    if (user.primary_inventory && user.primary_inventory !== '') {
         redirect(302, `/inventory/${user.primary_inventory}`);
     }
 

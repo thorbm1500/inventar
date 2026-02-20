@@ -5,6 +5,9 @@ import mysql, {type Pool, type RowDataPacket} from 'mysql2/promise';
 import type {Currency, Inventory, Item, ResetRequest, Session, User} from "$lib/server/db/schema";
 import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
+import {UserSettings} from "$lib/components/settings/UserSettings";
+import {set} from "valibot";
+import type {Setting} from "$lib/settings";
 
 const connection: Pool = mysql.createPool({
     host: env.DB_HOST,
@@ -19,25 +22,7 @@ const connection: Pool = mysql.createPool({
 /**
  * todo
  */
-async function isConnected(): Promise<boolean> {
-    if (!connection) return false;
-    else if (connection.state === 'connected') return true;
-
-    await connection.connect();
-
-    // @ts-ignore
-    return connection.state === 'connected' || connection.state === 'authenticated';
-}
-
-/**
- * todo
- */
 export async function initializeDatabase(): Promise<void> {
-    if (!await isConnected()) {
-        Log.error(`Unable to connect to the database! Skipping database initialization...`);
-        return;
-    }
-
     Log.info(`Initializing database...`);
     const startTime: number = Date.now();
 
@@ -141,7 +126,7 @@ async function ensureTables(): Promise<void> {
                                 edit_users       TINYINT(1) DEFAULT 0 NOT NULL,
                                 remove_users     TINYINT(1) DEFAULT 0 NOT NULL,
                                 view_audit       TINYINT(1) DEFAULT 0 NOT NULL,
-                                PRIMARY KEY (inventory, user_uuid),
+                                PRIMARY KEY (inventory, user),
                                 CONSTRAINT fk_inventory
                                     FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                                         ON DELETE CASCADE,
@@ -317,11 +302,6 @@ async function ensureDefaultValues(): Promise<void> {
  * todo
  */
 export async function getCurrencies(): Promise<Currency[]> {
-    if (!await isConnected()) {
-        Log.error(`getCurrencies: Unable to connect to the database! Ignoring database request...`);
-        return [];
-    }
-
     const [result] = await connection.query(`SELECT *
                                              FROM currencies
                                              ORDER BY code ASC`)
@@ -345,11 +325,6 @@ export class Inventories {
      * @return The UUID of the new inventory, or undefined if any errors occurred.
      */
     static async create(owner: string, name: string, description?: string): Promise<Inventory | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Inventories#create: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         const uuid: string = uuidv7();
 
         await connection.execute(`INSERT INTO inventories(uuid, owner, name, description)
@@ -376,11 +351,6 @@ export class Inventories {
      * @param offset
      */
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<Inventory[]> {
-        if (!await isConnected()) {
-            Log.error(`Inventories#fetch: Unable to connect to the database! Ignoring database request...`);
-            return [];
-        }
-
         const [inventories] = await connection.query(`SELECT uuid,
                                                              owner,
                                                              name,
@@ -424,11 +394,6 @@ export class Inventories {
      * todo
      */
     static async fetchTotalInventoryCount(): Promise<number> {
-        if (!await isConnected()) {
-            Log.error(`Inventories#fetchTotalInventoryCount: Unable to connect to the database! Ignoring database request...`);
-            return 0;
-        }
-
         const [result] = await connection.query(`SELECT COUNT(uuid) AS amount
                                                  FROM inventories`)
             .catch((err: Error): [] => {
@@ -444,11 +409,6 @@ export class Inventories {
      * @param uuid
      */
     static async fetchInventoryByUuid(uuid: string): Promise<Inventory | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Inventories#fetchInventoryByUuid: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         if (!validate(uuid)) {
             Log.error(`Inventories#fetchInventoryByUuid: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return undefined;
@@ -456,7 +416,8 @@ export class Inventories {
 
         const [result] = await connection.execute(`SELECT *
                                                    FROM inventories
-                                                   WHERE uuid = ?`, [uuid])
+                                                   WHERE uuid = ?
+                                                   LIMIT 1`, [uuid])
             .catch((err: Error): [] => {
                 Log.error(`Inventories#fetchInventoryByUuid[0]: Database request failed. ${err.name}`, err)
                 return [];
@@ -481,11 +442,6 @@ export class Items {
      */
     static async create(created_by: string, inventory: string, name: string, description?: string, amount: number = 0, image?: string,
                         url?: string, price: number = 0, currency: string = 'DKK'): Promise<Item | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Items#create: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         const uuid: string = uuidv7();
 
         await connection.execute(`INSERT INTO items (uuid, created_by, inventory, name, description, amount, image, url, price, currency)
@@ -513,11 +469,6 @@ export class Items {
      * @param offset
      */
     static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<Item[]> {
-        if (!await isConnected()) {
-            Log.error(`Items#fetch: Unable to connect to the database! Ignoring database request...`);
-            return [];
-        }
-
         const [result] = await connection.execute(`
             SELECT items.uuid        as uuid,
                    items.inventory   as inventory,
@@ -548,11 +499,6 @@ export class Items {
      * @param inventory
      */
     static async fetchTotalItemCount(inventory: string): Promise<number> {
-        if (!await isConnected()) {
-            Log.error(`Items#fetchTotalItemCount: Unable to connect to the database! Ignoring database request...`);
-            return 0;
-        }
-
         const [result] = await connection.execute(`SELECT COUNT(uuid) AS amount
                                                    FROM items
                                                    WHERE inventory = ?`, [inventory])
@@ -569,11 +515,6 @@ export class Items {
      * @param uuid
      */
     static async deleteItem(uuid: string): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Items#deleteItem: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         if (!validate(uuid)) {
             Log.error(`Items#deleteItem: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return undefined;
@@ -598,11 +539,6 @@ export class Users {
      * @param superuser If the user should have administrator rights.
      */
     static async create(email: string, username: string, password_hash: string, superuser: boolean = false): Promise<User | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Users#create: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         const uuid: string = uuidv7();
 
         await connection.execute(`INSERT INTO users (uuid, email, username, password_hash, superuser)
@@ -626,11 +562,6 @@ export class Users {
      * @param uuid
      */
     static async getFromUuid(uuid: string): Promise<User | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Users#getFromUuid: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         if (!validate(uuid)) {
             Log.error(`Users#getFromUuid: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return undefined;
@@ -652,11 +583,6 @@ export class Users {
      * @param email
      */
     static async getFromEmail(email: string): Promise<User | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Users#getFromEmail: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         const [result] = await connection.execute(`SELECT *
                                                    FROM users
                                                    WHERE email = ?`, [email])
@@ -673,11 +599,6 @@ export class Users {
      * @param uuid
      */
     static async getPasswordHash(uuid: string): Promise<string> {
-        if (!await isConnected()) {
-            Log.error(`Users#getPasswordHash: Unable to connect to the database! Ignoring database request...`);
-            return '';
-        }
-
         if (!validate(uuid)) {
             Log.error(`Users#getPasswordHash: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return '';
@@ -700,11 +621,6 @@ export class Users {
      * @param passwordHash
      */
     static async setPasswordHash(uuid: string, passwordHash: string): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Users#setPasswordHash: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         if (!validate(uuid)) {
             Log.error(`Users#setPasswordHash: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return;
@@ -721,11 +637,6 @@ export class Users {
      * @param uuid
      */
     static async updateLastLogin(uuid: string): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Users#updateLastLogin: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         if (!validate(uuid)) {
             Log.error(`Users#updateLastLogin: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return;
@@ -741,11 +652,6 @@ export class Users {
      * todo
      */
     static async getUserAmount(): Promise<number> {
-        if (!await isConnected()) {
-            Log.error(`Users#getUserAmount: Unable to connect to the database! Ignoring database request...`);
-            return -1;
-        }
-
         const [result] = await connection.query(`SELECT count(uuid) as amount
                                                  FROM users`)
             .catch((err: Error): [] => {
@@ -762,11 +668,6 @@ export class Users {
      * @param inventory
      */
     static async setPrimaryInventory(uuid: string, inventory: string | null): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Users#setPrimaryInventory: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         if (!validate(uuid)) {
             Log.error(`Users#setPrimaryInventory: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return;
@@ -776,6 +677,22 @@ export class Users {
                                   SET primary_inventory = ?
                                   WHERE uuid = ?`, [inventory, uuid])
             .catch((err: Error): void => Log.error(`Users#setPrimaryInventory[0]: Database request failed. ${err.name}`, err));
+    }
+
+    static async getSettings(uuid: string): Promise<UserSettings> {
+        const settings: UserSettings = new UserSettings(uuid);
+
+        const [setting] = await connection.execute(`SELECT *
+                                                    FROM user_settings
+                                                    WHERE uuid = ?`, [uuid])
+            .catch((err: Error): [] => {
+                Log.error(`Users#getSettings[2]: Database request failed. ${err.name}`, err);
+                return [];
+            });
+
+        settings.load(setting as Setting[]);
+
+        return settings;
     }
 }
 
@@ -788,11 +705,6 @@ export class Auth {
      * @param session Session to cache.
      */
     static async newSession(session: Session): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Auth#newSession: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         await connection.execute(`INSERT INTO sessions (uuid, session_id)
                                   VALUES (?, ?)
                                   ON DUPLICATE KEY UPDATE session_id = ?,
@@ -808,11 +720,6 @@ export class Auth {
      * @param session_id Id of session to retrieve.
      */
     static async getSession(session_id: string): Promise<Session | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Auth#getSession: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         const [result] = await connection.execute(`SELECT *
                                                    FROM sessions
                                                    WHERE session_id = ?`, [session_id])
@@ -833,11 +740,6 @@ export class Auth {
      * @param session The session to renew.
      */
     static async renewSession(session: Session): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Auth#renewSession: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         await connection.execute(`UPDATE sessions
                                   SET expires = (ADDTIME(CURRENT_TIMESTAMP, "7 0:0"))
                                   WHERE session_id = ?`, [session.session_id])
@@ -851,11 +753,6 @@ export class Auth {
      * @param session_id Id of session to invalidate.
      */
     static async invalidateSession(session_id: string): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Auth#invalidateSession: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         await connection.execute(`DELETE
                                   FROM sessions
                                   WHERE session_id = ?`, [session_id])
@@ -867,14 +764,9 @@ export class Auth {
      * @param session_id
      */
     static async getSessionExpiration(session_id: string): Promise<number> {
-        if (!await isConnected()) {
-            Log.error(`Auth#getSessionExpiration: Unable to connect to the database! Ignoring database request...`);
-            return -1;
-        }
-
         const [results] = await connection.execute(`SELECT expires
-                                                   FROM sessions
-                                                   WHERE session_id = ?`, [session_id])
+                                                    FROM sessions
+                                                    WHERE session_id = ?`, [session_id])
             .catch((err: Error): [] => {
                 Log.error(`Auth#getSessionExpiration[0]: Database request failed. ${err.name}`, err);
                 return [];
@@ -890,11 +782,6 @@ export class Auth {
      * @param token
      */
     static async getResetRequest(token: string): Promise<ResetRequest | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Auth#getResetRequest: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         const [result] = await connection.execute(`SELECT *
                                                    FROM reset_tokens
                                                    WHERE token = ?`, [token])
@@ -911,11 +798,6 @@ export class Auth {
      * @param uuid
      */
     static async getResetRequestFromUuid(uuid: string): Promise<ResetRequest | undefined> {
-        if (!await isConnected()) {
-            Log.error(`Auth#getResetRequestFromUuid: Unable to connect to the database! Ignoring database request...`);
-            return undefined;
-        }
-
         if (!validate(uuid)) {
             Log.error(`Auth#getResetRequestFromUuid: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return undefined;
@@ -938,11 +820,6 @@ export class Auth {
      * @param token
      */
     static async setResetToken(uuid: string, token: string): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Auth#setResetToken: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         if (!validate(uuid)) {
             Log.error(`Auth#setResetToken: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return undefined;
@@ -960,11 +837,6 @@ export class Auth {
      * @param token
      */
     static async deleteResetToken(token: string): Promise<void> {
-        if (!await isConnected()) {
-            Log.error(`Auth#deleteResetToken: Unable to connect to the database! Ignoring database request...`);
-            return;
-        }
-
         await connection.execute(`DELETE
                                   FROM reset_tokens
                                   WHERE token = ?`, [token])

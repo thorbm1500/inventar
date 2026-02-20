@@ -1,28 +1,13 @@
-<script module>
-    import {page} from "$app/state";
-    import {validate} from "uuid";
-    import {error} from "@sveltejs/kit";
-    import {getContext} from "svelte";
-    import {getUser} from "./data.remote.ts";
-    import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
-</script>
-
 <script lang="ts">
+    import type { PageProps } from './$types';
+    import {getContext} from "svelte";
+    import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
     import type {User} from "$lib/server/db/schema";
 
-    if (!page.params.id || !validate(page.params.id)) {
-        error(404, 'Account ID is required!');
-    }
+    let { data }: PageProps = $props();
 
-    const userProfile: User | undefined = await getUser(page.params.id);
-
-    if (!userProfile) {
-        error(500, 'Failed to load user profile!');
-    }
-
-    const user = getContext('user');
-
-    console.log(userProfile.created_at)
+    const user: User = getContext('user');
+    const userProfile: User = data.user;
 </script>
 
 <section class="profile-page-content">

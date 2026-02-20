@@ -1,5 +1,10 @@
-import {form} from "$app/server";
+import {form, query} from "$app/server";
 import * as v from 'valibot';
+import {Users} from "$lib/server/db/database";
+
+export const getSettings = query(v.string(), async (id: string): Promise<Object> => {
+    return structuredClone(await Users.getSettings(id));
+});
 
 export const accountSettings = form(
     v.object({

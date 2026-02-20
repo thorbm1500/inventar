@@ -72,14 +72,16 @@ export function setSessionTokenCookie(token: string, expires: number, event: Req
     expiration.setTime(expires);
     cookies.set(sessionCookieName, token, {
         expires: expiration,
-        path: '/'
+        path: '/',
+        secure: false
     });
 }
 
 export function deleteSessionTokenCookie(event: RequestEvent | undefined = undefined): void {
     const cookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
     cookies.delete(sessionCookieName, {
-        path: '/'
+        path: '/',
+        secure: false
     });
 }
 

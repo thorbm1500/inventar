@@ -1,4 +1,4 @@
-import {GenericSettings} from "$lib/server/settings/GenericSettings";
+import {GenericSettings} from "$lib/components/settings/GenericSettings";
 
 export class InventorySettings extends GenericSettings {
 

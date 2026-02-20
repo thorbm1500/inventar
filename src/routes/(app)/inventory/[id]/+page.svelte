@@ -1,18 +1,4 @@
 <script module lang="ts">
-    import {getContext, onMount} from "svelte";
-    import {error} from '@sveltejs/kit';
-    import {page} from "$app/state";
-    import {validate} from 'uuid';
-    import type {Inventory, Item, User} from "$lib/server/db/schema";
-    import {parseTimestamp} from '$lib/utilities'
-    import FilterSettings from "./utilities.svelte.ts";
-    import {getInventory, getItems, getTotalItemCount} from './data.remote.ts';
-    import Utility from "../../browse/utility";
-    import {createItem} from './data.remote.ts';
-    import {getCurrencies} from "./data.remote.ts";
-
-    const currencies = await getCurrencies();
-
     const imageModules = import.meta.glob('$lib/assets/uploads/item-images/*.{avif,gif,heif,jpeg,jpg,png,tiff,webp}',
         {
             eager: false,
@@ -32,36 +18,29 @@
 </script>
 
 <script lang="ts">
+    import type { PageProps } from './$types';
+    import {getContext, onMount} from "svelte";
+    import {page} from "$app/state";
+    import type {Inventory, Item, User} from "$lib/server/db/schema";
+    import {parseTimestamp} from '$lib/utilities'
+    import FilterSettings from "./utilities.svelte.ts";
+    import {getItems, getTotalItemCount} from './data.remote.ts';
+    import Utility from "../../browse/utility";
+    import {createItem} from './data.remote.ts';
     import {deleteItem, updatePrimaryIvnentory} from "./data.remote";
 
-    if (!page.params.id || !validate(page.params.id)) {
-        error(404, 'Inventory ID is required!');
-    }
+    let { data }: PageProps = $props();
 
-    const id: string = String(page.params.id);
-
-    const user: User | undefined = $state(getContext('user'));
-    if (!user) error(500, 'Failed to fetch user information.');
+    const user: User = $state(getContext('user'));
 
     let addItemHover = $state(false);
 
     //todo: Add option to save filters, and make them persistent for the user.
     const filterSettings: FilterSettings = new FilterSettings();
 
-    let inventory: Inventory | undefined = $state();
-    let itemCount: number = $state(0);
-    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filterSettings.columnSize) ?? 1));
-    let items: Item[] = $state([]);
+    let inventory: Inventory = $state(data.inventory);
 
     onMount(async () => {
-        const rawInventory = await getInventory(id);
-        if (!rawInventory) error(404, 'Failed to find inventory!');
-        inventory = rawInventory;
-
-        itemCount = await getTotalItemCount(id);
-        // const userFilterSettings = getUserFilterSettings();
-        // filterSettings.load(userFilterSettings); Set filter settings loaded from user data.
-
         document.getElementById('create-item-button')?.addEventListener('mouseover', () => addItemHover = true);
         document.getElementById('create-item-button')?.addEventListener('mouseout', () => addItemHover = false);
     })
@@ -74,36 +53,35 @@
     let order = $state('');
     let currentPage = $state(1);
 
-    await refresh();
-
     let nameFilter = $state('DEFAULT');
     let lastUpdateFilter = $state('DEFAULT');
     let priceFilter = $state('DEFAULT');
     let itemsFilter = $state('DEFAULT');
 
+    let offset = $derived(filterSettings.columnSize * (currentPage - 1));
+
+    //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
+    let items: Item[] = $derived(await getItems({inventory: inventory.uuid, amount: filterSettings.columnSize, order_by, order, offset}));
+    let itemCount: number = $derived(await getTotalItemCount(inventory.uuid));
+    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filterSettings.columnSize) ?? 1));
+
     async function goToFirstPage() {
         currentPage = 1;
-        await refresh();
     }
 
     async function goToLastPage() {
         currentPage = totalPages;
-        await refresh();
     }
 
     async function updatePage(pageChange: number = 0) {
         currentPage += pageChange;
-        await refresh();
+        if (currentPage < 1) currentPage = 1;
+        else if (currentPage > totalPages) currentPage = totalPages;
     }
 
-    async function refresh(force = false) {
-        const offset = filterSettings.columnSize * (currentPage - 1);
-
-        if (force) await getItems({inventory: id, amount: filterSettings.columnSize, order_by, order, offset}).refresh();
-        else {
-            const newItems: Item[] = await getItems({inventory: id, amount: filterSettings.columnSize, order_by, order, offset});
-            items = newItems;
-        }
+    async function refresh() {
+        await getTotalItemCount(inventory.uuid).refresh();
+        await getItems({inventory: inventory.uuid, amount: filterSettings.columnSize, order_by, order, offset}).refresh();
     }
 
     async function updateFilter(filter: string, current: string) {
@@ -150,8 +128,6 @@
                 itemsFilter = 'DEFAULT';
             }
         }
-
-        await refresh();
     }
 
     function getNextState(currentState: string) {
@@ -166,13 +142,6 @@
     }
 </script>
 
-<!-- todo - Convert to new toasts
-{#if createItem.result && createItem.result.success }
-{/if}
-
-{#if createItem.result && !createItem.result.success }
-{/if}-->
-
 <div class="page-content">
     <div class="body-section">
         <section class="inventory-outer-section">
@@ -180,12 +149,12 @@
                 <section class="inventory-header-section">
                     <div class="inventory-header-content">
                         <div class="inventory-name">
-                            <h1>{inventory ? inventory.name : 'Loading'}</h1>
+                            <h1>{inventory.name}</h1>
                             <button class="primary-inventory-bookmark-icon" onclick="{() =>{
-                                updatePrimaryIvnentory({user:user.uuid,inventory:user.primary_inventory === id ? undefined : id});
-                                user.primary_inventory = user.primary_inventory === id ? '' : id;
+                                updatePrimaryIvnentory({user:user.uuid,inventory:user.primary_inventory === inventory.uuid ? undefined : inventory.uuid});
+                                user.primary_inventory = user.primary_inventory === inventory.uuid ? '' : inventory.uuid;
                             }}">
-                                {#if user.primary_inventory === id }
+                                {#if user.primary_inventory === inventory.uuid }
                                     <svg style="color:var(--theme-text-accent);" width="24" height="24" viewBox="0 0 24 24">
                                         <path fill="currentColor" fill-rule="evenodd" d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6" clip-rule="evenodd"/>
                                     </svg>
@@ -240,7 +209,7 @@
                                           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
                                 </svg>
                             </button>
-                            <button id="inventory-settings-button" class="inventory-settings-button" title="Settings" onclick="{() => window.location.href=`/inventory/${id}/settings`}">
+                            <button id="inventory-settings-button" class="inventory-settings-button" title="Settings" onclick="{() => window.location.href=`/inventory/${inventory.uuid}/settings`}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
@@ -380,7 +349,7 @@
                                     <div class="price-section-input" style="margin-left:.75rem;">
                                         <h1>Currency</h1>
                                         <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')}>
-                                            {#each currencies as currency}
+                                            {#each data.currencies as currency}
                                                 {#if (currency.code === 'DKK')}
                                                     <option selected id="{currency.code}" value="{currency.code}">{currency.code}</option>
                                                 {:else}

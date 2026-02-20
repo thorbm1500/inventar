@@ -69,7 +69,7 @@ import {register} from "../data.remote";
 
             svg {
                 justify-self: center;
-                max-width: 26rem;
+                max-width: clamp(22rem, 26rem,75vw);
                 height: auto;
                 margin: 0;
             }

@@ -1,13 +1,10 @@
 import type { PageServerLoad } from './$types';
+import type {Inventory} from "$lib/server/db/schema";
 import {validate} from "uuid";
 import {error} from "@sveltejs/kit";
-import {getInventory} from "./data.remote";
-import type {Currency, Inventory} from "$lib/server/db/schema";
-import {getCurrencies} from "$lib/server/db/database";
+import {getInventory} from "../data.remote";
 
-export const ssr = false;
-
-export const load: PageServerLoad = async ({ params }): Promise<{inventory: Inventory, currencies: Currency[]}> => {
+export const load: PageServerLoad = async ({ params }): Promise<{inventory: Inventory}> => {
     if (!params.id || !validate(params.id)) {
         error(404, 'Inventory ID is required!');
     }
@@ -16,7 +13,6 @@ export const load: PageServerLoad = async ({ params }): Promise<{inventory: Inve
     if (inventory === undefined) error(404, {message: 'Failed to find inventory!'});
 
     return {
-        inventory,
-        currencies: await getCurrencies()
+        inventory
     };
 };

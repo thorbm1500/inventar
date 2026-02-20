@@ -109,6 +109,7 @@ export const login = form(
         });
 
         if (!validPassword) {
+            Log.warn(`Failed login attempt for '${email}'`);
             return {success: false, message: 'Incorrect username or password'};
         }
 

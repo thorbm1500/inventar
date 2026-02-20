@@ -9,6 +9,7 @@ export class GenericSettings {
 
     readonly uuid: string;
     settings: Setting[] = [];
+    categories: Map<string,Map<string,string[]>> = new Map();
     unsavedSettings: Map<Setting, UnsavedSetting> = new Map();
 
     constructor(uuid: string) {
@@ -42,8 +43,15 @@ export class GenericSettings {
         //todo - Implement
     }
 
-    load(): void {
-        throw new Error(`[GenericSettings] Loading has not been implemented by child class.`);
+    load(settings: Setting[]): void {
+        //todo: optimize
+        this.categories.clear();
+        this.settings = settings;
+
+        for(const setting of settings) {
+            if (!this.categories.has(setting.category)) this.categories.set(setting.category,new Map());
+            if (!this.categories.get(setting.category)?.has(setting.subcategory)) this.categories.get(setting.category)?.set(setting.subcategory, []);
+        }
     }
 
     save(): void {

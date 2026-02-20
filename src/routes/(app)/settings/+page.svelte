@@ -1,20 +1,13 @@
 <script lang="ts">
-    import type {User} from "$lib/server/db/schema";
-    import {getContext} from "svelte";
-    import { defaultInventorySettings } from "$lib/settings";
     import Settings from "$lib/components/Settings.svelte";
-
-    let user: User | undefined = $state(getContext('user'));
-
-    let settings = $state(defaultInventorySettings);
 </script>
 
-<section class="inventory-settings-page">
-    <Settings bind:settings={settings} />
+<section class="user-settings-page">
+    <Settings />
 </section>
 
 <style>
-    .inventory-settings-page {
+    .user-settings-page {
         display: flex;
         flex-flow: row nowrap;
         align-items: flex-start;

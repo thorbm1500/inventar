@@ -1,83 +1,90 @@
 <script lang="ts">
-    import {accountSettings} from "../../routes/(app)/settings/data.remote";
+    import {accountSettings, getSettings} from "../../routes/(app)/settings/data.remote";
     import type {User} from "$lib/server/db/schema";
     import {getContext} from "svelte";
-    import {updateInventoryGeneral} from "../../routes/(app)/inventory/[id]/settings/data.remote";
+    import type {UserSettings} from "$lib/components/settings/UserSettings";
 
-    let {settings = $bindable()} = $props();
+    const user: User = $state(getContext('user'));
 
-    let user: User = $state(getContext('user'));
+    let settings: UserSettings = $derived(await getSettings(user.uuid) as UserSettings);
+    let currentCategory = $state(settings?.categories?.keys().toArray()[0] ?? '');
+    let currentSubcategory = $state(settings?.categories?.get(currentCategory)?.keys().toArray()[0] ?? '');
 
-    let currentSettingsPage = $state(`${settings[0].name}_${settings[0].SettingSubCategories[0].name}`);
     let hasUnsavedChanges = $state(false);
 </script>
 
 <section class="inventory-settings-page">
     <div class="sidebar">
         <nav class="inventory-settings-nav">
-            {#each settings as categories }
-                <p class="nav-category">{String(categories.name).toUpperCase()}</p>
-                {#each categories.SettingSubCategories as category}
-                    <button class="nav-link {currentSettingsPage===`${categories.name}_${category.name}`?'selected':''}"
-                            onclick="{() => currentSettingsPage = `${categories.name}_${category.name}`}">{category.name}</button>
+            {#each settings.categories.keys() as categories}
+                <p class="nav-category">{String(categories).toUpperCase()}</p>
+                {#each settings.categories.get(categories)?.keys() as category}
+                    <button class="nav-link {currentCategory === categories && currentSubcategory === category ?'selected':''}"
+                            onclick="{() => {
+                                currentCategory = categories;
+                                currentSubcategory = category;
+                            }}">{category}</button>
                 {/each}
             {/each}
         </nav>
     </div>
     <div class="settings-container">
         <div class="container">
-            {#each settings as categories }
-                {#each categories.SettingSubCategories as category}
-                    {#if currentSettingsPage === `${categories.name}_${category.name}`}
-                        {#each category.settings as setting}
-                            <div class="setting-item">
-                                <div class="option {setting.type} {setting.readonly ? 'readonly' : ''}">
-                                    <div class="top-section">
-                                        <h1>{setting.title}</h1>
-                                        {#if (setting.type === 'text')}
-                                            {#if (setting.readonly) }
-                                                <div class="readonly-container select-all">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                                                    </svg>
-                                                    {setting.value}
-                                                </div>
-                                            {:else}
-                                                <input bind:value={setting.value} name="name" id="name" placeholder="Inventory Name..." spellcheck="false"
-                                                       data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                                            {/if}
-                                        {:else if (setting.type === 'textarea')}
+            {#each settings.categories.keys() as categories}
+                {#if currentCategory === categories}
+                    {#each settings.categories.get(categories)?.keys() as category}
+                        {#if currentSubcategory === category}
+                            {#each settings.settings.reverse() as setting}
+                                {#if setting.category === categories && setting.subcategory === category}
+                                    <div class="setting-item">
+                                        <div class="option {setting.type} {setting.readonly ? 'readonly' : ''}">
+                                            <div class="top-section">
+                                                <h1>{setting.title}</h1>
+                                                {#if (setting.type === 'text')}
+                                                    {#if (setting.readonly) }
+                                                        <div class="readonly-container select-all">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                      d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+                                                            </svg>
+                                                            {setting.value}
+                                                        </div>
+                                                    {:else}
+                                                        <input bind:value={setting.value} name="name" id="name" placeholder="Inventory Name..." spellcheck="false"
+                                                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                                                    {/if}
+                                                {:else if (setting.type === 'textarea')}
                                         <textarea {...accountSettings.fields.email.as('text')} bind:value={setting.value} name="name" id="name" placeholder="{setting.title}..." spellcheck="false"
                                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore></textarea>
-                                        {:else if (setting.type === 'toggle')}
-                                            <label class="toggle-container {Boolean(setting.value) ? 'on' : ''}">
-                                                <div id="toggle-slider"></div>
-                                                <input type="checkbox" class="toggle-button" {...updateInventoryGeneral.fields.hideEmptyDescriptions.as('checkbox')}
-                                                       bind:checked={setting.value}
-                                                       hidden>
-                                            </label>
-                                        {/if}
-                                    </div>
-                                    {#if (setting.subtitle)}
-                                        <div class="bottom-section">
-                                            <h3>{@html setting.subtitle}</h3>
+                                                {:else if (setting.type === 'toggle')}
+                                                    <label class="toggle-container {Boolean(setting.value) ? 'on' : ''}">
+                                                        <div id="toggle-slider"></div>
+                                                        <input type="checkbox" class="toggle-button" bind:checked={setting.value} hidden>
+                                                    </label>
+                                                {/if}
+                                            </div>
+                                            {#if (setting.subtitle)}
+                                                <div class="bottom-section">
+                                                    <h3>{@html setting.subtitle}</h3>
+                                                </div>
+                                            {/if}
                                         </div>
-                                    {/if}
-                                </div>
+                                    </div>
+                                {/if}
+                            {/each}
+                            <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
+                                <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
+                                {#if accountSettings.result?.success}
+                                    <p class="form-submission-meta success">Changes saved.</p>
+                                {:else if (accountSettings.pending > 0) }
+                                    <p class="form-submission-meta saving">Saving...</p>
+                                {:else if (hasUnsavedChanges) }
+                                    <p class="form-submission-meta unsaved">Unsaved changes.</p>
+                                {/if}
                             </div>
-                        {/each}
-                        <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
-                            <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
-                            {#if accountSettings.result?.success}
-                                <p class="form-submission-meta success">Changes saved.</p>
-                            {:else if (accountSettings.pending > 0) }
-                                <p class="form-submission-meta saving">Saving...</p>
-                            {:else if (hasUnsavedChanges) }
-                                <p class="form-submission-meta unsaved">Unsaved changes.</p>
-                            {/if}
-                        </div>
-                    {/if}
-                {/each}
+                        {/if}
+                    {/each}
+                {/if}
             {/each}
         </div>
         <p class="version-tag">Version: 0.0.1-ALPHA</p>
@@ -411,12 +418,12 @@
                 margin-top: .5rem;
                 margin-left: 1rem;
 
-                color:var(--theme-text-third);
-                font-family:'JetBrains Mono', sans-serif;
-                font-weight:700;
-                font-size:.75rem;
+                color: var(--theme-text-third);
+                font-family: 'JetBrains Mono', sans-serif;
+                font-weight: 700;
+                font-size: .75rem;
 
-                opacity:.25;
+                opacity: .25;
 
                 user-select: text;
                 cursor: default;

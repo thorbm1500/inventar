@@ -21,33 +21,3 @@ export interface Setting {
     subtitle?: string,
     readonly: boolean
 }
-
-export const defaultInventorySettings: Settings = {
-    type: 'inventory',
-    settings: [
-        {
-            type: 'text',
-            value: null,
-            title: 'UUID',
-            readonly: true
-        },
-        {
-            type: 'text',
-            value: null,
-            title: 'Name',
-            readonly: false
-        },
-        {
-            type: 'textarea',
-            value: null,
-            title: 'Description',
-            readonly: false
-        },
-        {
-            type: 'toggle',
-            value: false,
-            title: 'Hide Empty Descriptions',
-            subtitle: 'Hides all empty descriptions, when browsing the contents of the inventory, instead of displaying <i>"No description has been set."</i>',
-            readonly: false
-        }]
-}
