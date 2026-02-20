@@ -18,7 +18,7 @@
 </script>
 
 <script lang="ts">
-    import type { PageProps } from './$types';
+    import type {PageProps} from './$types';
     import {getContext, onMount} from "svelte";
     import {page} from "$app/state";
     import type {Inventory, Item, User} from "$lib/server/db/schema";
@@ -29,7 +29,7 @@
     import {createItem} from './data.remote.ts';
     import {deleteItem, updatePrimaryIvnentory} from "./data.remote";
 
-    let { data }: PageProps = $props();
+    let {data}: PageProps = $props();
 
     const user: User = $state(getContext('user'));
 
@@ -156,7 +156,9 @@
                             }}">
                                 {#if user.primary_inventory === inventory.uuid }
                                     <svg style="color:var(--theme-text-accent);" width="24" height="24" viewBox="0 0 24 24">
-                                        <path fill="currentColor" fill-rule="evenodd" d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6" clip-rule="evenodd"/>
+                                        <path fill="currentColor" fill-rule="evenodd"
+                                              d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6"
+                                              clip-rule="evenodd"/>
                                     </svg>
                                 {:else}
                                     <svg width="24" height="24" viewBox="0 0 24 24">
@@ -169,7 +171,7 @@
                             </button>
                         </div>
                         <div class="header-buttons">
-                            <button id="filters-button" class="filters-button" title="Filters" onclick={() => {
+                            <button id="filters-button" class="filters-button {isFilterContainerOpen?'open':''}" title="Filters" onclick={() => {
                                 isItemCreatorOpen = false;
                                 isFilterContainerOpen = !isFilterContainerOpen;
 
@@ -177,13 +179,25 @@
                                     document.getElementById('item-creator-form-reset-button')?.click();
                                 }
                             }}>
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                          d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/>
-                                </svg>
+                                {#if isFilterContainerOpen}
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <g fill="currentColor">
+                                            <path d="M19.396 11.056a6 6 0 0 1-5.647 10.506q.206-.21.396-.44a8 8 0 0 0 1.789-6.155a8.02 8.02 0 0 0 3.462-3.911m-14.787-.005a7.99 7.99 0 0 0 9.386 4.698a6 6 0 1 1-9.534-4.594z"/>
+                                            <path d="M12 2a6 6 0 1 1-6 6l.004-.225A6 6 0 0 1 12 2"/>
+                                        </g>
+                                    </svg>
+                                {:else}
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                                            <path d="M7 8a5 5 0 1 0 10 0A5 5 0 1 0 7 8"/>
+                                            <path d="M8 11a5 5 0 1 0 3.998 1.997"/>
+                                            <path d="M12.002 19.003A5 5 0 1 0 16 11"/>
+                                        </g>
+                                    </svg>
+                                {/if}
                                 Filters
                             </button>
-                            <button id="create-item-button" class="create-item-button" onclick={() => {
+                            <button id="create-item-button" class="create-item-button {isItemCreatorOpen?'open':''}" onclick={() => {
                                 isFilterContainerOpen = false;
                                 isItemCreatorOpen = !isItemCreatorOpen;
 
@@ -249,8 +263,9 @@
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
                                             </svg>
                                         {:else}
-                                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
                                             </svg>
                                         {/if}
                                         Prices
@@ -264,8 +279,9 @@
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
                                             </svg>
                                         {:else}
-                                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
                                             </svg>
                                         {/if}
                                         Last Updated
@@ -279,8 +295,9 @@
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
                                             </svg>
                                         {:else}
-                                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
                                             </svg>
                                         {/if}
                                         Description
@@ -683,6 +700,13 @@
                         padding: .5em 1em !important;
                     }
 
+                    .filters-button.open,.create-item-button.open {
+                        color: var(--theme-text-accent);
+                        fill: var(--theme-text-accent);
+
+                        transition: var(--theme-transition-in);
+                    }
+
                     .refresh-button, .filters-button, .create-item-button, .inventory-settings-button {
                         display: flex;
                         flex-flow: row nowrap;
@@ -702,12 +726,14 @@
 
                         cursor: pointer;
                         user-select: none;
+
+                        transition: var(--theme-transition-out);
                     }
 
                     .refresh-button:hover, .filters-button:hover, .create-item-button:hover, .inventory-settings-button:hover {
                         color: var(--theme-text-accent);
 
-                        transition-duration: 75ms;
+                        transition: var(--theme-transition-in);
 
                         svg {
                             stroke-width: 2.25;

@@ -7,6 +7,7 @@
 
     let {children, data} = $props();
 
+    // svelte-ignore state_referenced_locally
     const user: User = $state(data.user);
 
     if (!user) redirect(302, '/logout');

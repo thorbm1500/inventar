@@ -2,12 +2,11 @@ import {env} from "$env/dynamic/private";
 import Log from '$lib/server/internal/log';
 import {v7 as uuidv7, validate} from 'uuid';
 import mysql, {type Pool, type RowDataPacket} from 'mysql2/promise';
-import type {Currency, Inventory, Item, ResetRequest, Session, User} from "$lib/server/db/schema";
+import type {Currency, Inventory, Item, ResetRequest, Session, User} from "$lib/server/db/interfaces";
 import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
 import {UserSettings} from "$lib/components/settings/UserSettings";
-import {set} from "valibot";
-import type {Setting} from "$lib/settings";
+import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
 
 const connection: Pool = mysql.createPool({
     host: env.DB_HOST,
@@ -43,9 +42,9 @@ async function ensureTables(): Promise<void> {
                                 code   CHAR(3)     NOT NULL,
                                 format VARCHAR(18) NOT NULL,
                                 PRIMARY KEY (id),
-                                CONSTRAINT c_code
+                                CONSTRAINT currencies_code_u
                                     UNIQUE (code),
-                                CONSTRAINT c_id
+                                CONSTRAINT currencies_id_u
                                     UNIQUE (id)
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'currencies'. ${err.name}`, err));
 
@@ -61,21 +60,24 @@ async function ensureTables(): Promise<void> {
                                 description TEXT(255)                           NULL,
                                 last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                                 created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                                PRIMARY KEY (uuid)
+                                PRIMARY KEY (uuid),
+                                CONSTRAINT inventories_uuid_u
+                                    UNIQUE (uuid)
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'inventories'. ${err.name}`, err));
 
     await connection.query(`CREATE TABLE IF NOT EXISTS inventory_settings
                             (
-                                uuid        CHAR(36)             NOT NULL,
-                                category    VARCHAR(24)          NOT NULL,
-                                subcategory VARCHAR(24)          NOT NULL,
-                                type        VARCHAR(24)          NOT NULL,
-                                name        VARCHAR(32)          NOT NULL,
-                                subtitle    TINYTEXT             NULL,
-                                value       VARCHAR(255)         NOT NULL,
-                                readonly    TINYINT(1) DEFAULT 0 NOT NULL,
+                                uuid        CHAR(36)                   NOT NULL,
+                                category    VARCHAR(24)                NOT NULL,
+                                subcategory VARCHAR(24)                NOT NULL,
+                                type        VARCHAR(24)                NOT NULL,
+                                title       VARCHAR(32)                NOT NULL,
+                                subtitle    TINYTEXT                   NULL,
+                                value       VARCHAR(255)               NOT NULL,
+                                readonly    TINYINT(1)       DEFAULT 0 NOT NULL,
+                                \`order\`   TINYINT UNSIGNED DEFAULT 0 NOT NULL,
                                 PRIMARY KEY (uuid, category, subcategory, title),
-                                CONSTRAINT fk_uuid
+                                CONSTRAINT inventory_settings_uuid_fk
                                     FOREIGN KEY (uuid) REFERENCES inventories (uuid) ON DELETE CASCADE
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'inventory_settings'. ${err.name}`, err));
 
@@ -92,22 +94,27 @@ async function ensureTables(): Promise<void> {
                                 created_at        TIMESTAMP  DEFAULT CURRENT_TIMESTAMP NOT NULL,
                                 superuser         TINYINT(1) DEFAULT 0                 NOT NULL,
                                 PRIMARY KEY (uuid),
-                                CONSTRAINT fk_primary_inventory
+                                CONSTRAINT users_uuid_u
+                                    UNIQUE (uuid),
+                                CONSTRAINT users_primary_inventory_fk
                                     FOREIGN KEY (primary_inventory) REFERENCES inventories (uuid)
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'users'. ${err.name}`, err));
 
     await connection.query(`CREATE TABLE IF NOT EXISTS user_settings
                             (
-                                uuid        CHAR(36)             NOT NULL,
-                                category    VARCHAR(24)          NOT NULL,
-                                subcategory VARCHAR(24)          NOT NULL,
-                                type        VARCHAR(24)          NOT NULL,
-                                name        VARCHAR(32)          NOT NULL,
-                                subtitle    TINYTEXT             NULL,
-                                value       VARCHAR(255)         NOT NULL,
-                                readonly    TINYINT(1) DEFAULT 0 NOT NULL,
+                                uuid              CHAR(36)                   NOT NULL,
+                                category          VARCHAR(24)                NOT NULL,
+                                subcategory       VARCHAR(24)                NOT NULL,
+                                type              VARCHAR(24)                NOT NULL,
+                                title             VARCHAR(32)                NOT NULL,
+                                subtitle          TINYTEXT                   NULL,
+                                value             VARCHAR(255)               NOT NULL,
+                                readonly          TINYINT(1)       DEFAULT 0 NOT NULL,
+                                category_order    TINYINT UNSIGNED DEFAULT 0 NOT NULL,
+                                subcategory_order TINYINT UNSIGNED DEFAULT 0 NOT NULL,
+                                setting_order     TINYINT UNSIGNED DEFAULT 0 NOT NULL,
                                 PRIMARY KEY (uuid, category, subcategory, title),
-                                CONSTRAINT fk_uuid
+                                CONSTRAINT user_settings_uuid_fk
                                     FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'user_settings'. ${err.name}`, err));
 
@@ -127,10 +134,10 @@ async function ensureTables(): Promise<void> {
                                 remove_users     TINYINT(1) DEFAULT 0 NOT NULL,
                                 view_audit       TINYINT(1) DEFAULT 0 NOT NULL,
                                 PRIMARY KEY (inventory, user),
-                                CONSTRAINT fk_inventory
+                                CONSTRAINT inventory_access_inventory_fk
                                     FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                                         ON DELETE CASCADE,
-                                CONSTRAINT fk_user
+                                CONSTRAINT inventory_access_user_fk
                                     FOREIGN KEY (user) REFERENCES users (uuid)
                                         ON DELETE CASCADE
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'inventory_access'. ${err.name}`, err));
@@ -143,9 +150,9 @@ async function ensureTables(): Promise<void> {
                                 name      VARCHAR(32)                      NOT NULL,
                                 color     TINYINT(24) UNSIGNED DEFAULT '1' NOT NULL,
                                 PRIMARY KEY (inventory, uuid),
-                                CONSTRAINT c_uuid
+                                CONSTRAINT labels_uuid_u
                                     UNIQUE (uuid),
-                                CONSTRAINT fk_inventory
+                                CONSTRAINT labels_inventory_fk
                                     FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                                         ON DELETE CASCADE
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'labels'. ${err.name}`, err));
@@ -158,7 +165,7 @@ async function ensureTables(): Promise<void> {
                                 dark_border     CHAR(9)     NOT NULL,
                                 dark_background CHAR(9)     NOT NULL,
                                 PRIMARY KEY (id),
-                                CONSTRAINT c_id
+                                CONSTRAINT default_label_colors_id_u
                                     UNIQUE (id)
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'default_label_colors'. ${err.name}`, err));
 
@@ -182,14 +189,14 @@ async function ensureTables(): Promise<void> {
                                 last_update         TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP,
                                 created_at          TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL,
                                 PRIMARY KEY (inventory, uuid),
-                                CONSTRAINT c_uuid
+                                CONSTRAINT items_uuid_u
                                     UNIQUE (uuid),
-                                CONSTRAINT fk_inventory
+                                CONSTRAINT items_inventory_fk
                                     FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                                         ON DELETE CASCADE,
-                                CONSTRAINT fk_currency
+                                CONSTRAINT items_currency_fk
                                     FOREIGN KEY (currency) REFERENCES currencies (code),
-                                CONSTRAINT fk_created_by
+                                CONSTRAINT items_created_by_fk
                                     FOREIGN KEY (created_by) REFERENCES users (uuid)
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'items'. ${err.name}`, err));
 
@@ -199,24 +206,33 @@ async function ensureTables(): Promise<void> {
                                 item      CHAR(36) NOT NULL,
                                 label     CHAR(36) NOT NULL,
                                 PRIMARY KEY (inventory, item, label),
-                                CONSTRAINT fk_inventory
+                                CONSTRAINT item_labels_inventory_fk
                                     FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                                         ON DELETE CASCADE,
-                                CONSTRAINT fk_item
+                                CONSTRAINT item_labels_item_fk
                                     FOREIGN KEY (item) REFERENCES items (uuid)
                                         ON DELETE CASCADE,
-                                CONSTRAINT fk_label
+                                CONSTRAINT item_labels_label_fk
                                     FOREIGN KEY (label) REFERENCES labels (uuid)
                                         ON DELETE CASCADE
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'item_labels'. ${err.name}`, err));
 
     await connection.query(`CREATE TABLE IF NOT EXISTS sessions
                             (
-                                uuid       CHAR(36)                                                NOT NULL,
-                                session_id VARCHAR(255)                                            NOT NULL,
-                                expires    TIMESTAMP DEFAULT (ADDTIME(CURRENT_TIMESTAMP, "7 0:0")) NOT NULL,
-                                PRIMARY KEY (uuid),
-                                CONSTRAINT fk_uuid
+                                uuid          CHAR(36)                                                  NOT NULL,
+                                session_id    VARCHAR(255)                                              NOT NULL,
+                                ip            VARCHAR(39)                                               NULL,
+                                continent     VARCHAR(56) DEFAULT 'Unknown'                             NULL,
+                                country       VARCHAR(56) DEFAULT 'Unknown'                             NULL,
+                                region        VARCHAR(56) DEFAULT 'Unknown'                             NULL,
+                                city          VARCHAR(56) DEFAULT 'Unknown'                             NULL,
+                                device        VARCHAR(8)  DEFAULT 'Unknown'                             NULL,
+                                platform      VARCHAR(10) DEFAULT 'Unknown'                             NULL,
+                                last_accessed TIMESTAMP   DEFAULT CURRENT_TIMESTAMP                     NOT NULL,
+                                created_at    TIMESTAMP   DEFAULT CURRENT_TIMESTAMP                     NOT NULL,
+                                expires       TIMESTAMP   DEFAULT (ADDTIME(CURRENT_TIMESTAMP, "7 0:0")) NOT NULL,
+                                PRIMARY KEY (uuid, session_id),
+                                CONSTRAINT sessions_uuid_fk
                                     FOREIGN KEY (uuid) REFERENCES users (uuid)
                                         ON DELETE CASCADE
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'sessions'. ${err.name}`, err));
@@ -227,7 +243,7 @@ async function ensureTables(): Promise<void> {
                                 token   VARCHAR(255)                                           NOT NULL,
                                 expires TIMESTAMP DEFAULT (ADDTIME(CURRENT_TIMESTAMP, "15:0")) NOT NULL,
                                 PRIMARY KEY (uuid),
-                                CONSTRAINT fk_uuid
+                                CONSTRAINT reset_tokens_uuid_fk
                                     FOREIGN KEY (uuid) REFERENCES users (uuid)
                                         ON DELETE CASCADE
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'reset_tokens'. ${err.name}`, err));
@@ -244,7 +260,7 @@ async function ensureConstraints(): Promise<void> {
                                                          FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
                                                          WHERE TABLE_SCHEMA = 'inventar'
                                                            AND TABLE_NAME = 'inventories'
-                                                           AND CONSTRAINT_NAME = 'fk_owner'`)
+                                                           AND CONSTRAINT_NAME = 'inventories_owner_fk'`)
         .catch((err: Error): [] => {
             Log.error(`Failed to select existing constraints. ${err.name}`, err);
             return [];
@@ -252,7 +268,7 @@ async function ensureConstraints(): Promise<void> {
 
     if (!existingConstraint || (existingConstraint as RowDataPacket[]).length === 0) {
         await connection.query(`ALTER TABLE inventories
-            ADD CONSTRAINT fk_owner
+            ADD CONSTRAINT inventories_owner_fk
                 FOREIGN KEY (owner) REFERENCES users (uuid)`)
             .catch((err: Error): [] => {
                 Log.error(`Failed to add constraint 'fk_owner' to table 'inventories'. ${err.name}`, err);
@@ -285,7 +301,7 @@ async function ensureDefaultValues(): Promise<void> {
 
     try {
         for (const row of colors) {
-            await connection.execute(`INSERT INTO label_colors (id, border, background, dark_border, dark_background)
+            await connection.execute(`INSERT INTO default_label_colors (id, border, background, dark_border, dark_background)
                                       VALUES (?, ?, ?, ?, ?)
                                       ON DUPLICATE KEY UPDATE border=?,
                                                               background=?,
@@ -294,7 +310,7 @@ async function ensureDefaultValues(): Promise<void> {
                 [row.id, row.border, row.background, row.dark_border, row.dark_background, row.border, row.background, row.dark_border, row.dark_background]);
         }
     } catch (err) {
-        Log.error(`Failed to add default values to table 'label_colors'. ${err instanceof Error ? err.name : ''}`, err instanceof Error ? err : undefined);
+        Log.error(`Failed to add default values to table 'default_label_colors'. ${err instanceof Error ? err.name : ''}`, err instanceof Error ? err : undefined);
     }
 }
 
@@ -682,15 +698,34 @@ export class Users {
     static async getSettings(uuid: string): Promise<UserSettings> {
         const settings: UserSettings = new UserSettings(uuid);
 
+        const [categories] = await connection.execute(`SELECT DISTINCTROW category, category_order
+                                                       FROM user_settings
+                                                       WHERE uuid = ?
+                                                       ORDER BY category_order`, [uuid])
+            .catch((err: Error): [] => {
+                Log.error(`Users#getSettings[0]: Database request failed. ${err.name}`, err);
+                return [];
+            });
+
+        const [all_categories] = await connection.execute(`SELECT DISTINCTROW category, category_order, subcategory, subcategory_order
+                                                           FROM user_settings
+                                                           WHERE uuid = ?
+                                                           ORDER BY category_order, subcategory_order`, [uuid])
+            .catch((err: Error): [] => {
+                Log.error(`Users#getSettings[1]: Database request failed. ${err.name}`, err);
+                return [];
+            });
+
         const [setting] = await connection.execute(`SELECT *
                                                     FROM user_settings
-                                                    WHERE uuid = ?`, [uuid])
+                                                    WHERE uuid = ?
+                                                    ORDER BY category_order, subcategory_order, setting_order`, [uuid])
             .catch((err: Error): [] => {
                 Log.error(`Users#getSettings[2]: Database request failed. ${err.name}`, err);
                 return [];
             });
 
-        settings.load(setting as Setting[]);
+        settings.load(categories as RowDataPacket[], all_categories as RowDataPacket[], setting as Setting[]);
 
         return settings;
     }
@@ -728,11 +763,33 @@ export class Auth {
                 return [];
             });
 
-        if (!(result as RowDataPacket[])[0]) return undefined;
+        return (result as Session[])[0] ?? undefined;
+    }
 
-        const session = (result as RowDataPacket[])[0];
+    /**
+     * Gets all existing session.
+     * @param uuid UUID of the user.
+     */
+    static async getSessions(uuid: string): Promise<Session[]> {
+        const [results] = await connection.execute(`SELECT *
+                                                   FROM sessions
+                                                   WHERE uuid = ?
+                                                   ORDER BY last_accessed`, [uuid])
+            .catch((err: Error): [] => {
+                Log.error(`Auth#getSession[0]: Database request failed. ${err.name}`, err)
+                return [];
+            });
 
-        return {uuid: session.uuid, session_id: session.session_id, expires: Date.parse(session.expires)};
+        if (!(results as RowDataPacket[])[0].uuid) return [];
+
+        const result = results as RowDataPacket[];
+        for (let session of result) {
+            session.expires = Date.parse(session.expires);
+            session.last_accessed = Date.parse(session.last_accessed);
+            session.created_at = Date.parse(session.created_at);
+        }
+
+        return result as Session[];
     }
 
     /**
@@ -775,6 +832,60 @@ export class Auth {
         const result = results as RowDataPacket[];
 
         return result[0] && result[0].expires ? Date.parse(String(result[0].expires)) : -1;
+    }
+
+    /**
+     * todo
+     * @param session_id
+     */
+    static async updateLastAccess(session_id: string): Promise<void> {
+        await connection.execute(`UPDATE sessions
+                                  SET last_accessed = CURRENT_TIMESTAMP
+                                  WHERE session_id = ?`, [session_id])
+            .catch((err: Error): void => Log.error(`Auth#updateLastAccess[0]: Database request failed. ${err.name}`, err));
+    }
+
+    /**
+     * todo
+     * @param session_id
+     * @param data
+     */
+    static async updateSessionInformation(session_id: string, data: {
+        continent?: string,
+        country?: string,
+        regionName?: string,
+        city?: string,
+        query?: string,
+        device?: string,
+        platform?: string
+    }): Promise<void> {
+        await connection.execute(`UPDATE sessions
+                                  SET ip        = ?,
+                                      continent = ?,
+                                      country   = ?,
+                                      region    = ?,
+                                      city      = ?,
+                                      device    = ?,
+                                      platform  = ?
+                                  WHERE session_id = ?`, [data.query ?? null, data.continent ?? null, data.country ?? null, data.regionName ?? null, data.city ?? null, data.device ?? null, data.platform ?? null, session_id])
+            .catch((err: Error): void => Log.error(`Auth#updateSessionInformation[0]: Database request failed. ${err.name}`, err));
+    }
+
+    /**
+     * todo
+     * @param session_id
+     */
+    static async isSessionInformationMissing(session_id: string): Promise<boolean> {
+        const [result] = await connection.execute(`SELECT ip, continent, country, region, city, device, platform
+                                                   FROM sessions
+                                                   WHERE session_id = ?`, [session_id])
+            .catch((err: Error): [] => {
+                Log.error(`Auth#updateSessionInformation[0]: Database request failed. ${err.name}`, err)
+                return [];
+            });
+
+        const info = result as RowDataPacket[][0];
+        return !info.ip || !info.continent || !info.country || !info.region || !info.city || !info.device || !info.platform;
     }
 
     /**

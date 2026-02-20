@@ -81,7 +81,16 @@ export interface User {
 export interface Session {
     uuid: string,
     session_id: string,
-    expires: number
+    expires: number,
+    ip?: string,
+    continent?: string,
+    country?: string,
+    region?: string,
+    city?: string,
+    device?: string,
+    platform?: string
+    last_accessed?: number
+    created_at?: number
 }
 
 export interface ResetRequest {

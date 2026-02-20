@@ -1,6 +1,6 @@
-import {GenericSettings} from "$lib/components/settings/GenericSettings";
+import {GenericSettingsSvelte} from "$lib/components/settings/GenericSettings.svelte";
 
-export class UserSettings extends GenericSettings {
+export class UserSettings extends GenericSettingsSvelte {
 
     constructor(uuid: string) {
         super(uuid);

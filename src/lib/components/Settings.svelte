@@ -1,14 +1,18 @@
 <script lang="ts">
     import {accountSettings, getSettings} from "../../routes/(app)/settings/data.remote";
-    import type {User} from "$lib/server/db/schema";
+    import type {User} from "$lib/server/db/interfaces";
     import {getContext} from "svelte";
     import type {UserSettings} from "$lib/components/settings/UserSettings";
+    import Sessions from "$lib/components/Sessions.svelte";
 
-    const user: User = $state(getContext('user'));
+    const user: User = $derived(getContext('user'));
 
     let settings: UserSettings = $derived(await getSettings(user.uuid) as UserSettings);
-    let currentCategory = $state(settings?.categories?.keys().toArray()[0] ?? '');
-    let currentSubcategory = $state(settings?.categories?.get(currentCategory)?.keys().toArray()[0] ?? '');
+    // svelte-ignore state_referenced_locally
+    let currentCategory = $state(settings.settings.keys().toArray()[0]);
+
+    // svelte-ignore state_referenced_locally
+    let currentSubcategory = $state(settings.settings.get(currentCategory)?.keys().toArray()[0]);
 
     let hasUnsavedChanges = $state(false);
 </script>
@@ -16,26 +20,28 @@
 <section class="inventory-settings-page">
     <div class="sidebar">
         <nav class="inventory-settings-nav">
-            {#each settings.categories.keys() as categories}
-                <p class="nav-category">{String(categories).toUpperCase()}</p>
-                {#each settings.categories.get(categories)?.keys() as category}
-                    <button class="nav-link {currentCategory === categories && currentSubcategory === category ?'selected':''}"
+            {#each settings.settings.entries() as categories}
+                <p class="nav-category">{String(categories[0]).toUpperCase()}</p>
+                {#each categories[1] as category}
+                    <button class="nav-link {currentCategory === categories[0] && currentSubcategory === category[0] ?'selected':''}"
                             onclick="{() => {
-                                currentCategory = categories;
-                                currentSubcategory = category;
-                            }}">{category}</button>
+                                currentCategory = categories[0];
+                                currentSubcategory = category[0];
+                            }}">{category[0]}</button>
                 {/each}
             {/each}
         </nav>
     </div>
     <div class="settings-container">
         <div class="container">
-            {#each settings.categories.keys() as categories}
-                {#if currentCategory === categories}
-                    {#each settings.categories.get(categories)?.keys() as category}
-                        {#if currentSubcategory === category}
-                            {#each settings.settings.reverse() as setting}
-                                {#if setting.category === categories && setting.subcategory === category}
+            {#each settings.settings.entries() as categories}
+                {#if currentCategory === categories[0]}
+                    {#each categories[1] as category}
+                        {#if currentSubcategory === category[0]}
+                            {#each category[1] as setting}
+                                {#if setting.type === 'custom_sessions'}
+                                    <Sessions/>
+                                {:else}
                                     <div class="setting-item">
                                         <div class="option {setting.type} {setting.readonly ? 'readonly' : ''}">
                                             <div class="top-section">
@@ -59,7 +65,9 @@
                                                 {:else if (setting.type === 'toggle')}
                                                     <label class="toggle-container {Boolean(setting.value) ? 'on' : ''}">
                                                         <div id="toggle-slider"></div>
-                                                        <input type="checkbox" class="toggle-button" bind:checked={setting.value} hidden>
+                                                        {#if typeof setting.value !== 'string' }
+                                                            <input type="checkbox" class="toggle-button" bind:checked={setting.value} hidden>
+                                                        {/if}
                                                     </label>
                                                 {/if}
                                             </div>
@@ -72,16 +80,18 @@
                                     </div>
                                 {/if}
                             {/each}
-                            <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
-                                <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
-                                {#if accountSettings.result?.success}
-                                    <p class="form-submission-meta success">Changes saved.</p>
-                                {:else if (accountSettings.pending > 0) }
-                                    <p class="form-submission-meta saving">Saving...</p>
-                                {:else if (hasUnsavedChanges) }
-                                    <p class="form-submission-meta unsaved">Unsaved changes.</p>
-                                {/if}
-                            </div>
+                            {#if !category[1][0].type.includes('custom')}
+                                <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
+                                    <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
+                                    {#if accountSettings.result?.success}
+                                        <p class="form-submission-meta success">Changes saved.</p>
+                                    {:else if (accountSettings.pending > 0) }
+                                        <p class="form-submission-meta saving">Saving...</p>
+                                    {:else if (hasUnsavedChanges) }
+                                        <p class="form-submission-meta unsaved">Unsaved changes.</p>
+                                    {/if}
+                                </div>
+                            {/if}
                         {/if}
                     {/each}
                 {/if}
@@ -133,8 +143,10 @@
                 .nav-category {
                     font-size: .75rem;
                     letter-spacing: .15rem;
-                    color: var(--theme-text-third);
-                    font-weight: 700;
+                    background-image: linear-gradient(.25turn, var(--theme-text-third), var(--theme-text-fourth));
+                    background-clip: text;
+                    color: transparent;
+                    font-weight: 800;
                     margin: .5rem 0 .25rem 0;
                 }
 

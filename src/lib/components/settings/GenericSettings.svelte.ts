@@ -1,15 +1,27 @@
-import type {Setting} from "$lib/settings";
+import type {RowDataPacket} from "mysql2/promise";
+
+export interface Setting {
+    category: string,
+    subcategory: string,
+    type: string,
+    value: string | boolean | null,
+    title: string,
+    subtitle?: string,
+    readonly: boolean,
+    category_order: number,
+    subcategory_order: number,
+    setting_order: number
+}
 
 declare interface UnsavedSetting {
     initialValue: string | boolean | null,
     currentValue: string | boolean
 }
 
-export class GenericSettings {
+export class GenericSettingsSvelte {
 
     readonly uuid: string;
-    settings: Setting[] = [];
-    categories: Map<string,Map<string,string[]>> = new Map();
+    settings: Map<string, Map<string, Setting[]>> = new Map([['UNLOADED', new Map()]]);
     unsavedSettings: Map<Setting, UnsavedSetting> = new Map();
 
     constructor(uuid: string) {
@@ -39,18 +51,20 @@ export class GenericSettings {
         return this.unsavedSettings.size !== 0;
     }
 
-    isLoaded(): void {
-        //todo - Implement
+    isLoaded(): boolean {
+        return this.settings.has('UNLOADED');
     }
 
-    load(settings: Setting[]): void {
+    load(categories: RowDataPacket[], all_categories: RowDataPacket[], settings: Setting[]): void {
         //todo: optimize
-        this.categories.clear();
-        this.settings = settings;
+        this.settings.clear();
 
-        for(const setting of settings) {
-            if (!this.categories.has(setting.category)) this.categories.set(setting.category,new Map());
-            if (!this.categories.get(setting.category)?.has(setting.subcategory)) this.categories.get(setting.category)?.set(setting.subcategory, []);
+        for (const category of categories) {
+            this.settings.set(category.category, new Map());
+        }
+
+        for (const category of all_categories) {
+            this.settings.get(category.category)?.set(category.subcategory, settings.filter((st): boolean => st.category === category.category && st.subcategory === category.subcategory));
         }
     }
 

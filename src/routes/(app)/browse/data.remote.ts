@@ -1,6 +1,6 @@
 import {query} from '$app/server';
 import * as db from '$lib/server/db/database'
-import util from '$lib/server/utilities';
+import util from '$lib/server/internal/utilities.ts';
 import * as v from "valibot";
 import type {Inventory} from '$lib/server/db/schema';
 import Log from "$lib/server/internal/log";

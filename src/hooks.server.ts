@@ -1,10 +1,11 @@
 import initializeDatabase from '$lib/server/db/index';
-import type {Session, User} from "$lib/server/db/schema";
+import type {Session, User} from "$lib/server/db/interfaces";
 import * as auth from '$lib/server/internal/auth';
 import * as db from '$lib/server/db/database';
 import {building} from '$app/environment';
 import {env} from "$env/dynamic/private";
 import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
+import utilities from "$lib/server/internal/utilities";
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
@@ -29,10 +30,14 @@ function isPublicPath(path: string): boolean {
     return public_paths.includes(path) || /^\/(reset-password)\/[a-zA-Z0-9-_]*\/?$/.test(path);
 }
 
-const handleAuth: Handle = async ({event, resolve}) => {
+const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
     const sessionToken: string | undefined = event.cookies.get(auth.sessionCookieName);
 
     if (!sessionToken) {
+        if (utilities.isCrawler(event.request.headers.get('User-Agent'))) {
+            return new Response('');
+        }
+
         event.locals.uuid = null;
         event.locals.session_id = null;
 
@@ -43,7 +48,7 @@ const handleAuth: Handle = async ({event, resolve}) => {
         }
     }
 
-    const session: Session | null = await auth.validateSessionToken(sessionToken);
+    const session: Session | null = await auth.validateSessionToken(sessionToken,event);
 
     if (!session) {
         auth.deleteSessionTokenCookie(event);

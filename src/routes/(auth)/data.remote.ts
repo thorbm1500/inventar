@@ -1,13 +1,13 @@
 import * as v from 'valibot';
 import * as auth from "$lib/server/internal/auth";
 import * as db from "$lib/server/db/database";
-import {form} from '$app/server';
-import type {ResetRequest, Session, User} from "$lib/server/db/schema";
+import {form, getRequestEvent} from '$app/server';
+import type {ResetRequest, Session, User} from "$lib/server/db/interfaces";
 import {sendPasswordResetLink} from "$lib/server/internal/mail";
 import {sha256} from "@oslojs/crypto/sha2";
 import {encodeHexLowerCase} from "@oslojs/encoding";
 import {hash, verify} from "@node-rs/argon2";
-import {redirect} from "@sveltejs/kit";
+import {redirect, type RequestEvent} from "@sveltejs/kit";
 import Log from "$lib/server/internal/log";
 
 export const requestReset = form(
@@ -115,8 +115,10 @@ export const login = form(
 
         await db.Users.updateLastLogin(user.uuid);
 
+        const event: RequestEvent = getRequestEvent();
+
         const sessionToken: string = auth.generateSessionToken();
-        const session: Session = await auth.createSession(sessionToken, user.uuid);
+        const session: Session = await auth.createSession(sessionToken, user.uuid, event);
         auth.setSessionTokenCookie(sessionToken, session.expires);
 
         return redirect(302, '/');
@@ -154,7 +156,7 @@ export const register = form(
         });
 
         try {
-            // Give administrator rights no users have been created yet.
+            // Give administrator rights if no users have been created yet.
             const userAmount: number = await db.Users.getUserAmount();
             if (userAmount === -1) {
                 return {success:false, message: 'Unable to connect to the database!'};
@@ -162,15 +164,11 @@ export const register = form(
             const user: User | undefined = await db.Users.create(email, username, passwordHash, userAmount === 0);
 
             if (!user) {
-                return {success: false, message: 'Failed to register new user. If this problem persists, please contact the system administrator'};
+                return {success: false, message: 'Failed to register new user. If this problem persists, please contact an administrator'};
             }
-
-            const sessionToken: string = auth.generateSessionToken();
-            const session: Session | null = await auth.createSession(sessionToken, user.uuid);
-            if (session) auth.setSessionTokenCookie(sessionToken, session.expires);
         } catch (error) {
-            Log.error(String(error));
-            return {success: false, message: 'An error has occurred'};
+            Log.error(`Failed to register new user.`,error as Error);
+            return {success: false, message: 'Internal Error. If this problem persists, please contact an administrator'};
         }
         return {success:true, message: 'Successfully registered!'};
     });

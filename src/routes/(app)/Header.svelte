@@ -130,7 +130,7 @@
                 </div>
             </div>
         </div>
-        <button class="burger-stack-button {sidebar?'open':'closed'} visible md:invisible" title="Navigation" onclick="{() => sidebar = !sidebar}">
+        <button class="burger-stack-button {sidebar?'open':'closed'} visible md:invisible md:hidden" title="Navigation" onclick="{() => sidebar = !sidebar}">
             <div class="burger line"></div>
             <div class="burger line {sidebar?'hidden':'visible'}"></div>
             <div class="burger line"></div>
@@ -149,7 +149,7 @@
     </div>
 </section>
 
-<section class="sidebar-section {sidebar?'open':'closed'} visible md:invisible">
+<section class="sidebar-section {sidebar?'open':'closed'} visible md:invisible flex md:hidden">
     <div class="sidebar-links">
         <nav>
             <a aria-current={page.url.pathname === '/'} title="Home" href="/">Home</a>
@@ -191,7 +191,6 @@
     .sidebar-section {
         position: absolute;
 
-        display: flex;
         flex-flow: column nowrap;
         align-items: center;
         justify-content: space-between;
