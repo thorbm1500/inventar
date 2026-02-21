@@ -6,6 +6,12 @@ const config = {
 	// Consult https://svelte.dev/docs/kit/integrations
 	// for more information about preprocessors
 	preprocess: vitePreprocess(),
+	onwarn: (warning, defaultHandler) => {
+		// ignore some warnings
+		if (!warning.message.includes('https://svelte.dev/e/css_unused_selector')) {
+			defaultHandler(warning);
+		}
+	},
 
 	//todo - Add trusted origins
 	kit: {
