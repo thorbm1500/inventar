@@ -1,6 +1,6 @@
 <script lang="ts">
     import Header from './Header.svelte';
-    import {setContext} from "svelte";
+    import {onMount, setContext} from "svelte";
     import type {User} from "$lib/server/db/interfaces";
     import Toast from "$lib/components/toast.svelte";
 
@@ -9,7 +9,9 @@
     // svelte-ignore state_referenced_locally
     const user: User = $state(data.user);
 
-    if (!user) window.location.href = "/logout";
+    onMount(() => {
+        if (!user) window.location.href = "/logout";
+    })
 
     const toastHandler = new Toast();
 

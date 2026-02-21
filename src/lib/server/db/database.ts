@@ -21,7 +21,7 @@ const connection: Pool = mysql.createPool({
 /**
  * todo
  */
-export async function initializeDatabase(): Promise<void> {
+export async function init(): Promise<void> {
     Log.info(`Initializing database...`);
     const startTime: number = Date.now();
 

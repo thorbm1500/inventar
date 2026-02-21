@@ -32,7 +32,7 @@ export async function createResetRequest(token: string, uuid: string): Promise<v
  * @param uuid The user's uuid.
  * @param event The event of the Request.
  */
-export async function createSession(token: string, uuid: string, event: RequestEvent): Promise<Session> {
+export async function createSession(token: string, uuid: string): Promise<Session> {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
 
     const session: Session = {
