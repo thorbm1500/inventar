@@ -8,6 +8,9 @@ import path from "node:path";
 // ========================= //
 
 const APP_NAME_FROM_PACKAGE_JSON: string = await fs.readFile(path.resolve("./package.json"), "utf-8").then((content: string): string => JSON.parse(content).name);
+const FORMAT_SUFFIX: string = "\x1b[0m";
+const CHAR_REGEX = new RegExp(/./,'g')
+const NEWLINE_REGEX = new RegExp(/\n\s?/, 'g');
 
 // noinspection JSIgnoredPromiseFromCall
 /**
@@ -84,77 +87,115 @@ class Log {
         this.#logTofile(file_input, error);
     }
 
+    static error(input: any): void;
+    static error(input: any, error: Error): void;
+
     /**
-     * Logs as error.
+         * Log as `[ERROR]`
      * @param input Content to log.
-     * @param error Optional: Error to log.
+     * @param prefix Optional: ex. `[ERROR] - [prefix] Lorem Ipsum`
+     * @param error Optional
      */
-    static error(input: any, error?: Error): void {
-        const log: string = "[ERROR] " + this.#getDate() + " - " + input;
-        this.#logger(" \x1b[41m\x1b[315m x \x1b[0m\x1b[31m " + log + "\x1b[0m", log, true);
+    static error(input: any, error?: Error, prefix?: string): void {
+        const {log, file_log} = this.#formatLog(`[ERROR]`, ` \x1b[41m\x1b[315m x \x1b[0m\x1b[31m `, input, prefix);
+        this.#logger(log, file_log, true);
+
         if (error && error.stack) {
-            const eLog: string = "[TRACE] " + this.#getDate() + " - " + error.stack;
-            this.#logger(" \x1b[41m\x1b[315m x \x1b[0m\x1b[31m " + eLog + "\x1b[0m", eLog, true);
+            const {log, file_log} = this.#formatLog(`[TRACE]`, ` \x1b[41m\x1b[315m x \x1b[0m\x1b[31m `, error.stack, prefix);
+            this.#logger(log, file_log, true);
         }
     }
 
     /**
-     * Log as warning
+     * Log as `[WARN]`
      * @param input Content to log.
+     * @param prefix Optional: ex. `[WARN] - [prefix] Lorem Ipsum`
      */
-    static warn(input: any): void {
-        const log: string = "[WARN]  " + this.#getDate() + " - " + input;
-        this.#logger(" \x1b[43m\x1b[30m ! \x1b[0m\x1b[33m " + log + "\x1b[0m", log);
+    static warn(input: any, prefix?: string): void {
+        const {log, file_log} = this.#formatLog(`[WARN] `, ` \x1b[43m\x1b[30m ! \x1b[0m\x1b[33m `, input, prefix);
+        this.#logger(log, file_log);
     }
 
     /**
-     * Log as debug
+     * Log as `[DEBUG]`
      * (only if NODE_ENV is set to development)
      * @param input Content to log.
+     * @param prefix Optional: ex. `[DEBUG] - [prefix] Lorem Ipsum`
      * @param force If the log should ignore the value of NODE_ENV.
      */
-    static debug(input: any, force?: boolean): void {
-        if (process.env.NODE_ENV !== "development" && !force) return;
-        const log: string = "[DEBUG] " + this.#getDate() + " - " + input;
-        this.#logger(" \x1b[45m\x1b[30m d \x1b[0m\x1b[35m " + log + "\x1b[0m", log);
+    static debug(input: any, prefix?: string, force?: boolean): void {
+        if (!force && process.env.NODE_ENV !== "development") return;
+        const {log, file_log} = this.#formatLog(`[DEBUG] `, ` \x1b[45m\x1b[30m d \x1b[0m\x1b[35m `, input, prefix);
+        this.#logger(log, file_log);
     }
 
     /**
-     * Log as wait
-     * @param input
+     * Log as `[WAIT]`
+     * @param input Content to log.
+     * @param prefix Optional: ex. `[WAIT] - [prefix] Lorem Ipsum`
      */
-    static wait(input: any): void {
-        const log: string = "[WAIT]  " + this.#getDate() + " - " + input;
-        this.#logger(" \x1b[46m\x1b[30m ⧖ \x1b[0m\x1b[36m " + log + "\x1b[0m", log);
+    static wait(input: any, prefix?: string): void {
+        const {log, file_log} = this.#formatLog(`[WAIT] `, ` \x1b[46m\x1b[30m ⧖ \x1b[0m\x1b[36m `, input, prefix);
+        this.#logger(log, file_log);
     }
 
     /**
-     * Log as info
-     * @param input
+     * Log as `[INFO]`
+     * @param input Content to log.
+     * @param prefix Optional: ex. `[INFO] - [prefix] Lorem Ipsum`
      */
-    static info(input: any): void {
-        const log: string = "[INFO]  " + this.#getDate() + " - " + input;
-        this.#logger(" \x1b[44m\x1b[30m i \x1b[0m\x1b[36m " + log + "\x1b[0m", log);
+    static info(input: any, prefix?: string): void {
+        const {log, file_log} = this.#formatLog(`[INFO] `, ` \x1b[44m\x1b[30m i \x1b[0m\x1b[36m `, input, prefix);
+        this.#logger(log, file_log);
     }
 
     /**
-     * Log as done
-     * @param input
+     * Log as `[DONE]`
+     * @param input Content to log.
+     * @param prefix Optional: ex. `[DONE] - [prefix] Lorem Ipsum`
      */
-    static done(input: any): void {
-        const log: string = "[DONE]  " + this.#getDate() + " - " + input;
-        this.#logger(" \x1b[42m\x1b[30m ✓ \x1b[0m\x1b[32m " + log + "\x1b[0m", log);
+    static done(input: any, prefix?: string): void {
+        const {log, file_log} = this.#formatLog(`[DONE] `, ` \x1b[42m\x1b[30m ✓ \x1b[0m\x1b[32m `, input, prefix);
+        this.#logger(log, file_log);
     }
 
     /**
-     * Log a message without any formatting
-     *
-     * @static
+     * Log a message without any formatting.
      * @param input
-     * @memberof Log
      */
     static raw(input: any): void {
         this.#logger(String(input), input);
+    }
+
+    /**
+     * Formats the content to the log format.
+     * @param symbol
+     * @param prefix
+     * @param input
+     * @param extraPrefix
+     * @private
+     */
+    static #formatLog(symbol: string, prefix: string, input: any, extraPrefix?: string): { log: string, file_log: string } {
+        const cleanPrefix: string = symbol.concat(' ', this.#getDate());
+        const log: string = extraPrefix ? cleanPrefix.concat(' - [',extraPrefix,'] ',input) : cleanPrefix.concat(' - ',input);
+
+        return {
+            log: prefix.concat(log, FORMAT_SUFFIX)
+                .replaceAll(NEWLINE_REGEX, FORMAT_SUFFIX.concat('\n', prefix, cleanPrefix, ' > ',extraPrefix ? extraPrefix.replaceAll(CHAR_REGEX,' ').concat('   ') : '  '))
+                .concat(FORMAT_SUFFIX),
+            file_log: log.replaceAll(NEWLINE_REGEX, '\n'.concat(cleanPrefix, ' >   '))
+        };
+    }
+
+    /**
+     * Format the content to the log format without ANSI formatting.
+     * @param symbol
+     * @param input
+     * @private
+     */
+    static #formatFileLog(symbol: string, input: any): string {
+        const prefix: string = symbol.concat('  ', this.#getDate(), ' - ');
+        return prefix.concat(input).replaceAll(NEWLINE_REGEX, '\n'.concat(prefix, ' >   '));
     }
 }
 
