@@ -2,7 +2,7 @@ import {env} from "$env/dynamic/private";
 import Log from '$lib/server/internal/log';
 import {v7 as uuidv7, validate} from 'uuid';
 import mysql, {type Pool, type RowDataPacket} from 'mysql2/promise';
-import type {Currency, Inventory, Item, ResetRequest, Session, User} from "$lib/server/db/interfaces";
+import type {Currency, Inventory, Item, PageTheme, ResetRequest, Session, User} from "$lib/server/db/interfaces";
 import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
 import {UserSettings} from "$lib/components/settings/UserSettings";
@@ -90,6 +90,7 @@ async function ensureTables(): Promise<void> {
                                 profile_picture   VARCHAR(2000)                        NULL,
                                 reset_token       CHAR(36)                             NULL,
                                 primary_inventory CHAR(36)                             NULL,
+                                preferred_theme   VARCHAR(5) DEFAULT 'dark'            NOT NULL,
                                 last_login        TIMESTAMP  DEFAULT CURRENT_TIMESTAMP NOT NULL,
                                 created_at        TIMESTAMP  DEFAULT CURRENT_TIMESTAMP NOT NULL,
                                 superuser         TINYINT(1) DEFAULT 0                 NOT NULL,
@@ -683,7 +684,7 @@ export class Users {
      * @param uuid
      * @param inventory
      */
-    static async setPrimaryInventory(uuid: string, inventory: string | null): Promise<void> {
+    static async updatePrimaryInventory(uuid: string, inventory: string | null): Promise<void> {
         if (!validate(uuid)) {
             Log.error(`Users#setPrimaryInventory: '${uuid}' is not a valid UUID! Ignoring database request...`);
             return;
@@ -693,6 +694,23 @@ export class Users {
                                   SET primary_inventory = ?
                                   WHERE uuid = ?`, [inventory, uuid])
             .catch((err: Error): void => Log.error(`Users#setPrimaryInventory[0]: Database request failed`, err));
+    }
+
+    /**
+     * todo
+     * @param uuid
+     * @param theme
+     */
+    static async updatePreferredTheme(uuid: string, theme: PageTheme): Promise<void> {
+        if (!validate(uuid)) {
+            Log.error(`Users#updatePreferredTheme: '${uuid}' is not a valid UUID! Ignoring database request...`);
+            return;
+        }
+
+        await connection.execute(`UPDATE users
+                                  SET preferred_theme = ?
+                                  WHERE uuid = ?`, [theme, uuid])
+            .catch((err: Error): void => Log.error(`Users#updatePreferredTheme[0]: Database request failed`, err));
     }
 
     static async getSettings(uuid: string): Promise<UserSettings> {

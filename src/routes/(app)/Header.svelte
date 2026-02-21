@@ -1,30 +1,15 @@
 <script lang="ts">
     import {page} from "$app/state";
-    import {getContext, onMount} from 'svelte';
+    import {getContext} from 'svelte';
     import type {User} from "$lib/server/db/interfaces";
     import tippy, {animateFill} from "tippy.js";
     import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
+    import {updateTheme} from "./data.remote.ts";
 
     let user: User = $derived(getContext('user'));
-    let element: any = undefined;
     let isOnline = $state(true);
-    let isDark = $state(true);
+    let theme = $derived(user.preferred_theme);
     let sidebar = $state(false);
-
-    onMount(async () => {
-        element = document.getElementsByTagName('body')[0];
-        isDark = document.getElementsByClassName('dark').length > 0;
-    });
-
-    let theme = $derived(isDark ? 'light' : 'dark');
-
-    function toggleTheme() {
-        if (!element) return;
-        isDark = !isDark
-        isDark
-            ? element.classList.add('dark')
-            : element.classList.remove('dark')
-    }
 
     function tooltip(node: HTMLAnchorElement) {
         const accountTooltipElement: HTMLElement | null = document.getElementById('account-tooltip');
@@ -61,7 +46,10 @@
 
 <div class="account-tooltip" id="account-tooltip"
      style="display:none;flex-flow:row nowrap;justify-content:center;align-items:center;width:6rem;height:fit-content;padding:.5rem 1rem !important;">
-    <button class="blue-hover page-theme-switch-button" id="dark-light-mode-switcher" style="transform:translateX(.1rem);" onclick={toggleTheme} title="Switch Theme">
+    <button class="blue-hover page-theme-switch-button" id="dark-light-mode-switcher" style="transform:translateX(.1rem);" onclick={() => {
+        user.preferred_theme = theme === 'dark' ? 'light' : 'dark';
+        updateTheme({id: user.uuid, theme: user.preferred_theme});
+    }} title="Switch Theme">
         {#if theme === 'dark'}
             <svg class="blue-hover size-6" style="overflow:visible;height:1.5rem;width:1.5rem;" fill="none" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round"

@@ -19,17 +19,17 @@
     setContext('toasts', toastHandler);
 </script>
 
-<section class="header">
+<section class="header {user.preferred_theme}">
     <Header />
 </section>
 
-<div class="toasts">
+<div class="toasts {user.preferred_theme}">
     {#each toastHandler.toasts as toast}
         {@html toast}
     {/each}
 </div>
 
-<section class="main-container">
+<section class="main-container {user.preferred_theme}">
     {@render children()}
 </section>
 
@@ -58,9 +58,10 @@
     }
 
     .main-container {
-        height: calc(var(--theme-height-header) - 100vh);
+        height: var(--theme-max-page-height);
         width: 100vw;
         scrollbar-width: none;
         z-index: 1;
+        background: var(--theme-background) !important;
     }
 </style>

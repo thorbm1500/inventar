@@ -155,7 +155,6 @@ body {
     width: 100vw;
     height: 100vh;
     overflow-x: hidden;
-    background: var(--theme-background);
 
     .tippy-box[data-theme~='tooltip_theme'] {
         * {

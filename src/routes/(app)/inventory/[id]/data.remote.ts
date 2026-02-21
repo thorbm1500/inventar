@@ -93,5 +93,5 @@ export const updatePrimaryIvnentory = command(
         inventory: v.optional(v.string(), undefined)
     }),
     async ({user, inventory}) => {
-        await db.Users.setPrimaryInventory(user, inventory ?? null);
+        await db.Users.updatePrimaryInventory(user, inventory ?? null);
     });

@@ -64,6 +64,8 @@ export interface Item {
     created_by: string
 }
 
+export type PageTheme = 'light' | 'dark';
+
 /**
  * User interface, to easily handle user data. The User interface should never contain or be able to contain any sensitive data.
  */
@@ -73,6 +75,7 @@ export interface User {
     username: string,
     profile_picture?: string,
     primary_inventory?: string,
+    preferred_theme: PageTheme,
     last_login: number,
     created_at: number,
     superuser: boolean
