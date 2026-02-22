@@ -1,3 +1,5 @@
+[![Latest Build](https://github.com/thorbm1500/inventar/actions/workflows/build.yml/badge.svg)](https://github.com/thorbm1500/inventar/actions/workflows/build.yml)
+
 ![inventar-logo](https://cdn.prodzeus.dev/brand-assets/inventar/logo/full-dark-mode.svg)
 
 ### An <strong>Open Source</strong> personal inventory management system.
