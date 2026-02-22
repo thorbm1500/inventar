@@ -1,20 +1,6 @@
 <script module lang="ts">
-    const imageModules = import.meta.glob('$lib/assets/uploads/item-images/*.{avif,gif,heif,jpeg,jpg,png,tiff,webp}',
-        {
-            eager: false,
-            query: {
-                enhanced: false
-            }
-        }
-    )
-
     //todo: Add logic to archive deleted items for 30 days to allow for recovery of deleted items
-    //todo: After implementing todo above, add option to permanently delete any archived item
-
-    /*
-    * <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><g fill="currentColor"><circle cx="5" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="15" cy="10" r="2"/></g></svg>
-    * <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><path fill="currentColor" fill-rule="evenodd" d="M4 5.543V4.25H3a1 1 0 0 0-1 1v3.5a1 1 0 0 0 1 1h1a1 1 0 1 1 0 2H3a3 3 0 0 1-3-3v-3.5a3 3 0 0 1 3-3h1V.957a.5.5 0 0 1 .854-.353l2.292 2.292a.5.5 0 0 1 0 .708L4.854 5.896A.5.5 0 0 1 4 5.543m6 6.207v1.293a.5.5 0 0 1-.854.354l-2.292-2.293a.5.5 0 0 1 0-.708l2.292-2.292a.5.5 0 0 1 .854.353V9.75h1a1 1 0 0 0 1-1v-3.5a1 1 0 0 0-1-1h-1a1 1 0 1 1 0-2h1a3 3 0 0 1 3 3v3.5a3 3 0 0 1-3 3z" clip-rule="evenodd"/></svg>
-    *  */
+    //todo: After above is implemented, add option to permanently delete any archived item.
 
     const confirmItemCreationIcons: string[] = [
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-cube-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M21 12.5v-4.509a1.98 1.98 0 0 0 -1 -1.717l-7 -4.008a2.016 2.016 0 0 0 -2 0l-7 4.007c-.619 .355 -1 1.01 -1 1.718v8.018c0 .709 .381 1.363 1 1.717l7 4.008a2.016 2.016 0 0 0 2 0" /><path d="M12 22v-10" /><path d="M12 12l8.73 -5.04" /><path d="M3.27 6.96l8.73 5.04" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
@@ -32,19 +18,6 @@
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-irregular-polyhedron-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 12l1.752 -6.13a1 1 0 0 0 -.592 -1.205l-6.282 -2.503a2.46 2.46 0 0 0 -1.756 0l-6.282 2.503a1 1 0 0 0 -.592 1.204l1.752 6.131l-1.752 6.13a1 1 0 0 0 .592 1.205l6.282 2.503a2.46 2.46 0 0 0 1.756 0l.221 -.088" /><path d="M4.5 5.5l6.622 2.33a2.35 2.35 0 0 0 1.756 0l6.622 -2.33" /><path d="M6 12l5.21 1.862a2.34 2.34 0 0 0 1.58 0l5.21 -1.862" /><path d="M12 22v-14" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-database-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 6c0 1.657 3.582 3 8 3s8 -1.343 8 -3s-3.582 -3 -8 -3s-8 1.343 -8 3" /><path d="M4 6v6c0 1.657 3.582 3 8 3c1.075 0 2.1 -.08 3.037 -.224" /><path d="M20 12v-6" /><path d="M4 12v6c0 1.657 3.582 3 8 3c.166 0 .331 -.002 .495 -.006" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`
     ];
-    const latestIcons: number[] = [-1,-1,-1];
-
-    function getRandomIcon(): string {
-        let next: number = -1;
-
-        while (next === -1 || latestIcons.includes(next)) {
-            next = Math.floor(Math.random() * (14));
-        }
-
-        latestIcons.shift();
-        latestIcons.push(next);
-        return confirmItemCreationIcons[next];
-    }
 </script>
 
 <script lang="ts">
@@ -107,6 +80,20 @@
     async function refresh() {
         await getTotalItemCount(inventory.uuid).refresh();
         await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
+    }
+
+    const latestIcons: number[] = [-1,-1,-1];
+
+    function getRandomIcon(): string {
+        let next: number = -1;
+
+        while (next === -1 || latestIcons.includes(next)) {
+            next = Math.floor(Math.random() * (14));
+        }
+
+        latestIcons.shift();
+        latestIcons.push(next);
+        return confirmItemCreationIcons[next];
     }
 </script>
 
@@ -753,7 +740,7 @@
             .header {
                 h1 {
                     font-size: 1.7rem;
-                    font-family: 'FunnelSans', sans-serif;
+                    font-family: 'FunnelDisplay', sans-serif;
                     font-weight: 650;
                     color: var(--theme-text);
                     margin-bottom: 1rem;
