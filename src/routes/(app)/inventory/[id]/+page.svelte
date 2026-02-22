@@ -82,17 +82,17 @@
         await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
     }
 
-    const latestIcons: number[] = [-1,-1,-1];
+    const latestIcons: number[] = [99,99,99];
 
     function getRandomIcon(): string {
-        let next: number = -1;
+        let next: number = 99;
 
-        while (next === -1 || latestIcons.includes(next)) {
+        while (next === 99 || latestIcons?.includes(next)) {
             next = Math.floor(Math.random() * (14));
         }
 
-        latestIcons.shift();
-        latestIcons.push(next);
+        latestIcons?.shift();
+        latestIcons?.push(next);
         return confirmItemCreationIcons[next];
     }
 </script>

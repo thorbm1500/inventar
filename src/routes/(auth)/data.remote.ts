@@ -115,10 +115,8 @@ export const login = form(
 
         await db.Users.updateLastLogin(user.uuid);
 
-        const event: RequestEvent = getRequestEvent();
-
         const sessionToken: string = auth.generateSessionToken();
-        const session: Session = await auth.createSession(sessionToken, user.uuid, event);
+        const session: Session = await auth.createSession(sessionToken, user.uuid);
         auth.setSessionTokenCookie(sessionToken, session.expires);
 
         return redirect(302, '/');

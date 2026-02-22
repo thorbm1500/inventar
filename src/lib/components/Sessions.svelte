@@ -1,7 +1,7 @@
 <script lang="ts">
     import type {Session, User} from "$lib/server/db/interfaces";
     import {getContext} from "svelte";
-    import {endSession, getSessions} from "../../routes/(app)/settings/data.remote.ts";
+    import {endSession, getSessions} from "../../routes/(app)/account/[id]/settings/data.remote.ts";
     import moment from "moment";
 
     const user: User = $derived(getContext('user'));

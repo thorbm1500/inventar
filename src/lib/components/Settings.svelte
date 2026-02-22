@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {accountSettings, getSettings} from "../../routes/(app)/settings/data.remote";
+    import {accountSettings, getSettings} from "../../routes/(app)/account/[id]/settings/data.remote";
     import type {User} from "$lib/server/db/interfaces";
     import {getContext} from "svelte";
     import type {UserSettings} from "$lib/components/settings/UserSettings";

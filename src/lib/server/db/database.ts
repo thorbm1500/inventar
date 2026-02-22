@@ -7,6 +7,7 @@ import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
 import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
+import {type ApplicationSetting, type ApplicationSettings, defaultSettings, emptyApplicationSettingsObj} from "$lib/server/db/components/ApplicationSettingsDefaults";
 
 export const connection: Pool = mysql.createPool({
     host: env.DB_HOST,
@@ -36,6 +37,17 @@ export async function init(): Promise<void> {
  * Ensures all tables are present in the database.
  */
 async function ensureTables(): Promise<void> {
+    await connection.query(`CREATE TABLE IF NOT EXISTS application_settings
+                            (
+                                category       VARCHAR(60)          NOT NULL,
+                                subcategory    VARCHAR(60)          NOT NULL,
+                                setting        VARCHAR(60)          NOT NULL,
+                                text_value     VARCHAR(255)         NULL,
+                                textarea_value TEXT                 NULL,
+                                toggle_value   TINYINT(1) DEFAULT 0 NOT NULL,
+                                PRIMARY KEY (category, subcategory, setting)
+                            )`).catch((err: Error): void => Log.error(`Failed to create table 'application_settings'`, err));
+
     await connection.query(`CREATE TABLE IF NOT EXISTS currencies
                             (
                                 id     CHAR(3)     NOT NULL,
@@ -289,6 +301,28 @@ async function ensureDefaultValues(): Promise<void> {
      */
 
     try {
+        for (const setting of defaultSettings) {
+            await connection.execute(`INSERT IGNORE INTO application_settings (category, subcategory, setting, text_value, textarea_value, toggle_value)
+                                      VALUES (?, ?, ?, ?, ?, ?)`,
+                [setting.category, setting.subcategory, setting.setting, setting.text_value, setting.textarea_value, setting.toggle_value ? '1' : '0']);
+        }
+    } catch (err) {
+        Log.error(`Failed to add default values to table 'application_settings'`, err as Error);
+    }
+
+    try {
+        for (const row of currencies) {
+            await connection.execute(`INSERT INTO currencies (id, code, format)
+                                      VALUES (?, ?, ?)
+                                      ON DUPLICATE KEY UPDATE code=?,
+                                                              format=?`,
+                [row.id, row.code, row.format ?? '%value%', row.code, row.format ?? '%value%']);
+        }
+    } catch (err) {
+        Log.error(`Failed to add default values to table 'currencies'`, err as Error);
+    }
+
+    try {
         for (const row of currencies) {
             await connection.execute(`INSERT INTO currencies (id, code, format)
                                       VALUES (?, ?, ?)
@@ -313,6 +347,29 @@ async function ensureDefaultValues(): Promise<void> {
     } catch (err) {
         Log.error(`Failed to add default values to table 'default_label_colors'`, err as Error);
     }
+}
+
+/**
+ * todo
+ */
+export async function getApplicationSettings(): Promise<ApplicationSettings> {
+    const [result] = await connection.query(`SELECT *
+                                             FROM application_settings`)
+        .catch((err: Error): [] => {
+            Log.error(`getApplicationSettings[0]: Database request failed`, err);
+            return [];
+        });
+
+    const settings: ApplicationSettings = emptyApplicationSettingsObj;
+
+    for(const row of result as RowDataPacket[]) {
+        const setting: ApplicationSetting = row as ApplicationSetting;
+        if(!setting.category || !setting.subcategory || !setting.setting) continue;
+
+        settings.get(setting.category)?.get(setting.subcategory)?.set(setting.setting,setting as ApplicationSetting);
+    }
+
+    return settings;
 }
 
 /**
@@ -712,6 +769,10 @@ export class Users {
             .catch((err: Error): void => Log.error(`Users#updatePreferredTheme[0]: Database request failed`, err));
     }
 
+    /**
+     * todo
+     * @param uuid
+     */
     static async getSettings(uuid: string): Promise<UserSettings> {
         const settings: UserSettings = new UserSettings(uuid);
 
@@ -745,6 +806,21 @@ export class Users {
         settings.load(categories as RowDataPacket[], all_categories as RowDataPacket[], setting as Setting[]);
 
         return settings;
+    }
+
+    /**
+     * todo
+     */
+    static async isSuperuser(uuid: string): Promise<boolean> {
+        const [result] = await connection.query(`SELECT superuser
+                                                 FROM users
+                                                 WHERE uuid = ?`, [uuid])
+            .catch((err: Error): [] => {
+                Log.error(`Users#isSuperuser[0]: Database request failed`, err)
+                return [];
+            });
+
+        return (result as RowDataPacket[])[0].superuser ?? 0;
     }
 }
 
@@ -789,9 +865,9 @@ export class Auth {
      */
     static async getSessions(uuid: string): Promise<Session[]> {
         const [results] = await connection.execute(`SELECT *
-                                                   FROM sessions
-                                                   WHERE uuid = ?
-                                                   ORDER BY last_accessed`, [uuid])
+                                                    FROM sessions
+                                                    WHERE uuid = ?
+                                                    ORDER BY last_accessed`, [uuid])
             .catch((err: Error): [] => {
                 Log.error(`Auth#getSession[0]: Database request failed`, err)
                 return [];

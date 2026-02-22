@@ -7,6 +7,9 @@ import {env} from "$env/dynamic/private";
 import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
 import utilities from "$lib/server/internal/utilities";
 import cron from "$lib/server/internal/cron";
+import Log from "$lib/server/internal/log";
+import {encodeBase64url, encodeHexLowerCase} from "@oslojs/encoding";
+import {sha256} from "@oslojs/crypto/sha2";
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
@@ -19,9 +22,8 @@ export const init: ServerInit = async (): Promise<void> => {
     // Skip database initialization if project is building.
     if (!building) {
         await initializeDatabase();
+        cron.initializeJobs();
     }
-
-    cron.initializeJobs();
 }
 
 const public_paths = [

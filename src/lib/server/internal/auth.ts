@@ -112,3 +112,7 @@ export function validateEmail(email: unknown): email is string {
 export function validatePassword(password: unknown): password is string {
     return typeof password === 'string' && password.length >= 32 && password.length <= 255;
 }
+
+export function generateRegistrationToken(): string {
+    return encodeHexLowerCase(sha256(new TextEncoder().encode(encodeBase64url(crypto.getRandomValues(new Uint8Array(128))))));
+}

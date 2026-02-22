@@ -63,5 +63,6 @@
         scrollbar-width: none;
         z-index: 1;
         background: var(--theme-background) !important;
+        overflow: hidden;
     }
 </style>
