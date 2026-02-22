@@ -1,12 +1,11 @@
-[![Latest Build](https://github.com/thorbm1500/inventar/actions/workflows/build.yml/badge.svg)](https://github.com/thorbm1500/inventar/actions/workflows/build.yml)
-
 ![inventar-logo](https://cdn.prodzeus.dev/brand-assets/inventar/logo/full-dark-mode.svg)
 
+# No AI. No Cloud. Always local. _Always_ private.
+[![Latest Build](https://github.com/thorbm1500/inventar/actions/workflows/build.yml/badge.svg)](https://github.com/thorbm1500/inventar/actions/workflows/build.yml)
 ### An <strong>Open Source</strong> personal inventory management system.
 > [!NOTE]
 > Despite being open source and public, inventar is still _"just"_ a personal hobby project. It is not built with optimizations, speed or big data in mind.
 
-## No AI. No Cloud. Always local. _Always_ private.
 #### It's time we own our own data again, and stop having our every move tracked by big tech.
 This app has largely been inspired by the problem with companies,
 thinking that if they don't incorporate AI into their products, they will fail. It is almost impossible to not read the two letters "AI", when going on
