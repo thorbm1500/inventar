@@ -24,14 +24,14 @@ export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's
 const itemsObj = v.object({
     inventory: v.string(),
     amount: v.number(),
-    order_by: v.string(),
+    order_by: v.optional(v.string(), undefined),
     order: v.string(),
     offset: v.number()
 });
 
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
     if (!util.isOffline()) {
-        return (await db.Items.fetch(data.inventory, data.amount, data.order_by, data.order == '' ? 'ASC' : data.order, data.offset)) as Item[];
+        return (await db.Items.fetch(data.inventory, data.amount, data.order == '' ? 'ASC' : data.order, data.offset, data.order_by)) as Item[];
     }
     return [];
 });

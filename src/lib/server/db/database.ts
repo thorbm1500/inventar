@@ -485,24 +485,23 @@ export class Items {
      * @param order
      * @param offset
      */
-    static async fetch(inventory: string, amount: number = 15, order_by: string, order: string, offset: number = 0): Promise<Item[]> {
-        const [result] = await connection.execute(`
-            SELECT items.uuid        as uuid,
-                   items.inventory   as inventory,
-                   items.name        as name,
-                   items.description as description,
-                   items.amount      as amount,
-                   items.image       as image,
-                   items.url         as url,
-                   items.price       as price,
-                   items.last_update as last_update,
-                   items.currency    as currency,
-                   currencies.format as currency_format
-            FROM items
-                     LEFT JOIN currencies ON items.currency = currencies.code
-            WHERE items.inventory = ?
-            ORDER BY ${order_by === '' ? 'created_at' : order_by} ${order}
-            LIMIT ${amount} OFFSET ${offset}`, [inventory])
+    static async fetch(inventory: string, amount: number = 15, order: string, offset: number = 0, order_by?: string): Promise<Item[]> {
+        const [result] = await connection.execute(`SELECT items.uuid        as uuid,
+                                                          items.inventory   as inventory,
+                                                          items.name        as name,
+                                                          items.description as description,
+                                                          items.amount      as amount,
+                                                          items.image       as image,
+                                                          items.url         as url,
+                                                          items.price       as price,
+                                                          items.last_update as last_update,
+                                                          items.currency    as currency,
+                                                          currencies.format as currency_format
+                                                   FROM items
+                                                            LEFT JOIN currencies ON items.currency = currencies.code
+                                                   WHERE items.inventory = ?
+                                                   ORDER BY ${order_by ? order_by : 'created_at'} ${order}
+                                                   LIMIT ${amount} OFFSET ${offset}`, [inventory])
             .catch((err: Error): [] => {
                 Log.error(`Items#fetch[0]: Database request failed`, err)
                 return [];

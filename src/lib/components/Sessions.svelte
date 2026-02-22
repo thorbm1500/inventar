@@ -30,7 +30,7 @@
         <div class="sessions computer">
             {#each sessions as session}
                 {#if (session?.device === 'Computer')}
-                    <div class="session">
+                    <div class="session" style="order:{moment.duration({from: session.last_accessed, to: Date.now()}).minutes() > 5?2:1}">
                         <div class="icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
                                  stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-devices-2">
@@ -82,7 +82,7 @@
         <div class="sessions mobile">
             {#each sessions as session}
                 {#if (session.device === 'Mobile')}
-                    <div class="session">
+                    <div class="session" style="order:{moment.duration({from: session.last_accessed, to: Date.now()}).minutes() > 5?2:1}">
                         <div class="icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                  stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-device-mobile">
@@ -206,9 +206,10 @@
                         justify-content: center;
 
                         height: fit-content;
-                        width: 5rem;
+                        width: 10rem;
 
                         svg {
+                            padding: 0;
                             width: 2.5rem;
                             height: 2.5rem;
                         }
@@ -274,8 +275,6 @@
                         flex-flow: column nowrap;
                         align-items: center;
                         justify-content: center;
-
-                        margin: 0 1.5rem;
 
                         width: 100%;
 

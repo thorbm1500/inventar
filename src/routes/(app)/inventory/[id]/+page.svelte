@@ -23,20 +23,19 @@
     import {page} from "$app/state";
     import type {Inventory, Item, User} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/utilities'
-    import FilterSettings from "./utilities.svelte.ts";
     import {getItems, getTotalItemCount} from './data.remote.ts';
     import Utility from "../../browse/utility";
     import {createItem} from './data.remote.ts';
     import {deleteItem, updatePrimaryIvnentory} from "./data.remote";
+    import {Filters} from "./FilterHandler.svelte";
 
     let {data}: PageProps = $props();
 
     const user: User = $state(getContext('user'));
+    //todo: Add option to save filters, and make them persistent for the user.
+    const filters: Filters = new Filters(user.uuid);
 
     let addItemHover = $state(false);
-
-    //todo: Add option to save filters, and make them persistent for the user.
-    const filterSettings: FilterSettings = new FilterSettings();
 
     let inventory: Inventory = $state(data.inventory);
 
@@ -49,21 +48,14 @@
     let isFilterContainerOpen: boolean = $state(false);
 
     /* Item Container*/
-    let order_by = $state('name');
-    let order = $state('');
     let currentPage = $state(1);
 
-    let nameFilter = $state('DEFAULT');
-    let lastUpdateFilter = $state('DEFAULT');
-    let priceFilter = $state('DEFAULT');
-    let itemsFilter = $state('DEFAULT');
-
-    let offset = $derived(filterSettings.columnSize * (currentPage - 1));
+    let offset = $derived(filters.rowAmount * (currentPage - 1));
 
     //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
-    let items: Item[] = $derived(await getItems({inventory: inventory.uuid, amount: filterSettings.columnSize, order_by, order, offset}));
+    let items: Item[] = $derived(await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}));
     let itemCount: number = $derived(await getTotalItemCount(inventory.uuid));
-    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filterSettings.columnSize) ?? 1));
+    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filters.rowAmount) ?? 1));
 
     async function goToFirstPage() {
         currentPage = 1;
@@ -81,64 +73,7 @@
 
     async function refresh() {
         await getTotalItemCount(inventory.uuid).refresh();
-        await getItems({inventory: inventory.uuid, amount: filterSettings.columnSize, order_by, order, offset}).refresh();
-    }
-
-    async function updateFilter(filter: string, current: string) {
-        const next = String(getNextState(current));
-
-        if (next === 'DEFAULT') {
-            order = '';
-            order_by = 'name';
-
-            nameFilter = 'DEFAULT';
-            itemsFilter = 'DEFAULT';
-            priceFilter = 'DEFAULT';
-            lastUpdateFilter = 'DEFAULT';
-        } else {
-            order = next;
-
-            if (filter == 'name') {
-                nameFilter = next;
-                order_by = 'name';
-
-                priceFilter = 'DEFAULT';
-                itemsFilter = 'DEFAULT';
-                lastUpdateFilter = 'DEFAULT';
-            } else if (filter == 'price') {
-                priceFilter = next;
-                order_by = 'price';
-
-                itemsFilter = 'DEFAULT';
-                nameFilter = 'DEFAULT';
-                lastUpdateFilter = 'DEFAULT';
-            } else if (filter == 'amount') {
-                itemsFilter = next;
-                order_by = 'amount';
-
-                nameFilter = 'DEFAULT';
-                itemsFilter = 'DEFAULT';
-                lastUpdateFilter = 'DEFAULT';
-            } else if (filter == 'last_update') {
-                lastUpdateFilter = next;
-                order_by = 'last_update';
-
-                nameFilter = 'DEFAULT';
-                itemsFilter = 'DEFAULT';
-                itemsFilter = 'DEFAULT';
-            }
-        }
-    }
-
-    function getNextState(currentState: string) {
-        switch (currentState) {
-            case 'DESC':
-                return 'ASC';
-            case 'ASC':
-                return 'DEFAULT';
-            case 'DEFAULT':
-                return 'DESC';
-        }
+        await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
     }
 </script>
 
@@ -233,11 +168,11 @@
                         </div>
                     </div>
                 </section>
-                {#if (isFilterContainerOpen) }
-                    <div class="extra-container {isFilterContainerOpen?'open':'open'} inventory-filter-container">
+                {#if isFilterContainerOpen }
+                    <div class="extra-container {isFilterContainerOpen?'open':'closed'} inventory-filter-container">
                         <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
                             <h1>Filters</h1>
-                            <button class="filters-save-button {filterSettings.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
+                            <button class="filters-save-button {filters.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
                                 <svg width="16" height="16" fill="currentColor" class="bi bi-floppy-fill" viewBox="0 0 16 16">
                                     <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0H3v5.5A1.5 1.5 0 0 0 4.5 7h7A1.5 1.5 0 0 0 13 5.5V0h.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5H14v-5.5A1.5 1.5 0 0 0 12.5 9h-9A1.5 1.5 0 0 0 2 10.5V16h-.5A1.5 1.5 0 0 1 0 14.5z"/>
                                     <path d="M3 16h10v-5.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5zm9-16H4v5.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5zM9 1h2v4H9z"/>
@@ -254,10 +189,13 @@
                                     <h1>Columns</h1>
                                 </div>
                                 <div class="buttons">
-                                    <button class="extra-container-button price filter-button {filterSettings.price ? '' : 'off'}"
-                                            style="order:{filterSettings.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => filterSettings.price = !filterSettings.price}>
-                                        {#if filterSettings.price }
+                                    <button class="extra-container-button price filter-button {filters.price ? '' : 'off'}"
+                                            style="order:{filters.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
+                                            onclick={() => {
+                                                filters.price = !filters.price;
+                                                filters.reset();
+                                            }}>
+                                        {#if filters.price }
                                             <svg width="24" height="24" viewBox="0 0 24 24">
                                                 <path fill="currentColor"
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -270,10 +208,13 @@
                                         {/if}
                                         Prices
                                     </button>
-                                    <button class="extra-container-button last-updated filter-button {filterSettings.lastUpdated ? '' : 'off'}"
-                                            style="order:{filterSettings.lastUpdated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => filterSettings.lastUpdated = !filterSettings.lastUpdated}>
-                                        {#if filterSettings.lastUpdated }
+                                    <button class="extra-container-button last-updated filter-button {filters.last_updated ? '' : 'off'}"
+                                            style="order:{filters.last_updated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
+                                            onclick={() => {
+                                                filters.last_updated = !filters.last_updated;
+                                                filters.reset();
+                                            }}>
+                                        {#if filters.last_updated }
                                             <svg width="24" height="24" viewBox="0 0 24 24">
                                                 <path fill="currentColor"
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -286,10 +227,13 @@
                                         {/if}
                                         Last Updated
                                     </button>
-                                    <button class="extra-container-button description filter-button {filterSettings.description ? '' : 'off'}"
-                                            style="order:{filterSettings.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => filterSettings.description = !filterSettings.description}>
-                                        {#if filterSettings.description }
+                                    <button class="extra-container-button description filter-button {filters.description ? '' : 'off'}"
+                                            style="order:{filters.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
+                                            onclick={() => {
+                                                filters.description = !filters.description
+                                                filters.reset();
+                                            }}>
+                                        {#if filters.description }
                                             <svg width="24" height="24" viewBox="0 0 24 24">
                                                 <path fill="currentColor"
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -316,23 +260,23 @@
                                     <h1>Row Amount</h1>
                                 </div>
                                 <div style="display:flex;flex-flow:row nowrap;gap:.25rem;">
-                                    <button onclick={() => filterSettings.columnSize = 15} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 15 ? 'selected' : ''}">
+                                    <button onclick={() => filters.rowAmount = 15} class="extra-container-button filter-button row-amount {filters.rowAmount === 15 ? 'selected' : ''}">
                                         15
                                     </button>
-                                    <button onclick={() => filterSettings.columnSize = 30} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 30 ? 'selected' : ''}">
+                                    <button onclick={() => filters.rowAmount = 30} class="extra-container-button filter-button row-amount {filters.rowAmount === 30 ? 'selected' : ''}">
                                         30
                                     </button>
-                                    <button onclick={() => filterSettings.columnSize = 45} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 45 ? 'selected' : ''}">
+                                    <button onclick={() => filters.rowAmount = 45} class="extra-container-button filter-button row-amount {filters.rowAmount === 45 ? 'selected' : ''}">
                                         45
                                     </button>
-                                    <button onclick={() => filterSettings.columnSize = 60} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 60 ? 'selected' : ''}">
+                                    <button onclick={() => filters.rowAmount = 60} class="extra-container-button filter-button row-amount {filters.rowAmount === 60 ? 'selected' : ''}">
                                         60
                                     </button>
                                 </div>
                             </div>
                         </section>
                     </div>
-                {:else if (isItemCreatorOpen) }
+                {:else if isItemCreatorOpen }
                     <div class="extra-container {isItemCreatorOpen?'open':'open'} create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
                         <div class="header">
                             <h1>Item Creator</h1>
@@ -367,7 +311,7 @@
                                         <h1>Currency</h1>
                                         <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')}>
                                             {#each data.currencies as currency}
-                                                {#if (currency.code === 'DKK')}
+                                                {#if currency.code === 'DKK' }
                                                     <option selected id="{currency.code}" value="{currency.code}">{currency.code}</option>
                                                 {:else}
                                                     <option value="{currency.code}">{currency.code}</option>
@@ -414,42 +358,42 @@
                             <div class="header-items">
                                 <div class="header-item name-filter">
                                     <button id="name-filter-button" title="Filter by name"
-                                            onclick={async () => await updateFilter("name",nameFilter)}>
+                                            onclick={async () => filters.update('name')}>
                                         Name
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { nameFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(nameFilter)}"/>
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'name' ? 'auto-hide-filter-icon' : '' }">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='name'?filters.order:'')}"/>
                                         </svg>
                                     </button>
                                 </div>
-                                {#if (filterSettings.lastUpdated)}
+                                {#if filters.last_updated }
                                     <div class="header-item latest-change-filter">
                                         <button id="latest-change-filter-button" title="Filter by latest update"
-                                                onclick={async () => await updateFilter("last_update",lastUpdateFilter)}>
+                                                onclick={async () => filters.update('last_updated')}>
                                             Last Updated
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { lastUpdateFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }"
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'last_updated' ? 'auto-hide-filter-icon' : '' }"
                                                  style="opacity:0;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(lastUpdateFilter)}"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='last_updated'?filters.order:'')}"/>
                                             </svg>
                                         </button>
                                     </div>
                                 {/if}
-                                {#if (filterSettings.price) }
+                                {#if filters.price }
                                     <div class="header-item price-filter">
                                         <button id="price-filter-button" title="Filter by item price"
-                                                onclick={async () => await updateFilter("price",priceFilter)}>
+                                                onclick={async () => filters.update('price')}>
                                             Price
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { priceFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(priceFilter)}"/>
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'price' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='price'?filters.order:'')}"/>
                                             </svg>
                                         </button>
                                     </div>
                                 {/if}
                                 <div class="header-item items-filter">
                                     <button id="items-filter-button" title="Filter by item amount"
-                                            onclick={async () => await updateFilter("amount",itemsFilter)}>
+                                            onclick={async () => filters.update('items')}>
                                         Items
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { itemsFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(itemsFilter)}"/>
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'items' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='items'?filters.order:'')}"/>
                                         </svg>
                                     </button>
                                 </div>
@@ -464,7 +408,7 @@
                                            class="inventory-list-entry">
                                             <div class="entry-item inventory-meta">
                                                 <div class="inventory-image">
-                                                    {#if (item.image) }
+                                                    {#if item.image }
                                                         <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
                                                     {:else }
                                                         <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
@@ -476,7 +420,7 @@
                                                 <div class="inventory-name-and-description">
                                                     <h1 class="inventory-name">{item.name}</h1>
                                                     <span class="line-clamp-2">
-                                                        {#if filterSettings.description}
+                                                        {#if filters.description}
                                                             {#if item.description}
                                                                 {item.description}
                                                             {:else}
@@ -486,12 +430,12 @@
                                                     </span>
                                                 </div>
                                             </div>
-                                            {#if (filterSettings.lastUpdated) }
+                                            {#if filters.last_updated }
                                                 <div class="entry-item inventory-item-last_change">
                                                     {parseTimestamp(item?.last_update)}
                                                 </div>
                                             {/if}
-                                            {#if (filterSettings.price) }
+                                            {#if filters.price }
                                                 <div class="entry-item inventory-item-price">
                                                     {item.currency_format.replace('%value%', String(item.price ?? 0))}
                                                 </div>
@@ -599,6 +543,13 @@
 <style>
     :root {
         --inventory-header-height: 6rem;
+    }
+
+    .auto-hide-filter-icon {
+        opacity: 0;
+
+        transition: 1750ms 500ms ease-in-out,
+        transform 0ms;
     }
 
     .body-section {
@@ -1014,13 +965,6 @@
                             font-family: 'FunnelSans', sans-serif;
                             font-weight: 600;
 
-                            .auto-hide-filter-icon {
-                                opacity: 0;
-
-                                transition: 1750ms 500ms ease-in-out,
-                                transform 0ms;
-                            }
-
                             button {
                                 display: flex;
                                 flex-flow: row nowrap;
@@ -1047,7 +991,7 @@
                                     transition: 125ms ease-in-out;
                                 }
 
-                                .auto-hide-filter-icon {
+                                svg.auto-hide-filter-icon {
                                     opacity: 1 !important;
 
                                     transition: 100ms ease-in-out,

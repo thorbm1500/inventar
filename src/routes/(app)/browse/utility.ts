@@ -1,4 +1,6 @@
-function getFilterSymbol(filter: string): string {
+import type {OrderType} from "../inventory/[id]/FilterHandler.svelte.ts";
+
+function getFilterSymbol(filter: OrderType | string): string {
     if (filter === "DESC") {
         return "m19.5 8.25-7.5 7.5-7.5-7.5";
     } else if (filter === "ASC") {
