@@ -124,7 +124,7 @@
     --theme-background-list-even: #161619;
     --theme-background-list-odd: #151518;
     --theme-background-button: #151518;
-    --theme-background-button-hover: #1c1c21;
+    --theme-background-button-hover: #1a1a1f;
     --theme-background-button-selected: #1c1c21;
     --theme-background-input: #21232a;
     --theme-background-tooltip: rgba(15, 15, 17, 0.25);
@@ -200,23 +200,35 @@ body {
     }
 
     .theme-button {
-        font-family: 'FunnelDisplay', sans-serif;
-        font-size: 1.15rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        color: var(--theme-text);
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+        gap: .5rem;
 
-        background: var(--theme-background-container);
-        border: var(--theme-border-width) solid var(--theme-border-container);
+        font-family: 'FunnelSans', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--theme-text);
+        stroke-width: 2;
+
+        background: var(--theme-background-button);
+        border: var(--theme-border-width) solid var(--theme-border-button);
         border-radius: var(--theme-border-radius);
-        padding: .5rem 1rem;
+
+        padding: .75rem 1.25rem;
 
         cursor: pointer;
         user-select: none;
+
+        transition: var(--theme-transition-in);
     }
 
     .theme-button:hover {
         background: var(--theme-background-button-hover);
+        color: var(--theme-text-accent);
+        transition: var(--theme-transition-in);
     }
 }
 
