@@ -6,6 +6,11 @@
 	],
 	"/": [],
 	"/(app)/account/[id]": [
+		"src/routes/(app)/account/[id]/+page.server.ts",
+		"src/routes/(app)/+layout.server.ts"
+	],
+	"/(app)/account/[id]/settings": [
+		"src/routes/(app)/account/[id]/settings/+page.server.ts",
 		"src/routes/(app)/+layout.server.ts"
 	],
 	"/(app)/browse": [
@@ -22,6 +27,7 @@
 		"src/routes/(app)/+layout.server.ts"
 	],
 	"/(app)/inventory/[id]/settings": [
+		"src/routes/(app)/inventory/[id]/settings/+page.server.ts",
 		"src/routes/(app)/+layout.server.ts"
 	],
 	"/(auth)/login": [],
@@ -32,6 +38,7 @@
 	"/(auth)/reset-password": [],
 	"/(auth)/reset-password/[token]": [],
 	"/(app)/settings": [
+		"src/routes/(app)/settings/+page.server.ts",
 		"src/routes/(app)/+layout.server.ts"
 	]
 }
