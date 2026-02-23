@@ -4,48 +4,80 @@
 
     const logDir = getContext('logDir');
 
-    let logs = $derived((getLatestLogs('').current ?? 'Loading...').split('\n'));
+    let logs: string[] = $derived((getLatestLogs('').current ?? ['Loading...']));
 
     let logsViewing = $state('default');
 
-    onMount(async () => await getLatestLogs(''));
+    onMount(async () => {
+        await getLatestLogs('');
+        const logContainerElement = document.getElementById('logs-container');
+        logContainerElement?.scroll({
+            top: Number.MAX_SAFE_INTEGER,
+            behavior: 'instant'
+        })
+    });
 </script>
 
-<section class="logs-section">
-    <div class="logs-container">
-        {#each logs as line}
-            {#if line !== ''}
-                <p class="log-line">{line}</p>
-            {/if}
-        {/each}
-    </div>
-</section>
+<div class="logs-container hyphens-none wrap-break-word whitespace-pre-wrap subpixel-antialiased" id="logs-container">
+    {#each logs as line}
+        {#if line !== ''}
+            <div class="log-line">{@html line}</div>
+        {/if}
+    {/each}
+</div>
 
 <style>
-    .logs-section {
+    .logs-container {
         width: 100%;
-        height: 39.5rem;
+        height: 100%;
 
-        .logs-container {
+        border: var(--theme-border-width) solid var(--theme-border-container);
+        border-radius: var(--theme-border-radius);
+
+        box-sizing: border-box;
+
+        overflow-y: scroll;
+        overflow-x: hidden !important;
+        overflow: auto;
+
+        padding: 0 1rem;
+
+        .log-line :global {
             width: 100%;
-            height: 100%;
 
-            border: var(--theme-border-width) solid var(--theme-border-container);
-            border-radius: var(--theme-border-radius);
+            font-family: 'JetBrains Mono', sans-serif;
+            color: var(--theme-text);
 
-            overflow-x: scroll;
-            overflow-y: hidden;
-            overflow: auto;
+            text-wrap-style: pretty;
 
-            padding: 0 1rem;
-
-            .log-line {
-                width: 100%;
-
-                font-family: 'FunnelSans', sans-serif;
+            .syntax.bracket {
+                color: var(--theme-text-secondary);
+                font-weight: 800;
+            }
+            .syntax.type {
+                font-weight: 800;
+                font-optical-sizing: auto;
+            }
+            .syntax.type.debug {
+                color: var(--theme-text-third);
+            }
+            .syntax.type.info {
+                color: oklch(62.3% 0.214 259.815);
+            }
+            .syntax.type.done {
+                color: oklch(79.2% 0.209 151.711);
+            }
+            .syntax.type.error,.syntax.type.trace {
+                color: oklch(64.5% 0.246 16.439);
+            }
+            .syntax.timestamp-digits {
                 color: var(--theme-text);
-
-                text-wrap-style: pretty;
+            }
+            .syntax.timestamp-colon {
+                color: oklch(90.5% 0.182 98.111);
+            }
+            .syntax.trace-text {
+                color: oklch(64.5% 0.246 16.439);
             }
         }
     }

@@ -3,6 +3,7 @@ import {generateRegistrationToken} from "$lib/server/internal/auth";
 import {connection} from "$lib/server/db/database";
 import {promises as fs} from 'fs';
 import * as v from 'valibot';
+import {formatLogs} from "$lib/utilities";
 
 export const generateNewRegistrationToken = command(async (): Promise<string> => {
     const newToken: string = generateRegistrationToken();
@@ -10,7 +11,7 @@ export const generateNewRegistrationToken = command(async (): Promise<string> =>
     return newToken;
 })
 
-export const getLatestLogs = query(v.string() ,async (directory: string): Promise<string> => {
-    const file = await fs.readFile('/home/zeus/WebstormProjects/inventar/logs/inventar-16-02-2026-output.log');
-    return file.toString('utf-8');
+export const getLatestLogs = query(v.string() ,async (directory: string): Promise<string[]> => {
+    const file = await fs.readFile(directory);
+    return formatLogs(file.toString('utf-8').split('\n'));
 });

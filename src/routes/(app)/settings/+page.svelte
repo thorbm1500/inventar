@@ -10,8 +10,8 @@
     setContext('logDir', () => applicationSettings?.get('general')?.get('general')?.get('logs_dir'));
 
     const currentView = $state({
-        category: 'security',
-        subcategory: 'general'
+        category: 'system',
+        subcategory: 'logs'
     });
 
     function updateView(category: string, subcategory: string): void {
