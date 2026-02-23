@@ -353,7 +353,7 @@ async function ensureDefaultValues(): Promise<void> {
  * todo
  */
 export async function getApplicationSettings(): Promise<ApplicationSettings> {
-    const [result] = await connection.query(`SELECT *
+    const [result] = await connection.execute(`SELECT *
                                              FROM application_settings`)
         .catch((err: Error): [] => {
             Log.error(`getApplicationSettings[0]: Database request failed`, err);
