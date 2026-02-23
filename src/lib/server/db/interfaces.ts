@@ -58,6 +58,7 @@ export interface Item {
     price: number,
     currency: string | null,
     currency_format: string,
+    part_number?: string,
     labels: Label[],
     last_update: number,
     created_at: number,

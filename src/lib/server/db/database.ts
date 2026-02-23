@@ -182,7 +182,6 @@ async function ensureTables(): Promise<void> {
                                     UNIQUE (id)
                             )`).catch((err: Error): void => Log.error(`Failed to create table 'default_label_colors'`, err));
 
-    //todo - Add 'Part Number'
     await connection.query(`CREATE TABLE IF NOT EXISTS items
                             (
                                 inventory           CHAR(36)                                 NOT NULL,
@@ -198,6 +197,7 @@ async function ensureTables(): Promise<void> {
                                 url                 VARCHAR(2000)                            NULL,
                                 price               DECIMAL(50, 2) DEFAULT 0.00              NOT NULL,
                                 currency            CHAR(3)        DEFAULT 'N/A'             NOT NULL,
+                                part_number         VARCHAR(32)                              NULL,
                                 created_by          CHAR(36)                                 NOT NULL,
                                 last_update         TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP,
                                 created_at          TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL,

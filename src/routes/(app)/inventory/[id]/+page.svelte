@@ -82,7 +82,7 @@
         await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
     }
 
-    const latestIcons: number[] = [99,99,99];
+    const latestIcons: number[] = [99, 99, 99];
 
     function getRandomIcon(): string {
         let next: number = 99;
@@ -165,9 +165,14 @@
                                               d="M2 10.96a.985.985 0 0 1-.37-1.37L3.13 7c.11-.2.28-.34.47-.42l7.83-4.4c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.19.1.35.26.44.46l1.45 2.52c.28.48.11 1.09-.36 1.36l-1 .58v4.96c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-5.54c-.3.17-.68.18-1 0m10-6.81v6.7l5.96-3.35zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-3.22l-5 2.9c-.33.18-.7.17-1 .01v3.69zm-5.15-2.55l6.28-3.63l-.58-1.01l-6.28 3.63z"/>
                                     </svg>
                                 {:else}
-                                    <svg width="24" height="24" viewBox="0 0 24 24">
-                                        <path fill="currentColor"
-                                              d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88zM12 4.15l-1.89 1.07L16 8.61l1.96-1.11zM6.04 7.5L12 10.85l1.96-1.1l-5.88-3.4zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-6.7l-6 3.37v6.71z"/>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                         stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-package">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5"/>
+                                        <path d="M12 12l8 -4.5"/>
+                                        <path d="M12 12l0 9"/>
+                                        <path d="M12 12l-8 -4.5"/>
+                                        <path d="M16 5.25l-8 4.5"/>
                                     </svg>
                                 {/if}
                                 Add Item
@@ -178,7 +183,8 @@
                                           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
                                 </svg>
                             </button>
-                            <button id="inventory-settings-button" class="theme-button inventory-settings-button" title="Settings" onclick="{() => window.location.href=`/inventory/${inventory.uuid}/settings`}">
+                            <button id="inventory-settings-button" class="theme-button inventory-settings-button" title="Settings"
+                                    onclick="{() => window.location.href=`/inventory/${inventory.uuid}/settings`}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
@@ -298,17 +304,6 @@
                     </div>
                 {:else if isItemCreatorOpen }
                     <div class="extra-container {isItemCreatorOpen?'open':'open'} create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
-                        <div class="header">
-                            <h1>Item Creator</h1>
-                            <div>
-                                <button onmouseenter="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
-                                        onfocus="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
-                                        form="item-creator-form" type="submit" class="theme-button confirm-creation-button" id="confirm-creation-button">
-                                    {@html itemCreatorConfirmCreationButtonIcon }
-                                    Create
-                                </button>
-                            </div>
-                        </div>
                         <form {...createItem} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                             <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
                             <input {...createItem.fields.user.as('text')} value="{user?.uuid??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
@@ -317,7 +312,7 @@
                                    required/>
                             <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
                                 <div class="option-container" style="width:52rem;">
-                                    <h1>Item Name</h1>
+                                    <h1>Name</h1>
                                     <input style="width:100%;" {...createItem.fields.name.as('text')} placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
                                            data-1p-ignore data-bwignore required/>
                                 </div>
@@ -325,54 +320,28 @@
                                     <h1>Amount</h1>
                                     <input {...createItem.fields.amount.as('number')} value=0 required/>
                                 </div>
-                                <div class="option-container price-section" style="display:flex;flex-flow:row nowrap;">
-                                    <div class="price-section-input">
-                                        <h1>Price</h1>
-                                        <input {...createItem.fields.price.as('number')} placeholder="0" step="0.01" min="0" value="0"/>
-                                    </div>
-                                    <div class="price-section-input" style="margin-left:.75rem;">
-                                        <h1>Currency</h1>
-                                        <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')}>
-                                            {#each data.currencies as currency}
-                                                {#if currency.code === 'DKK' }
-                                                    <option selected id="{currency.code}" value="{currency.code}">{currency.code}</option>
-                                                {:else}
-                                                    <option value="{currency.code}">{currency.code}</option>
-                                                {/if}
-                                            {/each}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="options-mid-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;gap:1rem;">
-                                <div class="option-container" style="width:52rem;margin-right:.1rem;">
-                                    <h1>Description</h1>
-                                    <textarea {...createItem.fields.description.as('text')} style="height:14rem;width:52rem;"
-                                              placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit-. Integer at nibh nec quam laoreet molestie. Etiam commodo lorem velit, et dapibus est pulvinar a. Proin finibus elementum turpis in feugiat..."
-                                              spellcheck="false"></textarea>
-                                </div>
-                                <div class="option-container" style="width:100%;">
-                                    <h1>Image</h1>
-                                    <label>
-                                        <div style="display:flex;justify-content:center;cursor:pointer;width:100%;height:14rem;background:var(--theme-background-input);border-radius:var(--theme-border-radius);border:var(--theme-border-width) solid var(--theme-border-input);align-items:center;">
-                                            <svg width="48" height="48" viewBox="0 0 24 24">
-                                                <g fill="none">
-                                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 2v3m0 3V5m0 0h3m-3 0h-3"/>
-                                                    <path fill="currentColor" fill-rule="evenodd"
-                                                          d="M13 2H5a3 3 0 0 0-3 3v10.5q0 .13.032.25A1 1 0 0 0 2 16v3a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-7a1 1 0 0 0-.032-.25A1 1 0 0 0 22 11.5V11h-2v.016c-4.297.139-7.4 1.174-9.58 2.623c.826.293 1.75.71 2.656 1.256c1.399.84 2.821 2.02 3.778 3.583a1 1 0 1 1-1.706 1.044c-.736-1.203-1.878-2.178-3.102-2.913c-1.222-.734-2.465-1.192-3.327-1.392a15.5 15.5 0 0 0-3.703-.386h-.022q-.522.008-.994.045V5a1 1 0 0 1 1-1h8zM8.5 6a2.7 2.7 0 0 0-1.522.488C6.408 6.898 6 7.574 6 8.5s.408 1.601.978 2.011A2.67 2.67 0 0 0 8.5 11c.41 0 1.003-.115 1.522-.489c.57-.41.978-1.085.978-2.011s-.408-1.601-.978-2.012A2.67 2.67 0 0 0 8.5 6"
-                                                          clip-rule="evenodd"/>
-                                                </g>
-                                            </svg>
-                                        </div>
-                                        <input {...createItem.fields.image.as('file')} style="width:100%" hidden/>
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="option-container">
-                                <h1>External Link</h1>
-                                <input {...createItem.fields.external.as('url')} type="url" style="width:100%;" placeholder="URL"/>
                             </div>
                         </form>
+                        <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;gap:.4rem;margin:.5rem 0;">
+                            <button form="item-creator-form" type="submit" class="theme-button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-sandbox">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M19.953 8.017l1.047 6.983v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-2l1.245 -8.297a2 2 0 0 1 1.977 -1.703h3.778"/>
+                                    <path d="M3 15h18"/>
+                                    <path d="M13 3l5.5 1.5"/>
+                                    <path d="M15.75 3.75l-2 7"/>
+                                    <path d="M7 10.5c1.667 -.667 3.333 -.667 5 0c1.667 .667 3.333 .667 5 0"/>
+                                </svg>
+                                Open Creator
+                            </button>
+                            <button onmouseenter="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
+                                    onfocus="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
+                                    form="item-creator-form" type="submit" class="theme-button confirm-creation-button" id="confirm-creation-button">
+                                {@html itemCreatorConfirmCreationButtonIcon }
+                                Quick Add
+                            </button>
+                        </div>
                     </div>
                 {/if}
                 <section class="inventory-body-section">
@@ -788,21 +757,16 @@
         }
 
         .extra-container.create-item-container {
-            .header {
-                display: flex;
-                flex-flow: row nowrap;
-                justify-content: space-between;
-                align-items: center;
-            }
+            display: flex;
+            align-items: flex-start;
+            align-content: center;
 
             color: var(--theme-text);
             font-family: 'FunnelDisplay', sans-serif;
 
-            .confirm-creation-button {
-                font-size: 1.05rem;
-            }
-
             form {
+                width: 100%;
+
                 input, option, select, textarea {
                     background: var(--theme-background-input);
                     border: var(--theme-border-width) solid var(--theme-border-input);
@@ -827,9 +791,18 @@
                     box-shadow 0ms linear;
                 }
 
+                .option-container:first-child {
+                    width: 100% !important;
+                    margin-right: .35rem;
+                }
+
+                .option-container:last-child {
+                    margin-left: .35rem;
+                }
+
                 .option-container {
                     h1 {
-                        font-size: 1.15rem;
+                        font-size: 1.1rem;
                         margin-top: .5rem;
                         margin-bottom: .25rem;
                     }
