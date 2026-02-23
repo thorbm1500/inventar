@@ -1,8 +1,8 @@
 import {query} from '$app/server';
 import * as db from '$lib/server/db/database'
-import util from '$lib/server/utilities';
+import util from '$lib/server/internal/utilities';
 import * as v from "valibot";
-import type {Inventory} from '$lib/server/db/schema';
+import type {Inventory} from '$lib/server/db/interfaces';
 import Log from "$lib/server/internal/log";
 
 const inventoriesObj = v.object({
@@ -28,7 +28,7 @@ const inventoriesObj = v.object({
  */
 export const getInventories = query(inventoriesObj, async (data): Promise<Inventory[]> => {
     if (!util.isOffline()) {
-        const inventories: Inventory[] = await db.Inventories.fetch(data.amount,data.order_by,data.order == '' ? 'ASC' : data.order,data.offset);
+        const inventories: Inventory[] = await db.Inventories.fetch(data.amount, data.order_by, data.order == '' ? 'ASC' : data.order, data.offset);
         return inventories;
     } else {
         Log.warn(`Unable to fetch inventories from database. Browser is offline.`);

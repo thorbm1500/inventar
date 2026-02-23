@@ -2,7 +2,7 @@
     import {login} from "../data.remote";
 </script>
 
-<section>
+<section class="dark">
     <div class="inventar-logo">
         <svg id="a" xmlns="http://www.w3.org/2000/svg" width="3013.54" height="659.04" viewBox="0 0 3013.54 659.04">
             <rect y="18.18" width="205.82" height="205.82" style="fill:#fffff2;"/>
@@ -63,7 +63,7 @@
 
             svg {
                 justify-self: center;
-                max-width: 26rem;
+                max-width: clamp(22rem, 26rem, 75vw);
                 height: auto;
                 margin: 0;
             }

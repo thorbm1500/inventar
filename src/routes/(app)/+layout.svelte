@@ -1,12 +1,17 @@
 <script lang="ts">
     import Header from './Header.svelte';
-    import {setContext} from "svelte";
-    import type {User} from "$lib/server/db/schema";
+    import {onMount, setContext} from "svelte";
+    import type {User} from "$lib/server/db/interfaces";
     import Toast from "$lib/components/toast.svelte";
 
     let {children, data} = $props();
 
+    // svelte-ignore state_referenced_locally
     const user: User = $state(data.user);
+
+    onMount(() => {
+        if (!user) window.location.href = "/logout";
+    })
 
     const toastHandler = new Toast();
 
@@ -14,17 +19,17 @@
     setContext('toasts', toastHandler);
 </script>
 
-<section class="header">
-    <Header/>
+<section class="header {user.preferred_theme}">
+    <Header />
 </section>
 
-<div class="toasts">
+<div class="toasts {user.preferred_theme}">
     {#each toastHandler.toasts as toast}
         {@html toast}
     {/each}
 </div>
 
-<section class="main-container">
+<section class="main-container {user.preferred_theme}">
     {@render children()}
 </section>
 
@@ -53,9 +58,11 @@
     }
 
     .main-container {
-        height: calc(var(--theme-height-header) - 100vh);
+        height: var(--theme-max-page-height);
         width: 100vw;
         scrollbar-width: none;
         z-index: 1;
+        background: var(--theme-background) !important;
+        overflow: hidden;
     }
 </style>

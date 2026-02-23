@@ -1,20 +1,11 @@
-import {error, redirect} from '@sveltejs/kit';
+import {redirect} from '@sveltejs/kit';
 import {command, form, query} from '$app/server';
 import * as db from '$lib/server/db/database'
 import * as v from 'valibot';
-import util from "$lib/server/utilities";
-import type {Currency, Inventory, Item} from "$lib/server/db/schema";
+import util from "$lib/server/internal/utilities";
+import type {Inventory, Item} from "$lib/server/db/interfaces";
 import {promises as fs} from "fs";
 import Log from "$lib/server/internal/log";
-
-export const getCurrencies = query(async (): Promise<Currency[]> => {
-    if (!util.isOffline()) {
-        const currencies: Currency[] = await db.getCurrencies();
-        return currencies;
-    }
-
-    return [];
-});
 
 export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's UUID must be provided when attempting the browse its contents!`)), async (id: string): Promise<Inventory | undefined> => {
     let inventory: Inventory | undefined;
@@ -23,7 +14,6 @@ export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's
         inventory = await db.Inventories.fetchInventoryByUuid(id);
         if (!inventory) {
             Log.error(`Failed to fetch inventory with ID: ${id}`);
-            error(500, "Failed to fetch inventory.");
         }
 
     }
@@ -34,26 +24,24 @@ export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's
 const itemsObj = v.object({
     inventory: v.string(),
     amount: v.number(),
-    order_by: v.string(),
+    order_by: v.optional(v.string(), undefined),
     order: v.string(),
     offset: v.number()
 });
 
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
     if (!util.isOffline()) {
-        const items: Item[] = await db.Items.fetch(data.inventory, data.amount, data.order_by, data.order == '' ? 'ASC' : data.order, data.offset);
-        return items;
+        return (await db.Items.fetch(data.inventory, data.amount, data.order == '' ? 'ASC' : data.order, data.offset, data.order_by)) as Item[];
     }
     return [];
 });
 
 export const getTotalItemCount = query(v.string(), async (id: string): Promise<number> => {
-    if (!util.isOffline()) {
-        const itemCount: number = await db.Items.fetchTotalItemCount(id);
-        return itemCount;
+    if (util.isOffline()) {
+        return 0;
     }
 
-    return 0;
+    return await db.Items.fetchTotalItemCount(id);
 });
 
 export const deleteItem = query(v.string(), async (id: string): Promise<void> => {
@@ -102,7 +90,8 @@ export const createItem = form(
 export const updatePrimaryIvnentory = command(
     v.object({
         user: v.pipe(v.string(), v.nonEmpty()),
-        inventory: v.optional(v.string(), undefined)}),
+        inventory: v.optional(v.string(), undefined)
+    }),
     async ({user, inventory}) => {
-        await db.Users.setPrimaryInventory(user, inventory ?? null);
+        await db.Users.updatePrimaryInventory(user, inventory ?? null);
     });

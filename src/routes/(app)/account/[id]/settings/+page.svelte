@@ -1,13 +1,13 @@
 <script lang="ts">
-    import Settings from "$lib/components/Settings.svelte";
+import Settings from "$lib/components/Settings.svelte";
 </script>
 
-<section class="inventory-settings-page">
+<section class="user-settings-page">
     <Settings />
 </section>
 
 <style>
-    .inventory-settings-page {
+    .user-settings-page {
         display: flex;
         flex-flow: row nowrap;
         align-items: flex-start;

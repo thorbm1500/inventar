@@ -2,10 +2,7 @@
     let { children } = $props();
 </script>
 
-<svelte:head>
-</svelte:head>
-
-<section class="main-container">
+<section class="main-container dark">
     {@render children()}
 </section>
 
@@ -14,5 +11,6 @@
         height: 100vh;
         width: 100vw;
         scrollbar-width: none;
+        background: var(--theme-background) !important;
     }
 </style>

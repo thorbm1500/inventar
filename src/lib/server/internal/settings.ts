@@ -1,3 +1,8 @@
+import {getApplicationSettings} from "$lib/server/db/database";
+import type {ApplicationSettings} from "$lib/server/db/components/ApplicationSettingsDefaults";
+
+export const APPLICATION_SETTINGS: ApplicationSettings = await getApplicationSettings();
+
 export const settings = {
     config_dir: '/etc/inventar',
     data_dir: '/var/inventar/'

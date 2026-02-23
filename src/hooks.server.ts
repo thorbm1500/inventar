@@ -1,10 +1,15 @@
-import { building } from '$app/environment';
-import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
-import * as auth from '$lib/server/internal/auth';
-import * as db from '$lib/server/db/database'
 import initializeDatabase from '$lib/server/db/index';
+import type {Session, User} from "$lib/server/db/interfaces";
+import * as auth from '$lib/server/internal/auth';
+import * as db from '$lib/server/db/database';
+import {building} from '$app/environment';
 import {env} from "$env/dynamic/private";
-import type {Session, User} from "$lib/server/db/schema";
+import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
+import utilities from "$lib/server/internal/utilities";
+import cron from "$lib/server/internal/cron";
+import Log from "$lib/server/internal/log";
+import {encodeBase64url, encodeHexLowerCase} from "@oslojs/encoding";
+import {sha256} from "@oslojs/crypto/sha2";
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
@@ -17,6 +22,7 @@ export const init: ServerInit = async (): Promise<void> => {
     // Skip database initialization if project is building.
     if (!building) {
         await initializeDatabase();
+        cron.initializeJobs();
     }
 }
 
@@ -30,10 +36,14 @@ function isPublicPath(path: string): boolean {
     return public_paths.includes(path) || /^\/(reset-password)\/[a-zA-Z0-9-_]*\/?$/.test(path);
 }
 
-const handleAuth: Handle = async ({event, resolve}) => {
+const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
     const sessionToken: string | undefined = event.cookies.get(auth.sessionCookieName);
 
     if (!sessionToken) {
+        if (utilities.isCrawler(event.request.headers.get('User-Agent'))) {
+            return new Response('');
+        }
+
         event.locals.uuid = null;
         event.locals.session_id = null;
 
@@ -44,9 +54,10 @@ const handleAuth: Handle = async ({event, resolve}) => {
         }
     }
 
-    const session: Session | null = await auth.validateSessionToken(sessionToken);
+    const session: Session | null = await auth.validateSessionToken(sessionToken,event);
 
     if (!session) {
+        auth.deleteSessionTokenCookie(event);
         return redirect(302, '/login');
     }
 
@@ -65,10 +76,13 @@ const handleAuth: Handle = async ({event, resolve}) => {
     const user: User | undefined = await db.Users.getFromUuid(session.uuid);
 
     if (!user) {
+        await db.Auth.invalidateSession(session.session_id);
+        auth.deleteSessionTokenCookie(event);
         return redirect(302, '/login');
     }
 
     if (!event.locals.user) event.locals.user = user;
+    if (!event.locals.uuid) event.locals.uuid = user.uuid;
     event.locals.session_id = session.session_id;
 
     return resolve(event);

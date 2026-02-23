@@ -15,12 +15,6 @@ export interface Inventory {
     created_at: number
 }
 
-export interface InventoryGeneralSettings {
-    uuid: string,
-    hide_empty_descriptions: boolean,
-    last_update: number
-}
-
 export interface userInventoryPermissions {
     inventory: string,
     user_uuid: string,
@@ -70,6 +64,8 @@ export interface Item {
     created_by: string
 }
 
+export type PageTheme = 'light' | 'dark';
+
 /**
  * User interface, to easily handle user data. The User interface should never contain or be able to contain any sensitive data.
  */
@@ -79,6 +75,7 @@ export interface User {
     username: string,
     profile_picture?: string,
     primary_inventory?: string,
+    preferred_theme: PageTheme,
     last_login: number,
     created_at: number,
     superuser: boolean
@@ -87,7 +84,16 @@ export interface User {
 export interface Session {
     uuid: string,
     session_id: string,
-    expires: number
+    expires: number,
+    ip?: string,
+    continent?: string,
+    country?: string,
+    region?: string,
+    city?: string,
+    device?: string,
+    platform?: string
+    last_accessed?: number
+    created_at?: number
 }
 
 export interface ResetRequest {

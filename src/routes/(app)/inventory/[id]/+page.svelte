@@ -1,177 +1,101 @@
 <script module lang="ts">
-    import {getContext, onMount} from "svelte";
-    import {error} from '@sveltejs/kit';
-    import {page} from "$app/state";
-    import {validate} from 'uuid';
-    import type {Inventory, Item, User} from "$lib/server/db/schema";
-    import {parseTimestamp} from '$lib/utilities'
-    import FilterSettings from "./utilities.svelte.ts";
-    import {getInventory, getItems, getTotalItemCount} from './data.remote.ts';
-    import Utility from "../../browse/utility";
-    import {createItem} from './data.remote.ts';
-    import {getCurrencies} from "./data.remote.ts";
-
-    const currencies = await getCurrencies();
-
-    const imageModules = import.meta.glob('$lib/assets/uploads/item-images/*.{avif,gif,heif,jpeg,jpg,png,tiff,webp}',
-        {
-            eager: false,
-            query: {
-                enhanced: false
-            }
-        }
-    )
-
     //todo: Add logic to archive deleted items for 30 days to allow for recovery of deleted items
-    //todo: After implementing todo above, add option to permanently delete any archived item
+    //todo: After above is implemented, add option to permanently delete any archived item.
 
-    /*
-    * <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><g fill="currentColor"><circle cx="5" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="15" cy="10" r="2"/></g></svg>
-    * <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><path fill="currentColor" fill-rule="evenodd" d="M4 5.543V4.25H3a1 1 0 0 0-1 1v3.5a1 1 0 0 0 1 1h1a1 1 0 1 1 0 2H3a3 3 0 0 1-3-3v-3.5a3 3 0 0 1 3-3h1V.957a.5.5 0 0 1 .854-.353l2.292 2.292a.5.5 0 0 1 0 .708L4.854 5.896A.5.5 0 0 1 4 5.543m6 6.207v1.293a.5.5 0 0 1-.854.354l-2.292-2.293a.5.5 0 0 1 0-.708l2.292-2.292a.5.5 0 0 1 .854.353V9.75h1a1 1 0 0 0 1-1v-3.5a1 1 0 0 0-1-1h-1a1 1 0 1 1 0-2h1a3 3 0 0 1 3 3v3.5a3 3 0 0 1-3 3z" clip-rule="evenodd"/></svg>
-    *  */
+    const confirmItemCreationIcons: string[] = [
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-cube-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M21 12.5v-4.509a1.98 1.98 0 0 0 -1 -1.717l-7 -4.008a2.016 2.016 0 0 0 -2 0l-7 4.007c-.619 .355 -1 1.01 -1 1.718v8.018c0 .709 .381 1.363 1 1.717l7 4.008a2.016 2.016 0 0 0 2 0" /><path d="M12 22v-10" /><path d="M12 12l8.73 -5.04" /><path d="M3.27 6.96l8.73 5.04" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-prism-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v13" /><path d="M13.02 21.655a1.7 1.7 0 0 1 -2.04 0l-5.98 -4.485a2.5 2.5 0 0 1 -1 -2v-11.17a1 1 0 0 1 1 -1h14a1 1 0 0 1 1 1v8" /><path d="M4.3 3.3l6.655 5.186a1.7 1.7 0 0 0 2.09 0l6.655 -5.186" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-sphere-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12c0 1.657 4.03 3 9 3c1.116 0 2.185 -.068 3.172 -.192m5.724 -2.35a1.1 1.1 0 0 0 .104 -.458" /><path d="M20.984 12.546a9 9 0 1 0 -8.442 8.438" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-diabolo-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 6a8 3 0 1 0 16 0a8 3 0 1 0 -16 0" /><path d="M4 6v.143a1 1 0 0 0 .048 .307l1.952 5.55l-1.964 5.67a1 1 0 0 0 -.036 .265v.065c0 1.657 3.582 3 8 3c.17 0 .34 -.002 .508 -.006m5.492 -8.994l1.952 -5.55a1 1 0 0 0 .048 -.307v-.143" /><path d="M6 12c0 1.105 2.686 2 6 2s6 -.895 6 -2" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-frustum-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12.841 21.309a1.945 1.945 0 0 1 -1.682 0l-7.035 -3.365a1.99 1.99 0 0 1 -1.064 -2.278l2.538 -10.158a1.98 1.98 0 0 1 1.11 -1.328l4.496 -2.01a1.95 1.95 0 0 1 1.59 0l4.496 2.01c.554 .246 .963 .736 1.112 1.328l1.67 6.683" /><path d="M18 4.82l-5.198 2.324a1.963 1.963 0 0 1 -1.602 0l-5.2 -2.325" /><path d="M12 7.32v14.18" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-pyramid-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18.719 11.985l-5.889 -9.539a.999 .999 0 0 0 -1.664 0l-8.54 13.836a1.005 1.005 0 0 0 .386 1.452l8.092 4.054a1.994 1.994 0 0 0 1.789 0l.149 -.074" /><path d="M12 2v20" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-cylinder-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 6a7 3 0 1 0 14 0a7 3 0 1 0 -14 0" /><path d="M5 6v12c0 1.657 3.134 3 7 3c.173 0 .345 -.003 .515 -.008m6.485 -8.992v-6" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-hemisphere-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 9a9 3 0 1 0 18 0a9 3 0 1 0 -18 0" /><path d="M3 9a9 9 0 0 0 9 9m8.396 -5.752a8.978 8.978 0 0 0 .604 -3.248" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-octahedron-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M21.498 12.911l.206 -.208a.984 .984 0 0 0 0 -1.407l-8.845 -8.948a1.233 1.233 0 0 0 -1.718 0l-8.845 8.949a.984 .984 0 0 0 0 1.407l8.845 8.949a1.234 1.234 0 0 0 1.718 -.001l.08 -.081" /><path d="M2 12c.004 .086 .103 .178 .296 .246l8.845 2.632c.459 .163 1.259 .163 1.718 0l2.634 -.784m5.41 -1.61l.801 -.238c.195 -.07 .294 -.156 .296 -.243" /><path d="M12 2.12v19.76" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-hexagonal-prism-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20.792 6.996l-3.775 2.643a2.005 2.005 0 0 1 -1.147 .361h-7.74c-.41 0 -.81 -.126 -1.146 -.362l-3.774 -2.641" /><path d="M8 10v11" /><path d="M16 10v3.5" /><path d="M21 12.5v-5.131c0 -.655 -.318 -1.268 -.853 -1.643l-3.367 -2.363a2 2 0 0 0 -1.147 -.363h-7.266c-.41 0 -.811 .126 -1.147 .363l-3.367 2.363a2.006 2.006 0 0 0 -.853 1.644v9.261c0 .655 .318 1.269 .853 1.644l3.367 2.363a2 2 0 0 0 1.147 .362h4.133" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-hexagonal-pyramid-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18.642 12.04l-5.804 -9.583a.996 .996 0 0 0 -1.676 0l-7.846 12.954a1.988 1.988 0 0 0 .267 2.483l2.527 2.523c.374 .373 .88 .583 1.408 .583h4.982" /><path d="M12 2l-5 18.9" /><path d="M12 2l3.304 12.489" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-rectangular-prism-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M21 12.5v-3.509a1.98 1.98 0 0 0 -1 -1.717l-4 -2.008a2.016 2.016 0 0 0 -2 0l-10 5.007c-.619 .355 -1 1.01 -1 1.718v5.018c0 .709 .381 1.363 1 1.717l4 2.008a2.016 2.016 0 0 0 2 0l2.062 -1.032" /><path d="M9 21v-7.5" /><path d="M9 13.5l11.5 -5.5" /><path d="M3.5 11l5.5 2.5" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-irregular-polyhedron-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 12l1.752 -6.13a1 1 0 0 0 -.592 -1.205l-6.282 -2.503a2.46 2.46 0 0 0 -1.756 0l-6.282 2.503a1 1 0 0 0 -.592 1.204l1.752 6.131l-1.752 6.13a1 1 0 0 0 .592 1.205l6.282 2.503a2.46 2.46 0 0 0 1.756 0l.221 -.088" /><path d="M4.5 5.5l6.622 2.33a2.35 2.35 0 0 0 1.756 0l6.622 -2.33" /><path d="M6 12l5.21 1.862a2.34 2.34 0 0 0 1.58 0l5.21 -1.862" /><path d="M12 22v-14" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-database-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 6c0 1.657 3.582 3 8 3s8 -1.343 8 -3s-3.582 -3 -8 -3s-8 1.343 -8 3" /><path d="M4 6v6c0 1.657 3.582 3 8 3c1.075 0 2.1 -.08 3.037 -.224" /><path d="M20 12v-6" /><path d="M4 12v6c0 1.657 3.582 3 8 3c.166 0 .331 -.002 .495 -.006" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`
+    ];
 </script>
 
 <script lang="ts">
+    import type {PageProps} from './$types';
+    import {getContext, onMount} from "svelte";
+    import {page} from "$app/state";
+    import type {Inventory, Item, User} from "$lib/server/db/interfaces";
+    import {parseTimestamp} from '$lib/utilities'
+    import {getItems, getTotalItemCount} from './data.remote.ts';
+    import Utility from "../../browse/utility";
+    import {createItem} from './data.remote.ts';
     import {deleteItem, updatePrimaryIvnentory} from "./data.remote";
+    import {Filters} from "./FilterHandler.svelte";
 
-    if (!page.params.id || !validate(page.params.id)) {
-        error(404, 'Inventory ID is required!');
-    }
+    let {data}: PageProps = $props();
 
-    const id: string = String(page.params.id);
-
-    const user: User | undefined = $state(getContext('user'));
-    if (!user) error(500, 'Failed to fetch user information.');
+    const user: User = $state(getContext('user'));
+    //todo: Add option to save filters, and make them persistent for the user.
+    const filters: Filters = new Filters(user.uuid);
 
     let addItemHover = $state(false);
 
-    //todo: Add option to save filters, and make them persistent for the user.
-    const filterSettings: FilterSettings = new FilterSettings();
-
-    let inventory: Inventory | undefined = $state();
-    let itemCount: number = $state(0);
-    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filterSettings.columnSize) ?? 1));
-    let items: Item[] = $state([]);
+    // svelte-ignore state_referenced_locally
+    let inventory: Inventory = $state(data.inventory);
 
     onMount(async () => {
-        const rawInventory = await getInventory(id);
-        if (!rawInventory) error(404, 'Failed to find inventory!');
-        inventory = rawInventory;
-
-        itemCount = await getTotalItemCount(id);
-        // const userFilterSettings = getUserFilterSettings();
-        // filterSettings.load(userFilterSettings); Set filter settings loaded from user data.
-
-        document.getElementById('create-item-button')?.addEventListener('mouseover', () => addItemHover = true);
-        document.getElementById('create-item-button')?.addEventListener('mouseout', () => addItemHover = false);
+        const openItemCreatorButtonElement = document.getElementById('create-item-button');
+        openItemCreatorButtonElement?.addEventListener('mouseover', () => addItemHover = true);
+        openItemCreatorButtonElement?.addEventListener('mouseout', () => addItemHover = false);
     })
 
     let isItemCreatorOpen: boolean = $state(false);
+    let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
     let isFilterContainerOpen: boolean = $state(false);
 
     /* Item Container*/
-    let order_by = $state('name');
-    let order = $state('');
     let currentPage = $state(1);
 
-    await refresh();
+    let offset = $derived(filters.rowAmount * (currentPage - 1));
 
-    let nameFilter = $state('DEFAULT');
-    let lastUpdateFilter = $state('DEFAULT');
-    let priceFilter = $state('DEFAULT');
-    let itemsFilter = $state('DEFAULT');
+    //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
+    let items: Item[] = $derived(await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}));
+    let itemCount: number = $derived(await getTotalItemCount(inventory.uuid));
+    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filters.rowAmount) ?? 1));
 
     async function goToFirstPage() {
         currentPage = 1;
-        await refresh();
     }
 
     async function goToLastPage() {
         currentPage = totalPages;
-        await refresh();
     }
 
     async function updatePage(pageChange: number = 0) {
         currentPage += pageChange;
-        await refresh();
+        if (currentPage < 1) currentPage = 1;
+        else if (currentPage > totalPages) currentPage = totalPages;
     }
 
-    async function refresh(force = false) {
-        const offset = filterSettings.columnSize * (currentPage - 1);
-
-        if (force) await getItems({inventory: id, amount: filterSettings.columnSize, order_by, order, offset}).refresh();
-        else {
-            const newItems: Item[] = await getItems({inventory: id, amount: filterSettings.columnSize, order_by, order, offset});
-            items = newItems;
-        }
+    async function refresh() {
+        await getTotalItemCount(inventory.uuid).refresh();
+        await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
     }
 
-    async function updateFilter(filter: string, current: string) {
-        const next = String(getNextState(current));
+    const latestIcons: number[] = [99,99,99];
 
-        if (next === 'DEFAULT') {
-            order = '';
-            order_by = 'name';
+    function getRandomIcon(): string {
+        let next: number = 99;
 
-            nameFilter = 'DEFAULT';
-            itemsFilter = 'DEFAULT';
-            priceFilter = 'DEFAULT';
-            lastUpdateFilter = 'DEFAULT';
-        } else {
-            order = next;
-
-            if (filter == 'name') {
-                nameFilter = next;
-                order_by = 'name';
-
-                priceFilter = 'DEFAULT';
-                itemsFilter = 'DEFAULT';
-                lastUpdateFilter = 'DEFAULT';
-            } else if (filter == 'price') {
-                priceFilter = next;
-                order_by = 'price';
-
-                itemsFilter = 'DEFAULT';
-                nameFilter = 'DEFAULT';
-                lastUpdateFilter = 'DEFAULT';
-            } else if (filter == 'amount') {
-                itemsFilter = next;
-                order_by = 'amount';
-
-                nameFilter = 'DEFAULT';
-                itemsFilter = 'DEFAULT';
-                lastUpdateFilter = 'DEFAULT';
-            } else if (filter == 'last_update') {
-                lastUpdateFilter = next;
-                order_by = 'last_update';
-
-                nameFilter = 'DEFAULT';
-                itemsFilter = 'DEFAULT';
-                itemsFilter = 'DEFAULT';
-            }
+        while (next === 99 || latestIcons?.includes(next)) {
+            next = Math.floor(Math.random() * (14));
         }
 
-        await refresh();
-    }
-
-    function getNextState(currentState: string) {
-        switch (currentState) {
-            case 'DESC':
-                return 'ASC';
-            case 'ASC':
-                return 'DEFAULT';
-            case 'DEFAULT':
-                return 'DESC';
-        }
+        latestIcons?.shift();
+        latestIcons?.push(next);
+        return confirmItemCreationIcons[next];
     }
 </script>
-
-<!-- todo - Convert to new toasts
-{#if createItem.result && createItem.result.success }
-{/if}
-
-{#if createItem.result && !createItem.result.success }
-{/if}-->
 
 <div class="page-content">
     <div class="body-section">
@@ -180,14 +104,16 @@
                 <section class="inventory-header-section">
                     <div class="inventory-header-content">
                         <div class="inventory-name">
-                            <h1>{inventory ? inventory.name : 'Loading'}</h1>
+                            <h1>{inventory.name}</h1>
                             <button class="primary-inventory-bookmark-icon" onclick="{() =>{
-                                updatePrimaryIvnentory({user:user.uuid,inventory:user.primary_inventory === id ? undefined : id});
-                                user.primary_inventory = user.primary_inventory === id ? '' : id;
+                                updatePrimaryIvnentory({user:user.uuid,inventory:user.primary_inventory === inventory.uuid ? undefined : inventory.uuid});
+                                user.primary_inventory = user.primary_inventory === inventory.uuid ? '' : inventory.uuid;
                             }}">
-                                {#if user.primary_inventory === id }
+                                {#if user.primary_inventory === inventory.uuid }
                                     <svg style="color:var(--theme-text-accent);" width="24" height="24" viewBox="0 0 24 24">
-                                        <path fill="currentColor" fill-rule="evenodd" d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6" clip-rule="evenodd"/>
+                                        <path fill="currentColor" fill-rule="evenodd"
+                                              d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6"
+                                              clip-rule="evenodd"/>
                                     </svg>
                                 {:else}
                                     <svg width="24" height="24" viewBox="0 0 24 24">
@@ -200,7 +126,7 @@
                             </button>
                         </div>
                         <div class="header-buttons">
-                            <button id="filters-button" class="filters-button" title="Filters" onclick={() => {
+                            <button id="filters-button" class="theme-button filters-button {isFilterContainerOpen?'open':''}" title="Filters" onclick={() => {
                                 isItemCreatorOpen = false;
                                 isFilterContainerOpen = !isFilterContainerOpen;
 
@@ -208,13 +134,25 @@
                                     document.getElementById('item-creator-form-reset-button')?.click();
                                 }
                             }}>
-                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                          d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/>
-                                </svg>
+                                {#if isFilterContainerOpen}
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <g fill="currentColor">
+                                            <path d="M19.396 11.056a6 6 0 0 1-5.647 10.506q.206-.21.396-.44a8 8 0 0 0 1.789-6.155a8.02 8.02 0 0 0 3.462-3.911m-14.787-.005a7.99 7.99 0 0 0 9.386 4.698a6 6 0 1 1-9.534-4.594z"/>
+                                            <path d="M12 2a6 6 0 1 1-6 6l.004-.225A6 6 0 0 1 12 2"/>
+                                        </g>
+                                    </svg>
+                                {:else}
+                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+                                            <path d="M7 8a5 5 0 1 0 10 0A5 5 0 1 0 7 8"/>
+                                            <path d="M8 11a5 5 0 1 0 3.998 1.997"/>
+                                            <path d="M12.002 19.003A5 5 0 1 0 16 11"/>
+                                        </g>
+                                    </svg>
+                                {/if}
                                 Filters
                             </button>
-                            <button id="create-item-button" class="create-item-button" onclick={() => {
+                            <button id="create-item-button" class="theme-button create-item-button {isItemCreatorOpen?'open':''}" onclick={() => {
                                 isFilterContainerOpen = false;
                                 isItemCreatorOpen = !isItemCreatorOpen;
 
@@ -234,13 +172,13 @@
                                 {/if}
                                 Add Item
                             </button>
-                            <button id="refresh-button" class="refresh-button" title="Refresh" onclick="{async () => await refresh()}">
+                            <button id="refresh-button" class="theme-button refresh-button" title="Refresh" onclick="{async () => await refresh()}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
                                 </svg>
                             </button>
-                            <button id="inventory-settings-button" class="inventory-settings-button" title="Settings" onclick="{() => window.location.href=`/inventory/${id}/settings`}">
+                            <button id="inventory-settings-button" class="theme-button inventory-settings-button" title="Settings" onclick="{() => window.location.href=`/inventory/${inventory.uuid}/settings`}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
@@ -250,11 +188,11 @@
                         </div>
                     </div>
                 </section>
-                {#if (isFilterContainerOpen) }
-                    <div class="extra-container {isFilterContainerOpen?'open':'open'} inventory-filter-container">
+                {#if isFilterContainerOpen }
+                    <div class="extra-container {isFilterContainerOpen?'open':'closed'} inventory-filter-container">
                         <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
                             <h1>Filters</h1>
-                            <button class="filters-save-button {filterSettings.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
+                            <button class="filters-save-button {filters.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
                                 <svg width="16" height="16" fill="currentColor" class="bi bi-floppy-fill" viewBox="0 0 16 16">
                                     <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0H3v5.5A1.5 1.5 0 0 0 4.5 7h7A1.5 1.5 0 0 0 13 5.5V0h.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5H14v-5.5A1.5 1.5 0 0 0 12.5 9h-9A1.5 1.5 0 0 0 2 10.5V16h-.5A1.5 1.5 0 0 1 0 14.5z"/>
                                     <path d="M3 16h10v-5.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5zm9-16H4v5.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5zM9 1h2v4H9z"/>
@@ -264,54 +202,66 @@
                         <section class="filters">
                             <div class="filter columns">
                                 <div style="display:flex;flex-flow:row nowrap;gap:.2rem;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                                        <path fill="currentColor"
-                                              d="M14 12v7.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0l-2.01-2.01a.99.99 0 0 1-.29-.83V12h-.03L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L14.03 12z"/>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                         stroke-linejoin="round" class="lucide lucide-table2-icon lucide-table-2">
+                                        <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
                                     </svg>
                                     <h1>Columns</h1>
                                 </div>
                                 <div class="buttons">
-                                    <button class="extra-container-button price filter-button {filterSettings.price ? '' : 'off'}"
-                                            style="order:{filterSettings.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => filterSettings.price = !filterSettings.price}>
-                                        {#if filterSettings.price }
+                                    <button class="extra-container-button price filter-button {filters.price ? '' : 'off'}"
+                                            style="order:{filters.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
+                                            onclick={() => {
+                                                filters.price = !filters.price;
+                                                filters.reset();
+                                            }}>
+                                        {#if filters.price }
                                             <svg width="24" height="24" viewBox="0 0 24 24">
                                                 <path fill="currentColor"
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
                                             </svg>
                                         {:else}
-                                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
                                             </svg>
                                         {/if}
                                         Prices
                                     </button>
-                                    <button class="extra-container-button last-updated filter-button {filterSettings.lastUpdated ? '' : 'off'}"
-                                            style="order:{filterSettings.lastUpdated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => filterSettings.lastUpdated = !filterSettings.lastUpdated}>
-                                        {#if filterSettings.lastUpdated }
+                                    <button class="extra-container-button last-updated filter-button {filters.last_updated ? '' : 'off'}"
+                                            style="order:{filters.last_updated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
+                                            onclick={() => {
+                                                filters.last_updated = !filters.last_updated;
+                                                filters.reset();
+                                            }}>
+                                        {#if filters.last_updated }
                                             <svg width="24" height="24" viewBox="0 0 24 24">
                                                 <path fill="currentColor"
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
                                             </svg>
                                         {:else}
-                                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
                                             </svg>
                                         {/if}
                                         Last Updated
                                     </button>
-                                    <button class="extra-container-button description filter-button {filterSettings.description ? '' : 'off'}"
-                                            style="order:{filterSettings.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => filterSettings.description = !filterSettings.description}>
-                                        {#if filterSettings.description }
+                                    <button class="extra-container-button description filter-button {filters.description ? '' : 'off'}"
+                                            style="order:{filters.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
+                                            onclick={() => {
+                                                filters.description = !filters.description
+                                                filters.reset();
+                                            }}>
+                                        {#if filters.description }
                                             <svg width="24" height="24" viewBox="0 0 24 24">
                                                 <path fill="currentColor"
                                                       d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
                                             </svg>
                                         {:else}
-                                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="currentColor" d="M12 17.5c-3.8 0-7.2-2.1-8.8-5.5H1c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5h-2.2c-1.6 3.4-5 5.5-8.8 5.5"/>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
                                             </svg>
                                         {/if}
                                         Description
@@ -330,29 +280,32 @@
                                     <h1>Row Amount</h1>
                                 </div>
                                 <div style="display:flex;flex-flow:row nowrap;gap:.25rem;">
-                                    <button onclick={() => filterSettings.columnSize = 15} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 15 ? 'selected' : ''}">
+                                    <button onclick={() => filters.rowAmount = 15} class="extra-container-button filter-button row-amount {filters.rowAmount === 15 ? 'selected' : ''}">
                                         15
                                     </button>
-                                    <button onclick={() => filterSettings.columnSize = 30} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 30 ? 'selected' : ''}">
+                                    <button onclick={() => filters.rowAmount = 30} class="extra-container-button filter-button row-amount {filters.rowAmount === 30 ? 'selected' : ''}">
                                         30
                                     </button>
-                                    <button onclick={() => filterSettings.columnSize = 45} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 45 ? 'selected' : ''}">
+                                    <button onclick={() => filters.rowAmount = 45} class="extra-container-button filter-button row-amount {filters.rowAmount === 45 ? 'selected' : ''}">
                                         45
                                     </button>
-                                    <button onclick={() => filterSettings.columnSize = 60} class="extra-container-button filter-button row-amount {filterSettings.columnSize === 60 ? 'selected' : ''}">
+                                    <button onclick={() => filters.rowAmount = 60} class="extra-container-button filter-button row-amount {filters.rowAmount === 60 ? 'selected' : ''}">
                                         60
                                     </button>
                                 </div>
                             </div>
                         </section>
                     </div>
-                {:else if (isItemCreatorOpen) }
+                {:else if isItemCreatorOpen }
                     <div class="extra-container {isItemCreatorOpen?'open':'open'} create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
                         <div class="header">
                             <h1>Item Creator</h1>
-                            <div class="item-creation-buttons">
-                                <button form="item-creator-form" type="submit" class="theme-button item-confirm-creation-button">
-                                    CREATE
+                            <div>
+                                <button onmouseenter="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
+                                        onfocus="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
+                                        form="item-creator-form" type="submit" class="theme-button confirm-creation-button" id="confirm-creation-button">
+                                    {@html itemCreatorConfirmCreationButtonIcon }
+                                    Create
                                 </button>
                             </div>
                         </div>
@@ -380,8 +333,8 @@
                                     <div class="price-section-input" style="margin-left:.75rem;">
                                         <h1>Currency</h1>
                                         <select style="width:5rem;overflow:visible;padding:.5rem 0;text-align:center;font-size:1.15rem;" {...createItem.fields.currency.as('text')}>
-                                            {#each currencies as currency}
-                                                {#if (currency.code === 'DKK')}
+                                            {#each data.currencies as currency}
+                                                {#if currency.code === 'DKK' }
                                                     <option selected id="{currency.code}" value="{currency.code}">{currency.code}</option>
                                                 {:else}
                                                     <option value="{currency.code}">{currency.code}</option>
@@ -428,42 +381,42 @@
                             <div class="header-items">
                                 <div class="header-item name-filter">
                                     <button id="name-filter-button" title="Filter by name"
-                                            onclick={async () => await updateFilter("name",nameFilter)}>
+                                            onclick={async () => filters.update('name')}>
                                         Name
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { nameFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(nameFilter)}"/>
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'name' ? 'auto-hide-filter-icon' : '' }">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='name'?filters.order:'')}"/>
                                         </svg>
                                     </button>
                                 </div>
-                                {#if (filterSettings.lastUpdated)}
+                                {#if filters.last_updated }
                                     <div class="header-item latest-change-filter">
                                         <button id="latest-change-filter-button" title="Filter by latest update"
-                                                onclick={async () => await updateFilter("last_update",lastUpdateFilter)}>
+                                                onclick={async () => filters.update('last_updated')}>
                                             Last Updated
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { lastUpdateFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }"
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'last_updated' ? 'auto-hide-filter-icon' : '' }"
                                                  style="opacity:0;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(lastUpdateFilter)}"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='last_updated'?filters.order:'')}"/>
                                             </svg>
                                         </button>
                                     </div>
                                 {/if}
-                                {#if (filterSettings.price) }
+                                {#if filters.price }
                                     <div class="header-item price-filter">
                                         <button id="price-filter-button" title="Filter by item price"
-                                                onclick={async () => await updateFilter("price",priceFilter)}>
+                                                onclick={async () => filters.update('price')}>
                                             Price
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { priceFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(priceFilter)}"/>
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'price' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='price'?filters.order:'')}"/>
                                             </svg>
                                         </button>
                                     </div>
                                 {/if}
                                 <div class="header-item items-filter">
                                     <button id="items-filter-button" title="Filter by item amount"
-                                            onclick={async () => await updateFilter("amount",itemsFilter)}>
+                                            onclick={async () => filters.update('items')}>
                                         Items
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { itemsFilter === 'DEFAULT' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(itemsFilter)}"/>
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'items' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='items'?filters.order:'')}"/>
                                         </svg>
                                     </button>
                                 </div>
@@ -478,7 +431,7 @@
                                            class="inventory-list-entry">
                                             <div class="entry-item inventory-meta">
                                                 <div class="inventory-image">
-                                                    {#if (item.image) }
+                                                    {#if item.image }
                                                         <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
                                                     {:else }
                                                         <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
@@ -490,7 +443,7 @@
                                                 <div class="inventory-name-and-description">
                                                     <h1 class="inventory-name">{item.name}</h1>
                                                     <span class="line-clamp-2">
-                                                        {#if filterSettings.description}
+                                                        {#if filters.description}
                                                             {#if item.description}
                                                                 {item.description}
                                                             {:else}
@@ -500,12 +453,12 @@
                                                     </span>
                                                 </div>
                                             </div>
-                                            {#if (filterSettings.lastUpdated) }
+                                            {#if filters.last_updated }
                                                 <div class="entry-item inventory-item-last_change">
                                                     {parseTimestamp(item?.last_update)}
                                                 </div>
                                             {/if}
-                                            {#if (filterSettings.price) }
+                                            {#if filters.price }
                                                 <div class="entry-item inventory-item-price">
                                                     {item.currency_format.replace('%value%', String(item.price ?? 0))}
                                                 </div>
@@ -615,6 +568,13 @@
         --inventory-header-height: 6rem;
     }
 
+    .auto-hide-filter-icon {
+        opacity: 0;
+
+        transition: 1750ms 500ms ease-in-out,
+        transform 0ms;
+    }
+
     .body-section {
         height: var(--theme-max-page-height);
         overflow: hidden;
@@ -714,38 +674,22 @@
                         padding: .5em 1em !important;
                     }
 
+                    .filters-button.open, .create-item-button.open {
+                        color: var(--theme-text-accent);
+                        fill: var(--theme-text-accent);
+
+                        transition: var(--theme-transition-in);
+                    }
+
                     .refresh-button, .filters-button, .create-item-button, .inventory-settings-button {
-                        display: flex;
-                        flex-flow: row nowrap;
-                        align-items: center;
-                        gap: .5rem;
-
-                        padding: .75em 1.25em;
-
-                        font-family: 'FunnelSans', sans-serif;
-                        font-variation-settings: "wght" 600;
-                        color: var(--theme-text);
                         stroke-width: 1.8;
-
-                        background: var(--theme-background-container);
-                        border: var(--theme-border-width) solid var(--theme-border-button);
-                        border-radius: var(--theme-border-radius);
-
-                        cursor: pointer;
-                        user-select: none;
+                        transition: var(--theme-transition-out);
                     }
 
                     .refresh-button:hover, .filters-button:hover, .create-item-button:hover, .inventory-settings-button:hover {
-                        color: var(--theme-text-accent);
+                        stroke-width: 2.25;
 
-                        transition-duration: 75ms;
-
-                        svg {
-                            stroke-width: 2.25;
-
-
-                            transition: 75ms ease-in-out;
-                        }
+                        transition: var(--theme-transition-in);
                     }
 
                     .refresh-button, .inventory-settings-button {
@@ -796,10 +740,10 @@
             .header {
                 h1 {
                     font-size: 1.7rem;
-                    font-family: 'FunnelSans', sans-serif;
+                    font-family: 'FunnelDisplay', sans-serif;
                     font-weight: 650;
                     color: var(--theme-text);
-                    margin-bottom: .75rem;
+                    margin-bottom: 1rem;
                 }
             }
 
@@ -853,6 +797,10 @@
 
             color: var(--theme-text);
             font-family: 'FunnelDisplay', sans-serif;
+
+            .confirm-creation-button {
+                font-size: 1.05rem;
+            }
 
             form {
                 input, option, select, textarea {
@@ -1019,13 +967,6 @@
                             font-family: 'FunnelSans', sans-serif;
                             font-weight: 600;
 
-                            .auto-hide-filter-icon {
-                                opacity: 0;
-
-                                transition: 1750ms 500ms ease-in-out,
-                                transform 0ms;
-                            }
-
                             button {
                                 display: flex;
                                 flex-flow: row nowrap;
@@ -1052,7 +993,7 @@
                                     transition: 125ms ease-in-out;
                                 }
 
-                                .auto-hide-filter-icon {
+                                svg.auto-hide-filter-icon {
                                     opacity: 1 !important;
 
                                     transition: 100ms ease-in-out,

@@ -1,5 +1,5 @@
 <script lang='ts'>
-import {register} from "../data.remote";
+    import {register} from "../data.remote";
 </script>
 
 <section>
@@ -69,7 +69,7 @@ import {register} from "../data.remote";
 
             svg {
                 justify-self: center;
-                max-width: 26rem;
+                max-width: clamp(22rem, 26rem, 75vw);
                 height: auto;
                 margin: 0;
             }
@@ -87,7 +87,7 @@ import {register} from "../data.remote";
                 flex-flow: row nowrap;
                 gap: .35rem;
 
-                p,.sign-in {
+                p, .sign-in {
                     user-select: none;
                     margin-top: 1rem;
                     color: #51565b;

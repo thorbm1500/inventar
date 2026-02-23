@@ -1,12 +1,9 @@
-import {form} from "$app/server";
-import * as v from 'valibot';
+import {command} from "$app/server";
+import {generateRegistrationToken} from "$lib/server/internal/auth";
+import {connection} from "$lib/server/db/database";
 
-export const accountSettings = form(
-    v.object({
-        uuid: v.pipe(v.string(), v.nonEmpty()),
-        email: v.pipe(v.string(), v.nonEmpty()),
-        username: v.pipe(v.string(), v.nonEmpty())
-    }), async ({uuid,email,username}) => {
-
-        return {success:true};
-    });
+export const generateNewRegistrationToken = command(async (): Promise<string> => {
+    const newToken: string = generateRegistrationToken();
+    await connection.execute(`UPDATE application_settings SET text_value=? WHERE category='security' AND subcategory='general' AND setting='registration_token'`,[newToken]);
+    return newToken;
+})
