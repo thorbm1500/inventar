@@ -1,6 +1,7 @@
 <script lang="ts">
     import type {ApplicationSettings} from "$lib/server/db/components/ApplicationSettingsDefaults";
-    import {generateNewRegistrationToken} from "./data.remote.ts";
+    import {generateNewRegistrationToken} from "./data.remote";
+    import {onMount} from "svelte";
 
     let {data} = $props();
 
@@ -20,11 +21,17 @@
         return currentView.category === category && currentView.subcategory === subcategory;
     }
 
-    let registrationToken = $state(applicationSettings?.get('security')?.get('general')?.get('registration_token')?.text_value);
+    let registrationToken = $state('Loading...');
 
     // Toggle Values
-    let toggleRegistration: boolean = $state(applicationSettings?.get('security')?.get('general')?.get('allow_registration')?.toggle_value ?? false)
-    let toggleRequireToken: boolean = $state(applicationSettings?.get('security')?.get('general')?.get('require_token')?.toggle_value ?? false)
+    let toggleRegistration: boolean = $state(true);
+    let toggleRequireToken: boolean = $state(true);
+
+    onMount(() => {
+        registrationToken = applicationSettings?.get('security')?.get('general')?.get('registration_token')?.text_value ?? 'Failed to load';
+        toggleRegistration = applicationSettings?.get('security')?.get('general')?.get('allow_registration')?.toggle_value ?? true;
+        toggleRequireToken = applicationSettings?.get('security')?.get('general')?.get('require_token')?.toggle_value ?? false;
+    })
 
     let isRegenerating = $derived(registrationToken === undefined);
 
