@@ -1,11 +1,13 @@
 <script lang="ts">
     import type {ApplicationSettings} from "$lib/server/db/components/ApplicationSettingsDefaults";
+    import Logs from "$lib/components/settings/Logs.svelte";
     import {generateNewRegistrationToken} from "./data.remote";
-    import {onMount} from "svelte";
+    import {onMount, setContext} from "svelte";
 
     let {data} = $props();
 
     const applicationSettings: ApplicationSettings = $derived(data.settings);
+    setContext('logDir', () => applicationSettings?.get('general')?.get('general')?.get('logs_dir'));
 
     const currentView = $state({
         category: 'security',
@@ -33,7 +35,7 @@
         toggleRequireToken = applicationSettings?.get('security')?.get('general')?.get('require_token')?.toggle_value ?? false;
     })
 
-    let isRegenerating = $derived(registrationToken === undefined);
+    let isRegenerating = $derived(registrationToken === 'Regenerating....');
 
     let hasUnsavedChanges = $state(false);
 </script>
@@ -363,7 +365,7 @@
                                     if (isRegenerating) return;
 
                                     let oldSetting = applicationSettings?.get('security')?.get('general')?.get('registration_token');
-                                    registrationToken = undefined;
+                                    registrationToken = 'Regenerating....';
                                     registrationToken = await generateNewRegistrationToken();
                                     if (oldSetting !== undefined) {
                                         oldSetting.text_value = registrationToken;
@@ -403,16 +405,21 @@
                     </div>
                 </div>
             {/if}
-            <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
-                <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
-                {#if false}
-                    <p class="form-submission-meta success">Changes saved.</p>
-                {:else if false }
-                    <p class="form-submission-meta saving">Saving...</p>
-                {:else if (hasUnsavedChanges) }
-                    <p class="form-submission-meta unsaved">Unsaved changes.</p>
-                {/if}
-            </div>
+            {#if currentView.category === 'system' && currentView.subcategory === 'logs' }
+                <Logs/>
+            {/if}
+            {#if currentView.category === 'system' && currentView.subcategory !== 'logs' }
+                <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
+                    <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
+                    {#if false}
+                        <p class="form-submission-meta success">Changes saved.</p>
+                    {:else if false }
+                        <p class="form-submission-meta saving">Saving...</p>
+                    {:else if (hasUnsavedChanges) }
+                        <p class="form-submission-meta unsaved">Unsaved changes.</p>
+                    {/if}
+                </div>
+            {/if}
         </div>
         <p class="version-tag">Version: 0.0.1-ALPHA</p>
     </div>
