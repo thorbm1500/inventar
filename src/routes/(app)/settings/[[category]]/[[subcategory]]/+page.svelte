@@ -206,7 +206,7 @@
                             </div>
                         </div>
                         <div class="bottom-section">
-                            <h3>Your application's unique identifier. Used for things like <strong>Daily Usage Ping</strong>, if enabled.</h3>
+                            <h3>Your application's unique identifier. Used for things like <strong>Daily Usage Ping</strong>, if enabled. <button onclick="{() => updateView('security','privacy')}">See Security#privacy</button></h3>
                         </div>
                     </div>
                 </div>
@@ -232,7 +232,7 @@
                                    data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
                         </div>
                         <div class="bottom-section">
-                            <h3>This is where all logs are stored.</h3>
+                            <h3>This is where all logs are stored. A sub-directory with the name of "<i>errors</i>", will also be created, and will store the same logs, though only containing the errors.</h3>
                         </div>
                     </div>
                 </div>
@@ -688,6 +688,16 @@
                             font-size: .9rem;
                             text-wrap-style: pretty;
                             color: var(--theme-text-secondary);
+
+                            button {
+                                font-weight: bold;
+
+                                cursor: pointer;
+                            }
+
+                            button:hover {
+                                color: var(--theme-text-accent);
+                            }
                         }
                     }
 
