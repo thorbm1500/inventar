@@ -1,0 +1,52 @@
+body {
+    .tippy-box[data-theme~='tooltip_theme'] {
+        * {
+            color: var(--theme-text);
+            font-family: "FunnelSans", sans-serif;
+            font-size: 1.025rem;
+            font-weight: 550;
+        }
+
+        *:nth-last-child(2),*:last-child {
+            background: var(--theme-background-tooltip) !important;
+            backdrop-filter: blur(2px) brightness(1) !important;
+        }
+
+        *:last-child {
+            padding: .45rem .75rem;
+        }
+
+        border: var(--theme-border-width) solid #5c5c79;
+        border-radius: var(--theme-border-radius);
+
+        .red-hover:hover {
+            color: var(--theme-text-danger) !important;
+            stroke: var(--theme-text-danger) !important;
+            stroke-width: 2;
+
+            transition-duration: 75ms;
+        }
+
+        #account-tooltip, #account-tooltip * {
+            opacity: 1 !important;
+            backdrop-filter: none !important;
+
+            margin: .125rem;
+            padding: 0 !important;
+        }
+    }
+
+    .tip-toolbox {
+        color: var(--theme-text);
+        font-family: 'FunnelSans', sans-serif;
+        font-weight: 450;
+    }
+}
+
+body.dark {
+    .tippy-box[data-theme~='tooltip_theme'] {
+        *:nth-last-child(2),*:last-child {
+            backdrop-filter: blur(2px) brightness(1.15) !important;
+        }
+    }
+}

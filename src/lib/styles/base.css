@@ -1,0 +1,60 @@
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@font-face {
+    font-family: 'FunnelDisplay';
+    src: url('$lib/assets/fonts/funnel/display/FunnelDisplay[wght].woff2') format("woff2");
+}
+
+@font-face {
+    font-family: 'FunnelSans';
+    src: url('$lib/assets/fonts/funnel/sans/FunnelSans[wght].woff2') format("woff2");
+}
+
+@font-face {
+    font-family: 'ArchivoBold';
+    src: url('$lib/assets/fonts/archivo/Archivo-Bold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoBoldItalic';
+    src: url('$lib/assets/fonts/archivo/Archivo-BoldItalic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoSemiBold';
+    src: url('$lib/assets/fonts/archivo/Archivo-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoSemiBoldItalic';
+    src: url('$lib/assets/fonts/archivo/Archivo-SemiBoldItalic.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoRegular';
+    src: url('$lib/assets/fonts/archivo/Archivo-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'ArchivoItalic';
+    src: url('$lib/assets/fonts/archivo/Archivo-Italic.woff2') format('woff2');
+}
+
+:root {
+    --theme-background-offline: oklch(58.6% 0.253 17.585);
+
+    --theme-height-header: 3.5rem;
+
+    --theme-max-page-height: calc(100vh - var(--theme-height-header));
+    --theme-border-width: .1rem;
+    --theme-border-radius: .65rem;
+    --theme-transition-in: 50ms ease;
+    --theme-transition-out: 100ms ease-in-out;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
