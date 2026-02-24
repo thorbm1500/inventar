@@ -1,8 +1,9 @@
 <script lang="ts">
     import type {ApplicationSettings} from "$lib/server/db/components/ApplicationSettingsDefaults";
     import Logs from "$lib/components/settings/Logs.svelte";
-    import {generateNewRegistrationToken} from "./data.remote";
+    import {generateNewRegistrationToken} from "../../data.remote";
     import {onMount, setContext} from "svelte";
+    import {page} from "$app/state";
 
     let {data} = $props();
 
@@ -10,13 +11,18 @@
     setContext('logDir', () => applicationSettings?.get('general')?.get('general')?.get('logs_dir'));
 
     const currentView = $state({
-        category: 'system',
-        subcategory: 'logs'
+        category: 'general',
+        subcategory: 'basics'
     });
 
-    function updateView(category: string, subcategory: string): void {
-        currentView.category = category;
-        currentView.subcategory = subcategory;
+    if (page.params.category) currentView.category = page.params.category;
+    if (page.params.subcategory) currentView.subcategory = page.params.subcategory;
+
+    function updateView(category?: string, subcategory?: string): void {
+        if (category) currentView.category = category;
+        if (subcategory) currentView.subcategory = subcategory;
+
+        window?.history.replaceState(null,currentView.category,`/settings/${currentView.category}/${currentView.subcategory}`);
     }
 
     function isViewing(category: string, subcategory: string): boolean {
@@ -33,6 +39,8 @@
         registrationToken = applicationSettings?.get('security')?.get('general')?.get('registration_token')?.text_value ?? 'Failed to load';
         toggleRegistration = applicationSettings?.get('security')?.get('general')?.get('allow_registration')?.toggle_value ?? true;
         toggleRequireToken = applicationSettings?.get('security')?.get('general')?.get('require_token')?.toggle_value ?? false;
+
+        updateView();
     })
 
     let isRegenerating = $derived(registrationToken === 'Regenerating....');

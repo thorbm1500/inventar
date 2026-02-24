@@ -37,8 +37,8 @@
 	"/(auth)/register": [],
 	"/(auth)/reset-password": [],
 	"/(auth)/reset-password/[token]": [],
-	"/(app)/settings": [
-		"src/routes/(app)/settings/+page.server.ts",
+	"/(app)/settings/[[category]]/[[subcategory]]": [
+		"src/routes/(app)/settings/[[category]]/[[subcategory]]/+page.server.ts",
 		"src/routes/(app)/+layout.server.ts"
 	]
 }
