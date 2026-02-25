@@ -59,11 +59,12 @@
     }
 
     .main-container {
-        height: var(--theme-max-page-height);
+        height: 100vh;
         width: 100vw;
         scrollbar-width: none;
         z-index: 1;
         background: var(--theme-background) !important;
         overflow: hidden;
+        padding-top: 4.5rem;
     }
 </style>

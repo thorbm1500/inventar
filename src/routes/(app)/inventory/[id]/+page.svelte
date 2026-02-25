@@ -374,7 +374,7 @@
                             </div>
                         </form>
                         <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;gap:.4rem;margin:.5rem 0;">
-                            <button form="item-creator-form" type="submit" class="theme-button">
+                            <button form="item-creator-form" type="submit" class="theme-button" onclick="{() => window.location.href = window.location.href.concat('/add')}">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                      stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-sandbox">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -421,6 +421,16 @@
                                 {#if items.length > 0 }
                                     {#each items as item}
                                         <a data-sveltekit-preload-data="tap" href='/' target='_parent' class="inventory-list-entry">
+                                            <div class="entry-item image">
+                                                {#if item.image }
+                                                    <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
+                                                {:else }
+                                                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                              d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
+                                                    </svg>
+                                                {/if}
+                                            </div>
                                             <div class="entry-item meta">
                                                 <h1 class="name">{item.name}</h1>
                                                 <span class="description">
@@ -548,7 +558,7 @@
 
     .inventory-list * {
         transition: 100ms;
-        transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
+        transition-timing-function: cubic-bezier(0.5, 0.25, .5, .45) !important;
     }
 
     .auto-hide-filter-icon {
@@ -984,8 +994,7 @@
                     .header-items {
                         display: flex;
                         flex-flow: row nowrap;
-                        margin-top: .75em;
-                        margin-bottom: .75em;
+                        height: 100%;
                         width: 100%;
 
                         padding: 0 1.5rem;
@@ -995,6 +1004,7 @@
 
                             display: flex;
                             flex-flow: row nowrap;
+                            align-items: center;
                             justify-content: center;
 
                             font-family: 'FunnelSans', sans-serif;
@@ -1007,13 +1017,13 @@
 
                                 cursor: pointer;
 
-                                transition: 400ms 100ms ease-in-out;
+                                transition: 400ms 100ms ease;
 
                                 svg {
                                     height: 1.25rem;
                                     align-self: center;
                                     stroke-width: 2;
-                                    transition: 125ms ease-in-out,
+                                    transition: 125ms ease,
                                     transform 0ms;
                                     position: fixed;
                                     transform: translateX(1.5rem);
@@ -1090,7 +1100,7 @@
                         align-content: center;
 
                         width: 100%;
-                        padding: 0 1.5rem;
+                        padding-left: 1.5rem;
                         box-sizing: border-box;
                         overflow: hidden;
 
@@ -1101,6 +1111,14 @@
                         border-right-color: transparent;
                         border-bottom-color: transparent;
 
+                        .image {
+                            visibility: hidden;
+                        }
+
+                        .meta {
+                            flex: 1 35%;
+                        }
+
                         .entry-item {
                             flex: 1;
 
@@ -1110,7 +1128,7 @@
                             align-content: center;
                             justify-content: center;
 
-                            border: 1px solid red;
+                            font-family: 'FunnelSans', sans-serif;
                         }
 
                         .quick-delete {
@@ -1125,8 +1143,6 @@
 
                             button {
                                 cursor: pointer;
-                                width: 2.25rem;
-                                height: 2.25rem;
 
                                 svg {
                                     justify-self: center;
@@ -1134,7 +1150,7 @@
                                     width: 100%;
                                     height: 100%;
 
-                                    padding: .5em .25em;
+                                    padding: .4em .25em;
 
                                     background: var(--theme-background-button);
                                     border: .122em solid var(--theme-border-button);
@@ -1193,12 +1209,10 @@
                     .inventory-footer-items {
                         display: flex;
                         flex-flow: row nowrap;
-                        align-content: center;
+                        align-items: center;
                         justify-content: center;
                         gap: 1rem;
-
-                        margin-top: .75em;
-                        margin-bottom: .75em;
+                        height: 100%;
 
                         font-family: 'FunnelSans', sans-serif;
 
@@ -1224,6 +1238,17 @@
                 .inventory-header {
                     .header-item:first-child {
                         flex: 1 35%;
+                        justify-content: flex-start;
+                    }
+
+                    .header-item:nth-child(2) {
+                        p {
+                            padding-left: .5rem;
+                        }
+                    }
+
+                    .header-item:last-child {
+                        margin-right: 2.5rem;
                     }
                 }
 
@@ -1240,8 +1265,14 @@
                         }
                     }
 
-                    .entry-item:first-child {
+                    .image {
+                        visibility: force-hidden;
+                        position: absolute;
+                    }
+
+                    .meta {
                         flex: 1 35%;
+                        justify-content: flex-start;
                     }
 
                     .entry-item {
@@ -1272,7 +1303,16 @@
             .inventory-list-container.medium {
                 .inventory-header {
                     .header-item:first-child {
-                        flex: 1 68%;
+                        flex: 1 35%;
+                        justify-content: flex-start;
+                    }
+
+                    .header-item {
+                        flex: 1;
+                    }
+
+                    .header-item:last-child {
+                        margin-right: 1.5rem;
                     }
                 }
 
@@ -1282,30 +1322,36 @@
                     }
 
                     .inventory-list-entry {
+                        height: 5rem;
                         font-family: 'FunnelSans', sans-serif;
 
                         z-index: 20;
 
                         .quick-delete {
-                            flex: 1 5%;
+                            padding: 0 .5rem;
+
+                            button {
+                                width: 2.25rem;
+                                height: 2.25rem;
+                            }
                         }
 
-                        .entry-item.inventory-item-amount {
-                            flex: 1 7%;
-                        }
-
-                        .entry-item:first-child {
-                            flex: 1 68%;
+                        .image {
+                            visibility: force-hidden;
+                            position: absolute;
                         }
 
                         .entry-item {
-                            flex: 1 10%;
+                            flex: 1;
                         }
 
                         .meta {
+                            flex: 1 35%;
+
                             display: flex;
-                            flex-flow: row nowrap;
-                            align-items: center;
+                            flex-flow: column nowrap;
+                            align-items: flex-start;
+                            justify-content: flex-start;
 
                             .name {
                                 font-weight: 700;
@@ -1325,34 +1371,145 @@
                                 max-width: 50rem;
                                 overflow: hidden;
 
-                                transition: 450ms 100ms ease-in-out;
+                                transition: color 300ms 100ms ease;
                             }
                         }
 
-                        .inventory-item-price {
-                            text-align: center;
-                        }
-
-                        .inventory-item-amount {
-                            text-align: center;
-                        }
-
-                        .inventory-item-last_change {
+                        .price, .amount, .updated {
                             text-align: center;
                         }
                     }
 
-                    .inventory-name {
+                    .name {
                         flex: 1 0 70%;
                         justify-content: center;
                     }
 
-                    .inventory-item-price {
+                    .price {
                         flex: 1 0 10%;
                         justify-content: center;
                     }
 
-                    .inventory-item-amount {
+                    .amount {
+                        flex: 1 0 10%;
+                        justify-content: center;
+                    }
+                }
+            }
+
+            .inventory-list-container.large {
+                .inventory-header {
+                    padding-left: 5.25rem;
+
+                    .header-item:first-child {
+                        flex: 1 35%;
+                        justify-content: flex-start;
+                        margin-right: 2rem;
+                    }
+
+                    .header-item {
+                        flex: 1;
+                    }
+
+                    .header-item:last-child {
+                        margin-right: 2.75rem;
+                    }
+                }
+
+                .inventory-list {
+                    .inventory-list-entry:first-child {
+                        border-top-color: transparent;
+                    }
+
+                    .inventory-list-entry {
+                        height: 12rem;
+                        font-family: 'FunnelSans', sans-serif;
+
+                        z-index: 20;
+
+                        .quick-delete {
+                            padding: 0 1rem;
+
+                            button {
+                                width: 2.5rem;
+                                height: 2.5rem;
+                            }
+                        }
+
+                        .entry-item.image {
+                            flex: 0;
+                            visibility: visible;
+
+                            margin-right: 1.25rem;
+                            padding: 0;
+
+                            width: 4rem;
+
+                            svg {
+                                width: 4rem;
+                                height: 4rem;
+                                padding: 0;
+                                margin: 0;
+                            }
+
+                            img {
+                                width: 4rem;
+                                height: 4rem;
+                                padding: 0;
+                                margin: 0;
+                            }
+                        }
+
+                        .entry-item {
+                            flex: 1;
+                        }
+
+                        .meta {
+                            flex: 1 35%;
+
+                            display: flex;
+                            flex-flow: column nowrap;
+                            align-items: flex-start;
+                            justify-content: flex-start;
+
+                            .name {
+                                font-weight: 700;
+                                font-size: 1.75rem;
+                                max-width: 50rem;
+                                line-clamp: 1 !important;
+                                text-overflow: ellipsis;
+                                overflow: hidden;
+                                text-wrap: nowrap;
+                            }
+
+                            .description {
+                                font-size: .9rem;
+                                color: var(--theme-text-third);
+                                line-clamp: 2 !important;
+                                text-overflow: ellipsis;
+                                max-width: 50rem;
+                                overflow: hidden;
+
+                                transition: color 300ms 100ms ease;
+                            }
+                        }
+
+                        .price, .amount, .updated {
+                            text-align: center;
+                        }
+                    }
+
+                    .name {
+                        flex: 1 0 70%;
+                        justify-content: center;
+                    }
+
+                    .price {
+                        flex: 1 0 10%;
+                        justify-content: center;
+                    }
+
+                    .amount {
                         flex: 1 0 10%;
                         justify-content: center;
                     }
