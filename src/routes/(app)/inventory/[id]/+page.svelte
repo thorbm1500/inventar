@@ -26,7 +26,7 @@
     import {page} from "$app/state";
     import type {Inventory, Item, User} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/utilities'
-    import {getItems, getTotalItemCount} from './data.remote.ts';
+    import {getItems, getTotalItemCount, quickAdd} from './data.remote.ts';
     import Utility from "../../browse/utility";
     import {createItem} from './data.remote.ts';
     import {deleteItem, updatePrimaryIvnentory} from "./data.remote";
@@ -52,6 +52,9 @@
     let isItemCreatorOpen: boolean = $state(false);
     let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
     let isFilterContainerOpen: boolean = $state(false);
+
+    type TableItemSize = 'small' | 'medium' | 'large';
+    let tableSize: TableItemSize = $state('small');
 
     /* Item Container*/
     let currentPage = $state(1);
@@ -126,6 +129,46 @@
                             </button>
                         </div>
                         <div class="header-buttons">
+                            <div class="size-switcher">
+                                <button class="{tableSize==='small'?'selected':''}" title="small" onclick="{() => tableSize = 'small'}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                         stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-arrows-minimize">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M5 9l4 0l0 -4"/>
+                                        <path d="M3 3l6 6"/>
+                                        <path d="M5 15l4 0l0 4"/>
+                                        <path d="M3 21l6 -6"/>
+                                        <path d="M19 9l-4 0l0 -4"/>
+                                        <path d="M15 9l6 -6"/>
+                                        <path d="M19 15l-4 0l0 4"/>
+                                        <path d="M15 15l6 6"/>
+                                    </svg>
+                                </button>
+                                <button class="{tableSize==='medium'?'selected':''}" title="medium" onclick="{() => tableSize = 'medium'}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                         stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-maximize">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M4 8v-2a2 2 0 0 1 2 -2h2"/>
+                                        <path d="M4 16v2a2 2 0 0 0 2 2h2"/>
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v2"/>
+                                        <path d="M16 20h2a2 2 0 0 0 2 -2v-2"/>
+                                    </svg>
+                                </button>
+                                <button class="{tableSize==='large'?'selected':''}" title="large" onclick="{() => tableSize = 'large'}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                         stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-arrows-maximize">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M16 4l4 0l0 4"/>
+                                        <path d="M14 10l6 -6"/>
+                                        <path d="M8 20l-4 0l0 -4"/>
+                                        <path d="M4 20l6 -6"/>
+                                        <path d="M16 20l4 0l0 -4"/>
+                                        <path d="M14 14l6 6"/>
+                                        <path d="M8 4l-4 0l0 4"/>
+                                        <path d="M4 4l6 6"/>
+                                    </svg>
+                                </button>
+                            </div>
                             <button id="filters-button" class="theme-button filters-button {isFilterContainerOpen?'open':''}" title="Filters" onclick={() => {
                                 isItemCreatorOpen = false;
                                 isFilterContainerOpen = !isFilterContainerOpen;
@@ -304,21 +347,29 @@
                     </div>
                 {:else if isItemCreatorOpen }
                     <div class="extra-container {isItemCreatorOpen?'open':'open'} create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
-                        <form {...createItem} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
+                        <form {...createItem.enhance(async ({form, data, submit}) => {
+                            try {
+                                await submit();
+                                form.reset();
+                                await refresh();
+                            } catch (err) {
+                                console.log(err);
+                            }
+                        })} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                             <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                            <input {...createItem.fields.user.as('text')} value="{user?.uuid??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
+                            <input {...quickAdd.fields.user.as('text')} value="{user?.uuid??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
                                    required/>
-                            <input {...createItem.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
+                            <input {...quickAdd.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
                                    required/>
                             <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
                                 <div class="option-container" style="width:52rem;">
                                     <h1>Name</h1>
-                                    <input style="width:100%;" {...createItem.fields.name.as('text')} placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
+                                    <input style="width:100%;" {...quickAdd.fields.name.as('text')} placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
                                            data-1p-ignore data-bwignore required/>
                                 </div>
                                 <div class="option-container">
                                     <h1>Amount</h1>
-                                    <input {...createItem.fields.amount.as('number')} value=0 required/>
+                                    <input {...quickAdd.fields.amount.as('number')} value=0 required/>
                                 </div>
                             </div>
                         </form>
@@ -345,12 +396,11 @@
                     </div>
                 {/if}
                 <section class="inventory-body-section">
-                    <div class="inventory-list-container">
+                    <div class="inventory-list-container {tableSize}">
                         <div class="inventory-header">
                             <div class="header-items">
                                 <div class="header-item name-filter">
-                                    <button id="name-filter-button" title="Filter by name"
-                                            onclick={async () => filters.update('name')}>
+                                    <button id="name-filter-button" title="Filter by name" onclick={async () => filters.update('name')}>
                                         Name
                                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'name' ? 'auto-hide-filter-icon' : '' }">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='name'?filters.order:'')}"/>
@@ -359,11 +409,9 @@
                                 </div>
                                 {#if filters.last_updated }
                                     <div class="header-item latest-change-filter">
-                                        <button id="latest-change-filter-button" title="Filter by latest update"
-                                                onclick={async () => filters.update('last_updated')}>
+                                        <button id="latest-change-filter-button" title="Filter by latest update" onclick={async () => filters.update('last_updated')}>
                                             Last Updated
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'last_updated' ? 'auto-hide-filter-icon' : '' }"
-                                                 style="opacity:0;">
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'last_updated' ? 'auto-hide-filter-icon' : '' }">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='last_updated'?filters.order:'')}"/>
                                             </svg>
                                         </button>
@@ -371,20 +419,18 @@
                                 {/if}
                                 {#if filters.price }
                                     <div class="header-item price-filter">
-                                        <button id="price-filter-button" title="Filter by item price"
-                                                onclick={async () => filters.update('price')}>
+                                        <button id="price-filter-button" title="Filter by item price" onclick={async () => filters.update('price')}>
                                             Price
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'price' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
+                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'price' ? 'auto-hide-filter-icon' : '' }">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='price'?filters.order:'')}"/>
                                             </svg>
                                         </button>
                                     </div>
                                 {/if}
                                 <div class="header-item items-filter">
-                                    <button id="items-filter-button" title="Filter by item amount"
-                                            onclick={async () => filters.update('items')}>
+                                    <button id="items-filter-button" title="Filter by item amount" onclick={async () => filters.update('items')}>
                                         Items
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'items' ? 'auto-hide-filter-icon' : '' }" style="opacity:0;">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'items' ? 'auto-hide-filter-icon' : '' }">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='items'?filters.order:'')}"/>
                                         </svg>
                                     </button>
@@ -396,10 +442,10 @@
                             {#if inventory }
                                 {#if items.length > 0 }
                                     {#each items as item}
-                                        <a data-sveltekit-preload-data="tap" href='/' target='_parent' style="height:5.5rem;"
+                                        <a data-sveltekit-preload-data="tap" href='/' target='_parent'
                                            class="inventory-list-entry">
                                             <div class="entry-item inventory-meta">
-                                                <div class="inventory-image">
+                                                <div class="inventory-image" style="visibility:{tableSize==='small'?'hidden':'visible'}">
                                                     {#if item.image }
                                                         <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
                                                     {:else }
@@ -410,8 +456,8 @@
                                                     {/if}
                                                 </div>
                                                 <div class="inventory-name-and-description">
-                                                    <h1 class="inventory-name">{item.name}</h1>
-                                                    <span class="line-clamp-2">
+                                                    <h1 class="inventory-name" style="margin-left:{tableSize==='small'?'1rem':'0'};">{item.name}</h1>
+                                                    <span style="visibility:{tableSize==='small'?'hidden':'visible'}">
                                                         {#if filters.description}
                                                             {#if item.description}
                                                                 {item.description}
@@ -537,6 +583,11 @@
         --inventory-header-height: 6rem;
     }
 
+    .inventory-list * {
+        transition: 100ms;
+        transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
+    }
+
     .auto-hide-filter-icon {
         opacity: 0;
 
@@ -639,6 +690,54 @@
                     flex-flow: row nowrap;
                     gap: .5rem;
 
+                    .size-switcher {
+                        display: flex;
+                        flex-flow: row nowrap;
+                        align-items: center;
+                        justify-content: space-between;
+
+                        background: var(--theme-background-button);
+                        border: var(--theme-border-width) solid var(--theme-border-button);
+                        border-radius: var(--theme-border-radius);
+
+                        overflow: hidden;
+
+                        color: var(--theme-text);
+
+                        button {
+                            height: 100%;
+                            width: 100%;
+                            cursor: pointer;
+
+                            padding: 0 .5rem;
+
+                            svg {
+                                max-height: 1.3rem;
+                            }
+                        }
+
+                        button:nth-child(2) {
+                            border: .15rem solid var(--theme-border-button);
+                            border-top-color: transparent;
+                            border-bottom-color: transparent;
+
+                            padding: 0 .4rem;
+                        }
+
+                        button.selected {
+                            color: var(--theme-text-accent);
+
+                            svg {
+                                stroke-width: 2.5;
+                            }
+                        }
+                    }
+
+                    .size-switcher button:hover {
+                        background: var(--theme-background-button-hover);
+                        color: var(--theme-text-accent);
+                    }
+
                     .refresh-button, .inventory-settings-button {
                         padding: .5em 1em !important;
                     }
@@ -655,7 +754,7 @@
                         transition: var(--theme-transition-out);
                     }
 
-                    .refresh-button:hover, .filters-button:hover, .create-item-button:hover, .inventory-settings-button:hover {
+                    .size-switcher:hover svg, .refresh-button:hover, .filters-button:hover, .create-item-button:hover, .inventory-settings-button:hover {
                         stroke-width: 2.25;
 
                         transition: var(--theme-transition-in);
@@ -891,25 +990,32 @@
         .inventory-body-section {
             user-select: none !important;
 
+            .inventory-list-container,
+            .inventory-list-container.small,
+            .inventory-list-container.medium,
+            .inventory-list-container.large {
+                transition: var(--theme-transition-in),
+                transform var(--theme-transition-out);
+            }
+
             .inventory-list-container {
-                width: 90rem;
                 height: fit-content;
                 box-sizing: border-box;
-
-                background: var(--theme-background-container);
-
-                border: var(--theme-border-width) solid var(--theme-border-container);
-                border-radius: var(--theme-border-radius);
-
-                color: var(--theme-text);
-
                 margin: 0 0 4rem 0;
 
+                background: var(--theme-background-container);
+                border: var(--theme-border-width) solid var(--theme-border-container);
+                border-radius: .35rem;
+                color: var(--theme-text);
+
+                width: 90vw;
+                min-width: 80rem;
+
                 .inventory-header {
-                    border-color: transparent;
-                    border-bottom-color: inherit;
                     border-width: var(--theme-border-width);
                     width: 100%;
+                    border-color: transparent;
+                    border-bottom-color: inherit;
                     height: 3rem !important;
 
                     .header-items {
@@ -917,18 +1023,7 @@
                         flex-flow: row nowrap;
                         margin-top: .75em;
                         margin-bottom: .75em;
-
-                        .item-manage-spacer {
-                            flex: 1 5%;
-                        }
-
-                        .header-item:first-child {
-                            flex: 1 68%;
-                        }
-
-                        .header-item.items-filter {
-                            flex: 1 7%;
-                        }
+                        width: 100%;
 
                         .header-item {
                             flex: 1 10%;
@@ -1014,10 +1109,6 @@
                         }
                     }
 
-                    .inventory-list-entry:first-child {
-                        border-top-color: transparent;
-                    }
-
                     .inventory-list-entry:nth-of-type(odd) {
                         background: var(--theme-background-list-odd);
                     }
@@ -1034,17 +1125,13 @@
                         background: var(--theme-background-list-even);
                         border-style: solid;
                         border-width: var(--theme-border-width);
+
                         border-top-color: var(--theme-border-container);
-                        border-bottom-color: transparent;
                         border-left-color: transparent;
                         border-right-color: transparent;
-
-                        font-family: 'FunnelSans', sans-serif;
-
-                        z-index: 20;
+                        border-bottom-color: transparent;
 
                         .quick-delete {
-                            flex: 1 5%;
                             align-items: center;
                             opacity: 0;
 
@@ -1082,6 +1169,146 @@
                                     transition: 50ms ease-out;
                                 }
                             }
+                        }
+                    }
+
+                    .inventory-list-entry:hover {
+                        background: var(--theme-background-button-hover);
+
+                        .quick-delete {
+                            opacity: 1;
+                            transition: 50ms;
+                            transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
+
+                            svg {
+                                stroke: var(--theme-text);
+                            }
+                        }
+
+                        .inventory-meta {
+                            .inventory-image {
+                                svg {
+                                    stroke: var(--theme-text-accent);
+                                    transition: stroke 75ms ease;
+                                }
+                            }
+
+                            span {
+                                color: var(--theme-text-accent);
+                                transition: 75ms ease;
+                            }
+                        }
+                    }
+                }
+
+                .inventory-footer {
+                    border-color: transparent;
+                    border-top-color: inherit;
+                    border-width: var(--theme-border-width);
+                    width: 100%;
+                    height: 3rem !important;
+
+                    .inventory-footer-items {
+                        display: flex;
+                        flex-flow: row nowrap;
+                        align-content: center;
+                        justify-content: center;
+                        gap: 1rem;
+
+                        margin-top: .75em;
+                        margin-bottom: .75em;
+
+                        font-family: 'FunnelSans', sans-serif;
+
+                        .pagination-button {
+                            cursor: pointer;
+                            color: var(--theme-text);
+                        }
+
+                        .pagination-button:hover {
+                            color: var(--theme-text-accent);
+                        }
+
+                        .pagination-button.disabled {
+                            cursor: initial;
+                            color: var(--theme-text-third);
+                            pointer-events: none;
+                        }
+                    }
+                }
+            }
+
+            .inventory-list-container.small {
+                .inventory-header {
+                    .item-manage-spacer {
+                        width: 4rem !important;
+                    }
+
+                    .header-item:first-child {
+                        flex: 1 0 35%;
+                    }
+
+                    .header-item.items-filter {
+                        flex: 1 0 auto;
+                    }
+                }
+
+                .inventory-list-entry:first-child {
+                    border-top-color: transparent;
+                }
+
+                .inventory-list-entry {
+                    height: 2.5rem;
+
+                    .quick-delete {
+                        margin-top: .425rem;
+                        padding: 0 1rem;
+
+                        button {
+                            width: 2rem;
+                            height: 2rem;
+                        }
+                    }
+
+                    .entry-item:first-child {
+                        flex: 1 0 35%;
+                    }
+
+                    .entry-item {
+                        flex: 1 0 auto;
+                        line-clamp: 1;
+                        text-wrap: nowrap;
+                    }
+                }
+            }
+
+            .inventory-list-container.medium {
+                .inventory-header {
+                    .item-manage-spacer {
+                        width: 4rem !important;
+                    }
+
+                    .header-item:first-child {
+                        flex: 1 68%;
+                    }
+
+                    .header-item.items-filter {
+                        flex: 1 7%;
+                    }
+                }
+
+                .inventory-list {
+                    .inventory-list-entry:first-child {
+                        border-top-color: transparent;
+                    }
+
+                    .inventory-list-entry {
+                        font-family: 'FunnelSans', sans-serif;
+
+                        z-index: 20;
+
+                        .quick-delete {
+                            flex: 1 5%;
                         }
 
                         .entry-item.inventory-item-amount {
@@ -1174,34 +1401,6 @@
                         }
                     }
 
-                    .inventory-list-entry:hover {
-                        background: var(--theme-background-button-hover);
-
-                        .quick-delete {
-                            opacity: 1;
-                            transition: 50ms;
-                            transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
-
-                            svg {
-                                stroke: var(--theme-text);
-                            }
-                        }
-
-                        .inventory-meta {
-                            .inventory-image {
-                                svg {
-                                    stroke: var(--theme-text-accent);
-                                    transition: stroke 75ms ease;
-                                }
-                            }
-
-                            span {
-                                color: var(--theme-text-accent);
-                                transition: 75ms ease;
-                            }
-                        }
-                    }
-
                     .inventory-name {
                         flex: 1 0 70%;
                         justify-content: center;
@@ -1215,42 +1414,6 @@
                     .inventory-item-amount {
                         flex: 1 0 10%;
                         justify-content: center;
-                    }
-                }
-
-                .inventory-footer {
-                    border-color: transparent;
-                    border-top-color: inherit;
-                    border-width: var(--theme-border-width);
-                    width: 100%;
-                    height: 3rem !important;
-
-                    .inventory-footer-items {
-                        display: flex;
-                        flex-flow: row nowrap;
-                        align-content: center;
-                        justify-content: center;
-                        gap: 1rem;
-
-                        margin-top: .75em;
-                        margin-bottom: .75em;
-
-                        font-family: 'FunnelSans', sans-serif;
-
-                        .pagination-button {
-                            cursor: pointer;
-                            color: var(--theme-text);
-                        }
-
-                        .pagination-button:hover {
-                            color: var(--theme-text-accent);
-                        }
-
-                        .pagination-button.disabled {
-                            cursor: initial;
-                            color: var(--theme-text-third);
-                            pointer-events: none;
-                        }
                     }
                 }
             }

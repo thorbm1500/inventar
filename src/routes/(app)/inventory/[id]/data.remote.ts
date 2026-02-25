@@ -48,6 +48,22 @@ export const deleteItem = query(v.string(), async (id: string): Promise<void> =>
     if (!util.isOffline()) await db.Items.deleteItem(id);
 });
 
+export const quickAdd = form(v.object({
+    user: v.pipe(v.string(), v.nonEmpty('Error: No UUID found. The UUID of the user must be given, when new items are created!')),
+    inventoryUuid: v.pipe(v.string(), v.nonEmpty('Error: No UUID found. The UUID of the inventory must be given, when new items are created!')),
+    name: v.pipe(v.string(), v.nonEmpty('Error: No name found. A name must be provided when creating new items.')),
+    amount: v.number()
+}), async ({user,inventoryUuid,name,amount}) => {
+    const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, undefined, amount);
+
+    if (!item) {
+        Log.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);
+        return {success: false, failed: true, error: 'Failed to create item!'}
+    }
+
+    return redirect(302, '/inventory/' + inventoryUuid);
+})
+
 export const createItem = form(
     v.object({
         user: v.pipe(v.string(), v.nonEmpty('Error: No UUID found. The UUID of the user must be given, when new items are created!')),
