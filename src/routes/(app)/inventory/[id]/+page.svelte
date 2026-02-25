@@ -399,86 +399,49 @@
                     <div class="inventory-list-container {tableSize}">
                         <div class="inventory-header">
                             <div class="header-items">
-                                <div class="header-item name-filter">
-                                    <button id="name-filter-button" title="Filter by name" onclick={async () => filters.update('name')}>
-                                        Name
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'name' ? 'auto-hide-filter-icon' : '' }">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='name'?filters.order:'')}"/>
-                                        </svg>
-                                    </button>
+                                <div class="header-item name">
+                                    <p>Name</p>
                                 </div>
-                                {#if filters.last_updated }
-                                    <div class="header-item latest-change-filter">
-                                        <button id="latest-change-filter-button" title="Filter by latest update" onclick={async () => filters.update('last_updated')}>
-                                            Last Updated
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'last_updated' ? 'auto-hide-filter-icon' : '' }">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='last_updated'?filters.order:'')}"/>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                {/if}
-                                {#if filters.price }
-                                    <div class="header-item price-filter">
-                                        <button id="price-filter-button" title="Filter by item price" onclick={async () => filters.update('price')}>
-                                            Price
-                                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'price' ? 'auto-hide-filter-icon' : '' }">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='price'?filters.order:'')}"/>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                {/if}
-                                <div class="header-item items-filter">
-                                    <button id="items-filter-button" title="Filter by item amount" onclick={async () => filters.update('items')}>
-                                        Items
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="size-6 { filters.current === 'items' ? 'auto-hide-filter-icon' : '' }">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="{Utility.getFilterSymbol(filters.current==='items'?filters.order:'')}"/>
-                                        </svg>
-                                    </button>
+                                <div class="header-item part-number">
+                                    <p>Part Nr.</p>
                                 </div>
-                                <div class="item-manage-spacer"></div>
+                                <div class="header-item updated">
+                                    <p>Updated</p>
+                                </div>
+                                <div class="header-item price">
+                                    <p>Price</p>
+                                </div>
+                                <div class="header-item amount">
+                                    <p>Amount</p>
+                                </div>
                             </div>
                         </div>
                         <div class="inventory-list">
                             {#if inventory }
                                 {#if items.length > 0 }
                                     {#each items as item}
-                                        <a data-sveltekit-preload-data="tap" href='/' target='_parent'
-                                           class="inventory-list-entry">
-                                            <div class="entry-item inventory-meta">
-                                                <div class="inventory-image" style="visibility:{tableSize==='small'?'hidden':'visible'}">
-                                                    {#if item.image }
-                                                        <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
-                                                    {:else }
-                                                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                  d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
-                                                        </svg>
-                                                    {/if}
-                                                </div>
-                                                <div class="inventory-name-and-description">
-                                                    <h1 class="inventory-name" style="margin-left:{tableSize==='small'?'1rem':'0'};">{item.name}</h1>
-                                                    <span style="visibility:{tableSize==='small'?'hidden':'visible'}">
-                                                        {#if filters.description}
-                                                            {#if item.description}
+                                        <a data-sveltekit-preload-data="tap" href='/' target='_parent' class="inventory-list-entry">
+                                            <div class="entry-item meta">
+                                                <h1 class="name">{item.name}</h1>
+                                                <span class="description">
+                                                        {#if item.description}
                                                                 {item.description}
                                                             {:else}
                                                                 No description has been set.
                                                             {/if}
-                                                        {/if}
                                                     </span>
-                                                </div>
                                             </div>
-                                            {#if filters.last_updated }
-                                                <div class="entry-item inventory-item-last_change">
-                                                    {parseTimestamp(item?.last_update)}
-                                                </div>
-                                            {/if}
-                                            {#if filters.price }
-                                                <div class="entry-item inventory-item-price">
-                                                    {item.currency_format.replace('%value%', String(item.price ?? 0))}
-                                                </div>
-                                            {/if}
-                                            <div class="entry-item inventory-item-amount">
+                                            <div class="entry-item part-number">
+                                                <!--todo-->
+                                                0
+                                            </div>
+                                            <div class="entry-item updated">
+                                                {parseTimestamp(item?.last_update)}
+                                            </div>
+                                            <div class="entry-item price">
+                                                {item.currency_format.replace('%value%', String(item.price ?? 0))}
+                                            </div>
+                                            <div class="entry-item amount">
                                                 {item.amount}
                                             </div>
                                             <div class="quick-delete">
@@ -1016,7 +979,7 @@
                     width: 100%;
                     border-color: transparent;
                     border-bottom-color: inherit;
-                    height: 3rem !important;
+                    height: 2.5rem !important;
 
                     .header-items {
                         display: flex;
@@ -1025,8 +988,10 @@
                         margin-bottom: .75em;
                         width: 100%;
 
+                        padding: 0 1.5rem;
+
                         .header-item {
-                            flex: 1 10%;
+                            flex: 1;
 
                             display: flex;
                             flex-flow: row nowrap;
@@ -1113,23 +1078,40 @@
                         background: var(--theme-background-list-odd);
                     }
 
-                    .inventory-list-entry {
-                        width: 100%;
+                    .inventory-list-entry:first-child {
+                        border-top-color: transparent;
+                    }
 
+                    .inventory-list-entry {
                         display: flex;
                         flex-flow: row nowrap;
                         justify-content: center;
                         align-items: center;
                         align-content: center;
 
-                        background: var(--theme-background-list-even);
-                        border-style: solid;
-                        border-width: var(--theme-border-width);
+                        width: 100%;
+                        padding: 0 1.5rem;
+                        box-sizing: border-box;
+                        overflow: hidden;
 
-                        border-top-color: var(--theme-border-container);
+                        background: var(--theme-background-list-even);
+                        border: var(--theme-border-width) solid var(--theme-border-container);
+
                         border-left-color: transparent;
                         border-right-color: transparent;
                         border-bottom-color: transparent;
+
+                        .entry-item {
+                            flex: 1;
+
+                            display: flex;
+                            flex-flow: row nowrap;
+                            align-items: center;
+                            align-content: center;
+                            justify-content: center;
+
+                            border: 1px solid red;
+                        }
 
                         .quick-delete {
                             align-items: center;
@@ -1206,7 +1188,7 @@
                     border-top-color: inherit;
                     border-width: var(--theme-border-width);
                     width: 100%;
-                    height: 3rem !important;
+                    height: 2.5rem !important;
 
                     .inventory-footer-items {
                         display: flex;
@@ -1240,21 +1222,9 @@
 
             .inventory-list-container.small {
                 .inventory-header {
-                    .item-manage-spacer {
-                        width: 4rem !important;
-                    }
-
                     .header-item:first-child {
-                        flex: 1 0 35%;
+                        flex: 1 35%;
                     }
-
-                    .header-item.items-filter {
-                        flex: 1 0 auto;
-                    }
-                }
-
-                .inventory-list-entry:first-child {
-                    border-top-color: transparent;
                 }
 
                 .inventory-list-entry {
@@ -1271,29 +1241,38 @@
                     }
 
                     .entry-item:first-child {
-                        flex: 1 0 35%;
+                        flex: 1 35%;
                     }
 
                     .entry-item {
-                        flex: 1 0 auto;
                         line-clamp: 1;
                         text-wrap: nowrap;
+                        height: fit-content;
+                        max-height: 2rem !important;
+
+                        .name {
+                            margin: 0;
+                            padding: 0;
+                        }
+
+                        .description {
+                            visibility: hidden;
+                            position: absolute;
+                        }
+                    }
+
+                    .entry-item.meta {
+                        .description {
+                            visibility: hidden;
+                        }
                     }
                 }
             }
 
             .inventory-list-container.medium {
                 .inventory-header {
-                    .item-manage-spacer {
-                        width: 4rem !important;
-                    }
-
                     .header-item:first-child {
                         flex: 1 68%;
-                    }
-
-                    .header-item.items-filter {
-                        flex: 1 7%;
                     }
                 }
 
@@ -1323,68 +1302,30 @@
                             flex: 1 10%;
                         }
 
-                        .inventory-meta {
+                        .meta {
                             display: flex;
                             flex-flow: row nowrap;
                             align-items: center;
 
-                            .inventory-image {
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-
-                                width: 5rem;
-                                height: 5rem;
-
-                                svg {
-                                    width: 2.5rem;
-                                    height: 2.5rem;
-                                    transition: 1400ms ease;
-                                }
-
-                                img {
-                                    width: 100%;
-                                    height: 100%;
-                                    border-radius: var(--theme-border-radius);
-
-                                    transition: 400ms ease;
-                                }
-
-                                img:hover {
-                                    transform: scale(1.75);
-                                    border-radius: .2em;
-
-                                    transition: 50ms ease;
-                                }
+                            .name {
+                                font-weight: 700;
+                                font-size: 1.5rem;
+                                max-width: 50rem;
+                                line-clamp: 1 !important;
+                                text-overflow: ellipsis;
+                                overflow: hidden;
+                                text-wrap: nowrap;
                             }
 
-                            .inventory-name-and-description {
-                                display: flex;
-                                flex-flow: column nowrap;
-                                justify-content: flex-start;
-                                align-content: flex-start;
-                                max-width: 54rem;
+                            .description {
+                                font-size: 0.85rem;
+                                color: var(--theme-text-third);
+                                line-clamp: 2 !important;
+                                text-overflow: ellipsis;
+                                max-width: 50rem;
+                                overflow: hidden;
 
-                                h1 {
-                                    font-weight: 700;
-                                    font-size: 1.5rem;
-                                    max-width: 50rem;
-                                    line-clamp: 1 !important;
-                                    text-overflow: ellipsis;
-                                    overflow: hidden;
-                                    text-wrap: nowrap;
-                                }
-
-                                span {
-                                    font-size: 0.85rem;
-                                    color: var(--theme-text-third);
-                                    line-clamp: 2 !important;
-                                    text-overflow: ellipsis;
-                                    max-width: 50rem;
-                                    overflow: hidden;
-
-                                    transition: 450ms 100ms ease-in-out;
-                                }
+                                transition: 450ms 100ms ease-in-out;
                             }
                         }
 

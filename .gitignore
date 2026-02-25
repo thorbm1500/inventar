@@ -4,7 +4,6 @@
 .netlify
 .wrangler
 /.svelte-kit/*
-!/.svelte-kit/types/
 node_modules
 /build
 /logs
