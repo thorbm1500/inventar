@@ -26,6 +26,9 @@
 		"src/routes/(app)/inventory/[id]/+page.server.ts",
 		"src/routes/(app)/+layout.server.ts"
 	],
+	"/(app)/inventory/[id]/add": [
+		"src/routes/(app)/+layout.server.ts"
+	],
 	"/(app)/inventory/[id]/settings": [
 		"src/routes/(app)/inventory/[id]/settings/+page.server.ts",
 		"src/routes/(app)/+layout.server.ts"

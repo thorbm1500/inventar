@@ -3,7 +3,6 @@
 .vercel
 .netlify
 .wrangler
-/.svelte-kit/*
 node_modules
 /build
 /logs
