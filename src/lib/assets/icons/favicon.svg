@@ -1,5 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg id="a" xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 3000 3000">
-    <rect width="1112" height="1112" style="fill:#fffff2;"/>
-    <polygon points="388 1500 388 3000 2250 3000 2250 2250.99 3000 2250.99 3000 388 1500 388 1500 1500 388 1500" style="fill:#fffff2;"/>
-</svg>
+<?xml version="1.0" encoding="UTF-8"?><svg id="a" xmlns="http://www.w3.org/2000/svg" width="1500" height="1500" viewBox="0 0 1500 1500"><rect x="1000" y="1000" width="500" height="500" style="fill:#0d0d0d;"/><rect x="500" y="500" width="500" height="500" style="fill:#0d0d0d;"/><rect width="500" height="500" style="fill:#0d0d0d;"/><rect x="1000" width="500" height="500" style="fill:#0d0d0d; opacity:.5;"/><rect y="500" width="500" height="500" style="fill:#0d0d0d; opacity:.75;"/><rect x="500" y="1000" width="500" height="500" style="fill:#0d0d0d; opacity:.75;"/></svg>
