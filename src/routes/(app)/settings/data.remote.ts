@@ -1,10 +1,10 @@
+import {LOGGER} from "../../../hooks.server";
 import {command, query} from "$app/server";
 import {generateRegistrationToken} from "$lib/server/internal/auth";
 import {connection} from "$lib/server/db/database";
 import {promises as fs} from 'fs';
 import * as v from 'valibot';
 import {formatLogs} from "$lib/utilities";
-import Log from "$lib/server/internal/log";
 
 export const generateNewRegistrationToken = command(async (): Promise<string> => {
     const newToken: string = generateRegistrationToken();
@@ -15,7 +15,7 @@ export const generateNewRegistrationToken = command(async (): Promise<string> =>
 export const getLatestLogs = query(v.string() ,async (directory: string): Promise<string[]> => {
     const file = await fs.readFile(directory)
         .catch(err => {
-            Log.error(`Failed to load logs`,err);
+            LOGGER.error(`Failed to load logs`,err);
             return err.toString();
         });
 

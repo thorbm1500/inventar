@@ -1,3 +1,4 @@
+import {LOGGER} from "../../../../hooks.server.ts";
 import {redirect} from '@sveltejs/kit';
 import {command, form, query} from '$app/server';
 import * as db from '$lib/server/db/database'
@@ -5,7 +6,6 @@ import * as v from 'valibot';
 import util from "$lib/server/internal/utilities";
 import type {Inventory, Item} from "$lib/server/db/interfaces";
 import {promises as fs} from "fs";
-import Log from "$lib/server/internal/log";
 
 export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's UUID must be provided when attempting the browse its contents!`)), async (id: string): Promise<Inventory | undefined> => {
     let inventory: Inventory | undefined;
@@ -13,7 +13,7 @@ export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's
     if (!util.isOffline()) {
         inventory = await db.Inventories.fetchInventoryByUuid(id);
         if (!inventory) {
-            Log.error(`Failed to fetch inventory with ID: ${id}`);
+            LOGGER.error(`Failed to fetch inventory with ID: ${id}`);
         }
 
     }
@@ -57,7 +57,7 @@ export const quickAdd = form(v.object({
     const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, undefined, amount);
 
     if (!item) {
-        Log.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);
+        LOGGER.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);
         return {success: false, failed: true, error: 'Failed to create item!'}
     }
 
@@ -80,7 +80,7 @@ export const createItem = form(
         const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, description, amount, (image as File)?.name ?? undefined, external, price, currency);
 
         if (!item) {
-            Log.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);
+            LOGGER.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);
             return {success: false, failed: true, error: 'Failed to create item!'}
         }
 
@@ -95,7 +95,7 @@ export const createItem = form(
                 const bytes = await (image as File).bytes();
                 await fs.writeFile(`${UPLOAD_PATH.toString().endsWith("/") ? UPLOAD_PATH.toString().concat('item-images/') : UPLOAD_PATH.toString().concat('/item-images/')}${image.name}`, bytes);
             } catch (error) {
-                Log.error(`Failed to write image: ${error}`);
+                LOGGER.error(`Failed to write image: ${error}`);
                 return {success: false, failed: true, error: `Item has been created, but image upload failed: ${error}`}
             }
         }

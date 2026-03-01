@@ -1,3 +1,4 @@
+import {LOGGER} from "../../hooks.server";
 import * as v from 'valibot';
 import * as auth from "$lib/server/internal/auth";
 import * as db from "$lib/server/db/database";
@@ -8,7 +9,6 @@ import {sha256} from "@oslojs/crypto/sha2";
 import {encodeHexLowerCase} from "@oslojs/encoding";
 import {hash, verify} from "@node-rs/argon2";
 import {redirect, type RequestEvent} from "@sveltejs/kit";
-import Log from "$lib/server/internal/log";
 
 export const requestReset = form(
     v.object({email: v.pipe(v.string(), v.nonEmpty())}),
@@ -109,7 +109,7 @@ export const login = form(
         });
 
         if (!validPassword) {
-            Log.warn(`Failed login attempt for '${email}'`);
+            LOGGER.warn(`Failed login attempt for '${email}'`);
             return {success: false, message: 'Incorrect username or password'};
         }
 
@@ -165,7 +165,7 @@ export const register = form(
                 return {success: false, message: 'Failed to register new user. If this problem persists, please contact an administrator'};
             }
         } catch (error) {
-            Log.error(`Failed to register new user.`,error as Error);
+            LOGGER.error(`Failed to register new user.`,error as Error);
             return {success: false, message: 'Internal Error. If this problem persists, please contact an administrator'};
         }
         return {success:true, message: 'Successfully registered!'};

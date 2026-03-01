@@ -7,21 +7,29 @@ import {env} from "$env/dynamic/private";
 import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
 import utilities from "$lib/server/internal/utilities";
 import cron from "$lib/server/internal/cron";
-import Log from "$lib/server/internal/log";
-import {encodeBase64url, encodeHexLowerCase} from "@oslojs/encoding";
-import {sha256} from "@oslojs/crypto/sha2";
+import {Logger, LogLevel} from "$lib/server/internal/logger";
+
+export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
 export const init: ServerInit = async (): Promise<void> => {
-    if (env.NODE_ENV === 'development' && env.INIT_DB !== 'true') {
-        return;
-    }
+    LOGGER.info('Initializing server...');
+
+    process.on('sveltekit:shutdown', async (reason: any): Promise<void> => {
+        LOGGER.debug(`Shutdown request received. Reason: `, reason);
+        LOGGER.info(`Shutting down...`);
+
+        await db.connection.end();
+        LOGGER.debug(`Database connection closed.`);
+        LOGGER.destroy();
+    });
+    LOGGER.debug('Shutdown hook registered.');
 
     // Skip database initialization if project is building.
     if (!building) {
-        await initializeDatabase();
+        if (env.INIT_DB !== 'false') await initializeDatabase();
         cron.initializeJobs();
     }
 }

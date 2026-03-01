@@ -1,4 +1,4 @@
-import Log from "$lib/server/internal/log";
+import {LOGGER} from "../../../hooks.server";
 import {get, type IncomingMessage} from "node:http";
 import type {RequestEvent} from "@sveltejs/kit";
 import {Auth} from "$lib/server/db/database";
@@ -86,7 +86,7 @@ async function handleSessionInformation(session_id: string, event: RequestEvent)
 
                 Auth.updateSessionInformation(session_id, parsedData);
             } catch (e) {
-                Log.error(`Failed to parse JSON data from Response.`,e as Error);
+                LOGGER.error(`Failed to parse JSON data from Response.`,e as Error);
             }
         });
     });

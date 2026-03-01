@@ -11,10 +11,10 @@
     --theme-logo: #0D0D0D;
     --theme-icon: var(--theme-text);
 
-    --theme-background: #d6dbde;
-    --theme-background-header: #e9ecf1;
+    --theme-background: #eceeef;
+    --theme-background-header: #f5f5f5;
     --theme-background-container: #dcdee5;
-    --theme-background-list-even: #e3e3e7;
+    --theme-background-list-even: #d8d8e0;
     --theme-background-list-odd: #e6e6e8;
     --theme-background-button: #e2e2e8;
     --theme-background-button-hover: #ececf6;
@@ -22,7 +22,7 @@
     --theme-background-input: #e2e2e8;
     --theme-background-tooltip: rgba(210, 210, 231, 0.15);
 
-    --theme-border-header: #cfd6de;
+    --theme-border-header: #e1e5ea;
     --theme-border-container: #B9C1C9;
     --theme-border-button: #B9C1C9;
     --theme-border-input: #bcc3cb;
