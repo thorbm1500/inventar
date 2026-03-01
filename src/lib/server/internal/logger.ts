@@ -1,7 +1,5 @@
 import {promises as fs} from 'node:fs';
 
-//todo - General cleanup
-
 /**
  * A TypeScript logger for applications using the Bun Runtime.
  * @auther https://github.com/thorbm1500
@@ -12,17 +10,21 @@ const DEFAULT_LOG_DIRECTORY = 'logs'; //todo: Inherit from Application Settings.
 const ERROR_LOG_DIRECTORY = 'logs/error'; //todo: Inherit from Application Settings.
 
 export const enum LogLevel {
-    DEBUG,
-    INFO,
-    WARN,
-    ERROR,
-    FATAL
+    DEBUG = 0,
+    WAIT = 0,
+    INFO = 1,
+    DONE = 1,
+    WARN = 2,
+    ERROR = 3,
+    FATAL = 4
 }
 
 const enum LogPrefix {
     DEBUG = '\x1b[1;35;49m[DEBUG]\x1b[0;35;49m',
+    WAIT = '\x1b[1;93;49m[WAIT]\x1b[0;93;49m ',
     INFO = '\x1b[1;36;49m[INFO]\x1b[0;36;49m ',
-    WARN = '\x1b[1;93;100m[WARN]\x1b[0;93;49m ',
+    DONE = '\x1b[1;92;49m[DONE]\x1b[0;92;49m ',
+    WARN = '\x1b[1;38;5;208;49m[WARN]\x1b[0;38;5;208;49m ',
     ERROR = '\x1b[1;91;100m[ERROR]\x1b[1;91;49m',
     FATAL = '\x1b[1;91;100m[FATAL]\x1b[1;91;49m'
 }
@@ -64,6 +66,7 @@ export class Logger {
         this.buffer.start({stream: true, asUint8Array: true})
         this.level = level;
 
+        // noinspection JSIgnoredPromiseFromCall
         ensureDirectories();
 
         this.debug(` » New Logger instance created.`);
@@ -86,7 +89,9 @@ export class Logger {
         this.bufferSize = 0;
     }
 
-    private write(data: string): void {
+    private write(data: string, error: boolean = false): void {
+        if (error) this.writeErrorsToFile(data);
+
         if (new Date().getUTCDay() !== this.currentDate.getUTCDay()) {
             this.dumpBuffer();
             this.currentDate = new Date();
@@ -100,19 +105,12 @@ export class Logger {
 
     private log(level: LogLevel, prefix: string, ...data: any[]): void {
         const timestamp: string = ' '.concat(getTimestamp(), ' ');
-        const logs: string[] = data.join().split('\n');
-        const firstLog: string = logs.shift() ?? '';
 
-        if (this.isLoggable(level)) console.write(prefix, timestamp, '┃ ', firstLog, '\u001b[0m\n');
-
-        this.write('['.concat(typeof level, ']', timestamp, firstLog, '\n'));
-        if (level >= LogLevel.ERROR) this.writeErrorsToFile('['.concat(typeof level, ']', timestamp, firstLog, '\n'));
-
-        for (const log of logs) {
-            if (this.isLoggable(level)) console.write(prefix, timestamp, '┣━━ ', log, '\u001b[0m\n');
-
-            this.write('['.concat(typeof level, ']', timestamp, log, '\n'));
-            if (level >= LogLevel.ERROR) this.writeErrorsToFile('['.concat(typeof level, ']', timestamp, log, '\n'));
+        let i = 0;
+        for (const log of data.join(``).split('\n')) {
+            if (this.isLoggable(level)) console.write(prefix, timestamp, i === 0 ? '┃ ' : '┃   ', log, '\u001b[0m\n');
+            this.write('['.concat(typeof level, ']', timestamp, log, '\n'), level >= LogLevel.ERROR);
+            i++;
         }
     }
 
@@ -135,24 +133,32 @@ export class Logger {
     }
 
     debug(...data: any[]): void {
-        this.log(LogLevel.DEBUG, LogPrefix.DEBUG, data);
+        this.log(LogLevel.DEBUG, LogPrefix.DEBUG, ...data);
+    }
+
+    wait(...data: any[]): void {
+        this.log(LogLevel.WAIT, LogPrefix.WAIT, ...data);
     }
 
     info(...data: any[]): void {
-        this.log(LogLevel.INFO, LogPrefix.INFO, data);
+        this.log(LogLevel.INFO, LogPrefix.INFO, ...data);
+    }
+
+    done(...data: any[]): void {
+        this.log(LogLevel.DONE, LogPrefix.DONE, ...data);
     }
 
     warn(...data: any[]): void {
-        this.log(LogLevel.WARN, LogPrefix.WARN, data);
+        this.log(LogLevel.WARN, LogPrefix.WARN, ...data);
     }
 
     error(...data: any[]): void {
-        this.log(LogLevel.ERROR, LogPrefix.ERROR, data);
+        this.log(LogLevel.ERROR, LogPrefix.ERROR, ...data);
     }
 
     fatal(...data: any[]): void {
         // Will be logged regardless of current level, due to being the highest possible level.
-        this.log(LogLevel.FATAL, LogPrefix.FATAL, data);
+        this.log(LogLevel.FATAL, LogPrefix.FATAL, ...data);
     }
 
     /**

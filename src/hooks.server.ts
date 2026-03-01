@@ -15,7 +15,8 @@ export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
  * Initializes the database, and ensures all tables, and default values are present.
  */
 export const init: ServerInit = async (): Promise<void> => {
-    LOGGER.info('Initializing server...');
+    LOGGER.wait('Initializing server...');
+    const startTime: number = Bun.nanoseconds();
 
     process.on('sveltekit:shutdown', async (reason: any): Promise<void> => {
         LOGGER.debug(`Shutdown request received. Reason: `, reason);
@@ -32,6 +33,8 @@ export const init: ServerInit = async (): Promise<void> => {
         if (env.INIT_DB !== 'false') await initializeDatabase();
         cron.initializeJobs();
     }
+
+    LOGGER.done(`Server initialized. [`, Math.round((Bun.nanoseconds() - startTime) / 1000000), 'ms]')
 }
 
 const public_paths = [

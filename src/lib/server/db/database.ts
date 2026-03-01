@@ -24,14 +24,9 @@ export const connection: Pool = mysql.createPool({
  * todo
  */
 export async function init(): Promise<void> {
-    LOGGER.debug(`Initializing database...`);
-    const startTime: number = Date.now();
-
     await ensureTables();
     await ensureConstraints();
     await ensureDefaultValues();
-
-    LOGGER.debug(`Database initialization completed. [${Date.now() - startTime}ms]`)
 }
 
 /**

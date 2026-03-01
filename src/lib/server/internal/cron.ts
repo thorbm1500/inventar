@@ -34,11 +34,12 @@ async function databaseGarbageCollection(): Promise<void> {
 }
 
 function initializeJobs(): void {
+    LOGGER.wait('Scheduling cron jobs...');
     if (!DATABASE_CLEANUP.isRunning()) {
         DATABASE_CLEANUP.schedule(databaseGarbageCollection);
     }
 
-    LOGGER.debug(`Jobs scheduled.\nDatabase Garbage Collection: ${moment(DATABASE_CLEANUP.nextRun()).fromNow()}`);
+    LOGGER.done(`Jobs scheduled.\nDatabase Garbage Collection: ${moment(DATABASE_CLEANUP.nextRun()).fromNow()}`);
 }
 
 export default {initializeJobs};
