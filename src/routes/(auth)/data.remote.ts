@@ -2,13 +2,12 @@ import {LOGGER} from "../../hooks.server";
 import * as v from 'valibot';
 import * as auth from "$lib/server/internal/auth";
 import * as db from "$lib/server/db/database";
-import {form, getRequestEvent} from '$app/server';
+import {form} from '$app/server';
 import type {ResetRequest, Session, User} from "$lib/server/db/interfaces";
 import {sendPasswordResetLink} from "$lib/server/internal/mail";
 import {sha256} from "@oslojs/crypto/sha2";
 import {encodeHexLowerCase} from "@oslojs/encoding";
-import {hash, verify} from "@node-rs/argon2";
-import {redirect, type RequestEvent} from "@sveltejs/kit";
+import {redirect} from "@sveltejs/kit";
 
 export const requestReset = form(
     v.object({email: v.pipe(v.string(), v.nonEmpty())}),
@@ -57,12 +56,7 @@ export const resetPassword = form(
             }
 
             if (resetRequest.uuid) {
-                const passwordHash: string = await hash(_password, {
-                    memoryCost: 19456,
-                    timeCost: 3,
-                    outputLen: 32,
-                    parallelism: 1,
-                });
+                const passwordHash: string = await Bun.password.hash(_password);
 
                 await db.Users.setPasswordHash(resetRequest.uuid, passwordHash);
                 await db.Auth.deleteResetToken(resetToken);
@@ -101,12 +95,7 @@ export const login = form(
             return {success: false, message: 'Incorrect username or password'};
         }
 
-        const validPassword: boolean = await verify(passwordHash.valueOf(), _password, {
-            memoryCost: 19456,
-            timeCost: 3,
-            outputLen: 32,
-            parallelism: 1,
-        });
+        const validPassword: boolean = await Bun.password.verify(_password, passwordHash);
 
         if (!validPassword) {
             LOGGER.warn(`Failed login attempt for '${email}'`);
@@ -146,12 +135,7 @@ export const register = form(
             return {success: false, message: `Invalid password!`};
         }
 
-        const passwordHash: string = await hash(_password, {
-            memoryCost: 19456,
-            timeCost: 3,
-            outputLen: 32,
-            parallelism: 1
-        });
+        const passwordHash: string = await Bun.password.hash(_password);
 
         try {
             // Give administrator rights if no users have been created yet.
