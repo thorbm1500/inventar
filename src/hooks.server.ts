@@ -11,6 +11,17 @@ import {Logger, LogLevel} from "$lib/server/internal/logger";
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 
+async function shutdown(reason?: any): Promise<void> {
+    LOGGER.debug(`Shutdown request received. Reason: `, reason);
+    LOGGER.info(`Shutting down...`);
+
+    await db.connection.end();
+    LOGGER.debug(`Database connection closed.`);
+    LOGGER.destroy();
+
+    process.exit();
+}
+
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
@@ -18,15 +29,10 @@ export const init: ServerInit = async (): Promise<void> => {
     LOGGER.wait('Initializing server...');
     const startTime: number = Bun.nanoseconds();
 
-    process.on('sveltekit:shutdown', async (reason: any): Promise<void> => {
-        LOGGER.debug(`Shutdown request received. Reason: `, reason);
-        LOGGER.info(`Shutting down...`);
+    process.once('SIGINT', shutdown);
+    process.once('sveltekit:shutdown', shutdown);
 
-        await db.connection.end();
-        LOGGER.debug(`Database connection closed.`);
-        LOGGER.destroy();
-    });
-    LOGGER.debug('Shutdown hook registered.');
+    LOGGER.debug('Shutdown hooks registered.');
 
     // Skip database initialization if project is building.
     if (!building) {
