@@ -1,4 +1,4 @@
-![inventar-logo](https://cdn.prodzeus.dev/brand-assets/inventar/logo/full-dark-mode.svg)
+![inventar-logo](https://cdn.prodzeus.dev/brand-assets/inventar/logo/logo-full-width-light.svg)
 
 # No AI. No Cloud. Always local. _Always_ private.
 [![Latest Build](https://github.com/thorbm1500/inventar/actions/workflows/build.yml/badge.svg)](https://github.com/thorbm1500/inventar/actions/workflows/build.yml)
