@@ -1,14 +1,14 @@
 import {LOGGER} from "../../../hooks.server";
 import {command, query} from "$app/server";
 import {generateRegistrationToken} from "$lib/server/internal/auth";
-import {sql} from "$lib/server/db/database";
+import {getConnection} from "$lib/server/db/database";
 import {promises as fs} from 'fs';
 import * as v from 'valibot';
 import {formatLogs} from "$lib/utilities";
 
 export const generateNewRegistrationToken = command(async (): Promise<string> => {
     const newToken: string = generateRegistrationToken();
-    await sql`UPDATE application_settings
+    await getConnection()`UPDATE application_settings
               SET text_value=${newToken}
               WHERE category = 'security'
                 AND subcategory = 'general'

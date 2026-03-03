@@ -15,7 +15,7 @@ async function shutdown(reason?: any): Promise<void> {
     LOGGER.debug(`Shutdown request received. Reason: `, reason);
     LOGGER.info(`Shutting down...`);
 
-    await db.sql.end();
+    await db.getConnection().end();
     LOGGER.debug(`Database connection closed.`);
     LOGGER.destroy();
 

@@ -8,7 +8,7 @@ import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
 import {type ApplicationSetting, type ApplicationSettings, defaultSettings, emptyApplicationSettingsObj} from "$lib/server/db/components/ApplicationSettingsDefaults";
 
-export const sql = new SQL({
+const sql: SQL = new SQL({
     adapter: 'mysql',
     hostname: '89.150.149.53',
     port: env.DB_PORT ?? 3306,
@@ -27,6 +27,10 @@ export const sql = new SQL({
         }
     }
 });
+
+export function getConnection(): SQL {
+    return sql;
+}
 
 /**
  * todo

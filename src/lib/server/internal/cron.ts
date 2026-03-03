@@ -1,7 +1,7 @@
 import {LOGGER} from "../../../hooks.server";
 import {Cron} from "croner";
 import moment from "moment";
-import {sql} from "$lib/server/db/database";
+import {getConnection} from "$lib/server/db/database";
 
 const DATABASE_CLEANUP = new Cron("0 0 */24 * * *");
 
@@ -10,7 +10,7 @@ async function databaseGarbageCollection(): Promise<void> {
     const startTime: number = Date.now();
     let collected: number = 0;
 
-    const results = await sql`SELECT * FROM sessions`
+    const results = await getConnection()`SELECT * FROM sessions`
 
     const currentTime: number = Date.now();
     const tmp: string[] = [];
@@ -24,7 +24,7 @@ async function databaseGarbageCollection(): Promise<void> {
     }
 
     for(const session_id in tmp) {
-        await sql`DELETE FROM sessions WHERE session_id = ${session_id}`
+        await getConnection()`DELETE FROM sessions WHERE session_id = ${session_id}`
         collected++;
     }
 
