@@ -1,5 +1,3 @@
-import type {RowDataPacket} from "mysql2/promise";
-
 export interface Setting {
     category: string,
     subcategory: string,
@@ -55,7 +53,12 @@ export class GenericSettingsSvelte {
         return this.settings.has('UNLOADED');
     }
 
-    load(categories: RowDataPacket[], all_categories: RowDataPacket[], settings: Setting[]): void {
+    load(categories: { category: string, category_order: string | number }[], all_categories: {
+        category: string,
+        category_order: string | number,
+        subcategory: string,
+        subcategory_order: string | number
+    }[], settings: Setting[]): void {
         //todo: optimize
         this.settings.clear();
 

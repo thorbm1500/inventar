@@ -5,7 +5,6 @@ depth = 10
 
 [install]
 prodcution = true
-frozenLockfile = true
 
 [install.cache]
 disable = true

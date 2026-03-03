@@ -1,4 +1,4 @@
-import {v7 as uuidv7} from 'uuid';
+import { randomUUIDv7 } from 'bun';
 import {generateRegistrationToken} from "$lib/server/internal/auth";
 
 export interface ApplicationSetting {
@@ -40,7 +40,7 @@ export const defaultSettings: ApplicationSetting[] = [
         category: 'general',
         subcategory: 'basics',
         setting: 'application_id',
-        text_value: uuidv7(),
+        text_value: randomUUIDv7(),
         textarea_value: null,
         toggle_value: false
     },
