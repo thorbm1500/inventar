@@ -2,7 +2,6 @@ import {getRequestEvent} from '$app/server';
 import type {Cookies, RequestEvent} from '@sveltejs/kit';
 import {sha256} from '@oslojs/crypto/sha2';
 import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
-import * as db from "$lib/server/db/database";
 import type {Session} from "$lib/server/db/interfaces";
 import {DAY_IN_MS} from '$lib/utilities';
 import {EMAIL_REGEX} from "valibot";
@@ -23,14 +22,13 @@ export function generateResetToken(): string {
 
 export async function createResetRequest(token: string, uuid: string): Promise<void> {
     const resetToken: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    await db.Auth.setResetToken(uuid, resetToken);
+    await Auth.setResetToken(uuid, resetToken);
 }
 
 /**
  * Creates a temporary 7-day session, for the specified user.
  * @param token Token for the session id.
  * @param uuid The user's uuid.
- * @param event The event of the Request.
  */
 export async function createSession(token: string, uuid: string): Promise<Session> {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
@@ -40,7 +38,7 @@ export async function createSession(token: string, uuid: string): Promise<Sessio
         session_id,
         expires: 0
     };
-    await db.Auth.newSession(session);
+    await Auth.newSession(session);
 
     return session;
 }
@@ -51,7 +49,7 @@ async function ensureSessionInformation(session_id: string, event: RequestEvent)
 
 export async function validateSessionToken(token: string, event: RequestEvent): Promise<Session | null> {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    const session: Session | undefined = await db.Auth.getSession(session_id);
+    const session: Session | undefined = await Auth.getSession(session_id);
 
     if (!session) {
         deleteSessionTokenCookie();
@@ -60,13 +58,13 @@ export async function validateSessionToken(token: string, event: RequestEvent): 
 
     const isSessionExpired: boolean = Date.now() >= session.expires;
     if (isSessionExpired) {
-        await db.Auth.invalidateSession(session_id);
+        await Auth.invalidateSession(session_id);
         return null;
     }
 
     const renewSession: boolean = Date.now() >= (session.expires - DAY_IN_MS * 3);
     if (renewSession) {
-        await db.Auth.renewSession(session);
+        await Auth.renewSession(session);
     }
 
     await Auth.updateLastAccess(session_id);

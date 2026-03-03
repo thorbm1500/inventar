@@ -1,7 +1,7 @@
+import * as db from '$lib/server/db/database';
 import initializeDatabase from '$lib/server/db/index';
 import type {Session, User} from "$lib/server/db/interfaces";
 import * as auth from '$lib/server/internal/auth';
-import * as db from '$lib/server/db/database';
 import {building} from '$app/environment';
 import {env} from "$env/dynamic/private";
 import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
@@ -15,7 +15,7 @@ async function shutdown(reason?: any): Promise<void> {
     LOGGER.debug(`Shutdown request received. Reason: `, reason);
     LOGGER.info(`Shutting down...`);
 
-    await db.getConnection().end();
+    await db.getConnection()?.end();
     LOGGER.debug(`Database connection closed.`);
     LOGGER.destroy();
 
@@ -29,13 +29,13 @@ export const init: ServerInit = async (): Promise<void> => {
     LOGGER.wait('Initializing server...');
     const startTime: number = Bun.nanoseconds();
 
-    process.once('SIGINT', shutdown);
-    process.once('sveltekit:shutdown', shutdown);
-
-    LOGGER.debug('Shutdown hooks registered.');
-
     // Skip database initialization if project is building.
     if (!building) {
+        process.once('SIGINT', shutdown);
+        process.once('sveltekit:shutdown', shutdown);
+
+        LOGGER.debug('Shutdown hooks registered.');
+
         if (env.INIT_DB !== 'false') await initializeDatabase();
         cron.initializeJobs();
     }
