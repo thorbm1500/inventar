@@ -10,14 +10,9 @@ import {type ApplicationSetting, type ApplicationSettings, defaultSettings, empt
 
 const sql: SQL = new SQL({
     adapter: 'mysql',
-    hostname: '89.150.149.53',
-    port: env.DB_PORT ?? 3306,
-    database: 'inventar',
-    username: 'inventar',
-    password: env.DB_PASSWORD,
-    max: 20,
-    idleTimeout: 30,
-    connectionTimeout: 15,
+    max: 10,
+    idleTimeout: 60,
+    connectionTimeout: 30,
     bigint: true,
     onconnect: (err) => {
         if (err) {
