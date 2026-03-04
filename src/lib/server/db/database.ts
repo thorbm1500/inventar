@@ -415,9 +415,9 @@ export class Inventories {
                                                           last_update,
                                                           created_at
                                                    FROM inventories
-                                                   ORDER BY ${order_by === '' ? 'created_at' : order_by} ${order}
+                                                   ORDER BY ${sql(order_by === '' ? 'created_at' : order_by) + ' ' + order}
                                                    LIMIT ${amount} OFFSET ${offset}`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Inventories#fetch[0]: Database request failed. `, err)
                 return [];
             });

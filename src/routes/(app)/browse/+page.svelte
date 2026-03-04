@@ -301,6 +301,7 @@
                     gap: .35em;
 
                     span, a {
+                        font-family: 'FunnelSans', sans-serif;
                         font-size: 1.05rem;
                     }
 

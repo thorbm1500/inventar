@@ -28,7 +28,7 @@ const inventoriesObj = v.object({
  */
 export const getInventories = query(inventoriesObj, async (data): Promise<Inventory[]> => {
     if (!util.isOffline()) {
-        const inventories: Inventory[] = await db.Inventories.fetch(data.amount, data.order_by, data.order == '' ? 'ASC' : data.order, data.offset);
+        const inventories: Inventory[] = await db.Inventories.fetch(data.amount, data.order_by, data.order === 'ASC' ? 'ASC' : 'DESC', data.offset);
         return inventories;
     } else {
         LOGGER.warn(`Unable to fetch inventories from database. Browser is offline.`);
