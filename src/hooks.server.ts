@@ -8,8 +8,10 @@ import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
 import utilities from "$lib/server/internal/utilities";
 import cron from "$lib/server/internal/cron";
 import {Logger, LogLevel} from "$lib/server/internal/logger";
+import {type ApplicationSettings, getSettings} from "$lib/server/internal/settings";
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
+export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
 
 async function shutdown(reason?: any): Promise<void> {
     LOGGER.debug(`Shutdown request received. Reason: `, reason);

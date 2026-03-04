@@ -1,12 +1,10 @@
 import {LOGGER} from "../../../hooks.server";
-import {env} from "$env/dynamic/private";
 import {randomUUIDv7, SQL} from "bun";
 import type {Currency, Inventory, Item, PageTheme, ResetRequest, Session, User} from "$lib/server/db/interfaces";
 import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
 import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
-import {type ApplicationSetting, type ApplicationSettings, defaultSettings, emptyApplicationSettingsObj} from "$lib/server/db/components/ApplicationSettingsDefaults";
 
 const sql: SQL = new SQL({
     adapter: 'mysql',
@@ -41,19 +39,6 @@ export async function init(): Promise<void> {
  */
 async function ensureTables(): Promise<void> {
     LOGGER.debug(`Creating tables...`);
-
-    await sql`CREATE TABLE IF NOT EXISTS application_settings
-              (
-                  category       VARCHAR(60)          NOT NULL,
-                  subcategory    VARCHAR(60)          NOT NULL,
-                  setting        VARCHAR(60)          NOT NULL,
-                  text_value     VARCHAR(255)         NULL,
-                  textarea_value TEXT                 NULL,
-                  toggle_value   TINYINT(1) DEFAULT 0 NOT NULL,
-                  PRIMARY KEY (category, subcategory, setting)
-              )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'application_settings'. `, err));
-
     await sql`CREATE TABLE IF NOT EXISTS currencies
               (
                   id     CHAR(3)     NOT NULL,
@@ -65,7 +50,7 @@ async function ensureTables(): Promise<void> {
                   CONSTRAINT currencies_id_u
                       UNIQUE (id)
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'currencies'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'currencies'. `, err));
 
     /*
    todo: If account of owner is attempted deleted;
@@ -312,9 +297,6 @@ async function ensureConstraints(): Promise<void> {
 async function ensureDefaultValues(): Promise<void> {
     LOGGER.debug(`Ensuring default values...`);
 
-    await sql`INSERT IGNORE INTO application_settings ${sql(defaultSettings)}`
-        .catch(err => LOGGER.error(`Failed to add default values to table 'application_settings'. `, err as Error))
-
     for (const row of currencies) {
         await sql`INSERT INTO currencies (id, code, format)
                   VALUES (${row.id}, ${row.code}, ${row.format ?? '%value%'})
@@ -332,29 +314,6 @@ async function ensureDefaultValues(): Promise<void> {
                                           dark_background=${row.dark_background}`
             .catch(err => LOGGER.error(`Failed to add default values to table 'default_label_colors'. `, err as Error))
     }
-}
-
-/**
- * todo
- */
-export async function getApplicationSettings(): Promise<ApplicationSettings> {
-    const result: ApplicationSetting[] = await sql`SELECT *
-                                                   FROM application_settings`
-        .catch((err: Error): [] => {
-            LOGGER.error(`getApplicationSettings[0]: Database request failed. `, err);
-            return [];
-        });
-
-    const settings: ApplicationSettings = emptyApplicationSettingsObj;
-
-    for (const row of result) {
-        const setting: ApplicationSetting = row;
-        if (!setting.category || !setting.subcategory || !setting.setting) continue;
-
-        settings.get(setting.category)?.get(setting.subcategory)?.set(setting.setting, setting);
-    }
-
-    return settings;
 }
 
 /**

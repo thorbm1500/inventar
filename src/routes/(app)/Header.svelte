@@ -1,8 +1,6 @@
 <script lang="ts">
-    import {page} from "$app/state";
     import {getContext, onMount, setContext} from 'svelte';
     import type {User} from "$lib/server/db/interfaces";
-    import {updateTheme} from "./data.remote";
 
     const pageInfo = {
         title: undefined
@@ -24,7 +22,7 @@
         document.querySelectorAll('#pill-action').forEach(element => element.addEventListener('click', () => sidebar = false))
     });
 
-    setInterval(() => {
+    setInterval((): void => {
         isOnline = navigator.onLine
     }, 2000)
 </script>
@@ -269,8 +267,8 @@
                 justify-content: flex-start;
 
                 .inventar-logo {
-                    height: 1.5rem;
-                    width: 1.5rem;
+                    height: 1.3rem;
+                    width: 1.3rem;
                 }
             }
         }

@@ -1,19 +1,22 @@
 <script lang="ts">
-    import type {ApplicationSettings} from "$lib/server/db/components/ApplicationSettingsDefaults";
     import Logs from "$lib/components/settings/Logs.svelte";
     import {generateNewRegistrationToken} from "../../data.remote";
-    import {onMount, setContext} from "svelte";
+    import {onMount} from "svelte";
     import {page} from "$app/state";
+    import type {ApplicationSettings} from "$lib/server/internal/settings";
 
     let {data} = $props();
 
-    const applicationSettings: ApplicationSettings = $derived(data.settings);
-    setContext('logDir', () => applicationSettings?.get('general')?.get('general')?.get('logs_dir'));
+    let applicationSettings: ApplicationSettings = $state(data.settings);
+    let savedSettings: ApplicationSettings = data.settings;
 
     const currentView = $state({
         category: 'general',
         subcategory: 'basics'
     });
+
+    let isRegenerating: boolean = $derived(applicationSettings.security.general.registration_token === 'Regenerating....');
+    let hasUnsavedChanges: boolean = $derived(JSON.stringify(applicationSettings) !== JSON.stringify(savedSettings));
 
     if (page.params.category) currentView.category = page.params.category;
     if (page.params.subcategory) currentView.subcategory = page.params.subcategory;
@@ -22,30 +25,17 @@
         if (category) currentView.category = category;
         if (subcategory) currentView.subcategory = subcategory;
 
-        window?.history.replaceState(null,currentView.category,`/settings/${currentView.category}/${currentView.subcategory}`);
+        window?.history.replaceState(null, currentView.category, `/settings/${currentView.category}/${currentView.subcategory}`);
+        applicationSettings = savedSettings;
     }
 
     function isViewing(category: string, subcategory: string): boolean {
         return currentView.category === category && currentView.subcategory === subcategory;
     }
 
-    let registrationToken = $state('Loading...');
-
-    // Toggle Values
-    let toggleRegistration: boolean = $state(true);
-    let toggleRequireToken: boolean = $state(true);
-
     onMount(() => {
-        registrationToken = applicationSettings?.get('security')?.get('general')?.get('registration_token')?.text_value ?? 'Failed to load';
-        toggleRegistration = applicationSettings?.get('security')?.get('general')?.get('allow_registration')?.toggle_value ?? true;
-        toggleRequireToken = applicationSettings?.get('security')?.get('general')?.get('require_token')?.toggle_value ?? false;
-
         updateView();
     })
-
-    let isRegenerating = $derived(registrationToken === 'Regenerating....');
-
-    let hasUnsavedChanges = $state(false);
 </script>
 
 <section class="inventory-settings-page">
@@ -191,245 +181,307 @@
         </nav>
     </div>
     <div class="settings-container">
-        <div class="container">
-            {#if currentView.category === 'general' && currentView.subcategory === 'basics' }
-                <div class="setting-item">
-                    <div class="option text readonly">
-                        <div class="top-section">
-                            <h1>Application ID</h1>
-                            <div class="readonly-container select-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                          d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
-                                </svg>
-                                {applicationSettings?.get('general')?.get('basics')?.get('application_id')?.text_value}
-                            </div>
-                        </div>
-                        <div class="bottom-section">
-                            <h3>Your application's unique identifier. Used for things like <strong>Daily Usage Ping</strong>, if enabled. <button onclick="{() => updateView('security','privacy')}">See Security#privacy</button></h3>
+        {#if currentView.category === 'general' && currentView.subcategory === 'basics' }
+            <div class="settings-category-header">
+                <h1 class="header-title">General</h1>
+            </div>
+            <div class="setting-item">
+                <div class="option text readonly">
+                    <div class="top-section">
+                        <h1>Application ID</h1>
+                        <div class="readonly-container select-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+                            </svg>
+                            {applicationSettings.general.basics.application_id}
                         </div>
                     </div>
-                </div>
-                <div class="setting-item">
-                    <div class="option text">
-                        <div class="top-section">
-                            <h1>Data Directory</h1>
-                            <input name="data_dir" id="data_dir" placeholder="/var/inventar"
-                                   value="{applicationSettings?.get('general')?.get('basics')?.get('data_dir')?.text_value}" spellcheck="false"
-                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                        </div>
-                        <div class="bottom-section">
-                            <h3>This is where all external data is stored. This includes things like image uploads.</h3>
-                        </div>
+                    <div class="bottom-section">
+                        <h3>Your application's unique identifier. Used for things like <strong>Daily Usage Ping</strong>, if enabled.
+                            <button onclick="{() => updateView('security','privacy')}">See Security#privacy</button>
+                        </h3>
                     </div>
                 </div>
-                <div class="setting-item">
-                    <div class="option text">
-                        <div class="top-section">
-                            <h1>Logs Directory</h1>
-                            <input name="logs_dir" id="logs_dir" placeholder="/var/inventar"
-                                   value="{applicationSettings?.get('general')?.get('basics')?.get('logs_dir')?.text_value}" spellcheck="false"
-                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                        </div>
-                        <div class="bottom-section">
-                            <h3>This is where all logs are stored. A sub-directory with the name of "<i>errors</i>", will also be created, and will store the same logs, though only containing the errors.</h3>
+            </div>
+            <div class="setting-item">
+                <div class="option text readonly">
+                    <div class="top-section">
+                        <h1>Data Directory</h1>
+                        <div class="readonly-container select-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+                            </svg>
+                            /etc/inventar/data
                         </div>
                     </div>
+                    <div class="bottom-section">
+                        <!--todo <h3>SUBTITLE</h3>-->
+                    </div>
                 </div>
-            {/if}
-            {#if currentView.category === 'general' && currentView.subcategory === 'mail' }
-                <h3 class="mail-tip-header">New to sending mail? inventar recommends
+            </div>
+            <div class="setting-item">
+                <div class="option text readonly">
+                    <div class="top-section">
+                        <h1>Logs Directory</h1>
+                        <div class="readonly-container select-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+                            </svg>
+                            /etc/inventar/logs
+                        </div>
+                    </div>
+                    <div class="bottom-section">
+                        <!--todo <h3>SUBTITLE</h3>-->
+                    </div>
+                </div>
+            </div>
+        {/if}
+        {#if currentView.category === 'general' && currentView.subcategory === 'mail' }
+            <div class="settings-category-header">
+                <h1 class="header-title">Mail</h1>
+                <h3 class="header-subtitle">New to sending mail? inventar recommends
                     <a href="https://resend.com/home" target="_blank" rel="external">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                             <path fill="currentColor"
                                   d="M14.679 0c4.648 0 7.413 2.765 7.413 6.434s-2.765 6.434-7.413 6.434H12.33L24 24h-8.245l-8.88-8.44c-.636-.588-.93-1.273-.93-1.86c0-.831.587-1.565 1.713-1.883l4.574-1.224c1.737-.465 2.936-1.81 2.936-3.572c0-2.153-1.761-3.4-3.939-3.4H0V0z"/>
                         </svg>
-                        Resend</a></h3>
-                <div class="setting-item">
-                    <div class="option text">
-                        <div class="top-section">
-                            <h1>Host</h1>
-                            <input name="mail_host" id="mail_host" placeholder="smtp.inventar.dev"
-                                   value="{applicationSettings?.get('general')?.get('mail')?.get('host')?.text_value}" spellcheck="false"
-                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                        </div>
-                        <div class="bottom-section">
-                            <!--todo <h3>SUBTITLE</h3>-->
-                        </div>
+                        Resend</a>
+                </h3>
+            </div>
+            <div class="setting-item">
+                <div class="option text">
+                    <div class="top-section">
+                        <h1>Host</h1>
+                        <input name="mail_host" id="mail_host" placeholder="smtp.inventar.dev"
+                               bind:value={applicationSettings.general.mail.host} spellcheck="false"
+                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                    </div>
+                    <div class="bottom-section">
+                        <!--todo <h3>SUBTITLE</h3>-->
                     </div>
                 </div>
-                <div class="setting-item">
-                    <div class="option text">
-                        <div class="top-section">
-                            <h1>Port</h1>
-                            <input name="mail_port" id="mail_port" placeholder="587"
-                                   value="{applicationSettings?.get('general')?.get('mail')?.get('port')?.text_value}" spellcheck="false"
-                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                        </div>
-                        <div class="bottom-section">
-                            <h3>For encrypted/TLS connections use 587, 2465, 2587.</h3>
-                        </div>
+            </div>
+            <div class="setting-item">
+                <div class="option text">
+                    <div class="top-section">
+                        <h1>Port</h1>
+                        <input name="mail_port" id="mail_port" placeholder="587"
+                               value="{applicationSettings.general.mail.port}" spellcheck="false"
+                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                    </div>
+                    <div class="bottom-section">
+                        <h3>For encrypted/TLS connections use 587, 2465, 2587.</h3>
                     </div>
                 </div>
-                <div class="setting-item">
-                    <div class="option text">
-                        <div class="top-section">
-                            <h1>User</h1>
-                            <input name="mail_user" id="mail_user" placeholder="inventar"
-                                   value="{applicationSettings?.get('general')?.get('mail')?.get('user')?.text_value}" spellcheck="false"
-                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                        </div>
-                        <div class="bottom-section">
-                            <!--todo <h3>SUBTITLE</h3>-->
-                        </div>
+            </div>
+            <div class="setting-item">
+                <div class="option text">
+                    <div class="top-section">
+                        <h1>User</h1>
+                        <input name="mail_user" id="mail_user" placeholder="inventar"
+                               value="{applicationSettings.general.mail.user}" spellcheck="false"
+                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                    </div>
+                    <div class="bottom-section">
+                        <!--todo <h3>SUBTITLE</h3>-->
                     </div>
                 </div>
-                <div class="setting-item">
-                    <div class="option text">
-                        <div class="top-section">
-                            <h1>Password</h1>
-                            <input type="password" name="mail_password" id="mail_password" placeholder="Enter Password..."
-                                   value="{applicationSettings?.get('general')?.get('mail')?.get('password')?.text_value}" spellcheck="false"
-                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                        </div>
-                        <div class="bottom-section">
-                            <!--todo <h3>SUBTITLE</h3>-->
-                        </div>
+            </div>
+            <div class="setting-item">
+                <div class="option text">
+                    <div class="top-section">
+                        <h1>Password</h1>
+                        <input type="password" name="mail_password" id="mail_password" placeholder="Enter Password..."
+                               value="{applicationSettings.general.mail.password}" spellcheck="false"
+                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                    </div>
+                    <div class="bottom-section">
+                        <!--todo <h3>SUBTITLE</h3>-->
                     </div>
                 </div>
-                <div class="setting-item">
-                    <div class="option text">
-                        <div class="top-section">
-                            <h1>Sender Mail</h1>
-                            <input name="mail_sender_mail" id="mail_sender_mail" placeholder="inventar@prodzeus.dev"
-                                   value="{applicationSettings?.get('general')?.get('mail')?.get('sender_mail')?.text_value}" spellcheck="false"
-                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                        </div>
-                        <div class="bottom-section">
-                            <!--todo <h3>SUBTITLE</h3>-->
-                        </div>
+            </div>
+            <div class="setting-item">
+                <div class="option text">
+                    <div class="top-section">
+                        <h1>Sender Mail</h1>
+                        <input name="mail_sender_mail" id="mail_sender_mail" placeholder="inventar@prodzeus.dev"
+                               value="{applicationSettings.general.mail.sender_mail}" spellcheck="false"
+                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                    </div>
+                    <div class="bottom-section">
+                        <!--todo <h3>SUBTITLE</h3>-->
                     </div>
                 </div>
-                <div class="setting-item">
-                    <div class="option text">
-                        <div class="top-section">
-                            <h1>Sender Name</h1>
-                            <input name="mail_sender_name" id="mail_sender_name" placeholder="zeus"
-                                   value="{applicationSettings?.get('general')?.get('mail')?.get('sender_name')?.text_value}" spellcheck="false"
-                                   data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
-                        </div>
-                        <div class="bottom-section">
-                            <h3>Optional</h3>
-                        </div>
+            </div>
+            <div class="setting-item">
+                <div class="option text">
+                    <div class="top-section">
+                        <h1>Sender Name</h1>
+                        <input name="mail_sender_name" id="mail_sender_name" placeholder="zeus"
+                               value="{applicationSettings.general.mail.sender_name}" spellcheck="false"
+                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                    </div>
+                    <div class="bottom-section">
+                        <h3>Optional</h3>
                     </div>
                 </div>
-            {/if}
-            {#if currentView.category === 'security' && currentView.subcategory === 'general' }
-                <div class="setting-item">
-                    <div class="option toggle">
-                        <div class="top-section">
-                            <h1>Allow Registration</h1>
-                            <label class="toggle-container {toggleRegistration ? 'on' : ''}">
-                                <div id="toggle-slider"></div>
-                                <input type="checkbox" class="toggle-button" bind:checked={toggleRegistration} hidden>
-                            </label>
-                        </div>
-                        <div class="bottom-section">
-                            <h3>Allow people to register a new account.</h3>
-                        </div>
+            </div>
+        {/if}
+        {#if currentView.category === 'security' && currentView.subcategory === 'general' }
+            <div class="settings-category-header">
+                <h1 class="header-title">General</h1>
+            </div>
+            <div class="setting-item">
+                <div class="option toggle">
+                    <div class="top-section">
+                        <h1>Allow Registration</h1>
+                        <label class="toggle-container {applicationSettings.security.general.allow_registration ? 'on' : ''}">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.general.allow_registration} hidden>
+                        </label>
+                    </div>
+                    <div class="bottom-section">
+                        <h3>Allow people to register a new account.</h3>
                     </div>
                 </div>
-                <div class="setting-item">
-                    <div class="option toggle">
-                        <div class="top-section">
-                            <h1>Require Registration Token</h1>
-                            <label class="toggle-container {toggleRequireToken ? 'on' : ''}">
-                                <div id="toggle-slider"></div>
-                                <input type="checkbox" class="toggle-button" bind:checked={toggleRequireToken} hidden>
-                            </label>
-                        </div>
-                        <div class="bottom-section">
-                            <h3>Require the the user to provide the registration token, to register an account. <strong style="color:var(--theme-text-danger);font-weight:700;">It is highly recommended
-                                to <i>not</i>
-                                disable this setting, as this would make your server open to abuse!</strong></h3>
-                        </div>
+            </div>
+            <div class="setting-item">
+                <div class="option toggle">
+                    <div class="top-section">
+                        <h1>Require Registration Token</h1>
+                        <label class="toggle-container {applicationSettings.security.general.require_token ? 'on' : ''}">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.general.require_token} hidden>
+                        </label>
+                    </div>
+                    <div class="bottom-section">
+                        <h3>Require the the user to provide the registration token, to register an account. <strong style="color:var(--theme-text-danger);font-weight:700;">It is highly recommended
+                            to <i>not</i>
+                            disable this setting, as this would make your server open to abuse!</strong></h3>
                     </div>
                 </div>
-                <div class="setting-item">
-                    <div class="option text readonly">
-                        <div class="top-section">
-                            <h1>Registration Token</h1>
-                            <div class="readonly-container select-all">
-                                <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                         stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-key">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0"/>
-                                        <path d="M15 9h.01"/>
-                                    </svg>
-                                    {registrationToken}
-                                </div>
-                                <button title="Regenerate" onclick="{async () => {
-                                    if (isRegenerating) return;
-
-                                    let oldSetting = applicationSettings?.get('security')?.get('general')?.get('registration_token');
-                                    registrationToken = 'Regenerating....';
-                                    registrationToken = await generateNewRegistrationToken();
-                                    if (oldSetting !== undefined) {
-                                        oldSetting.text_value = registrationToken;
-                                        applicationSettings?.get('security')?.get('general')?.set('registration_token',oldSetting)
-                                    }
-                                }}" class="regenerate-registration-token">
-                                    {#if isRegenerating}
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                                            <rect width="10" height="10" x="1" y="1" fill="currentColor" rx="1">
-                                                <animate id="SVG7JagGz2Y" fill="freeze" attributeName="x" begin="0;SVGgDT19bUV.end" dur="0.15s" values="1;13"/>
-                                                <animate id="SVGpS1BddYk" fill="freeze" attributeName="y" begin="SVGc7yq8dne.end" dur="0.15s" values="1;13"/>
-                                                <animate id="SVGboa7EdFl" fill="freeze" attributeName="x" begin="SVG0ZX9C6Fa.end" dur="0.15s" values="13;1"/>
-                                                <animate id="SVG6rrusL2C" fill="freeze" attributeName="y" begin="SVGTOnnO5Dr.end" dur="0.15s" values="13;1"/>
-                                            </rect>
-                                            <rect width="10" height="10" x="1" y="13" fill="currentColor" rx="1">
-                                                <animate id="SVGc7yq8dne" fill="freeze" attributeName="y" begin="SVG7JagGz2Y.end" dur="0.15s" values="13;1"/>
-                                                <animate id="SVG0ZX9C6Fa" fill="freeze" attributeName="x" begin="SVGpS1BddYk.end" dur="0.15s" values="1;13"/>
-                                                <animate id="SVGTOnnO5Dr" fill="freeze" attributeName="y" begin="SVGboa7EdFl.end" dur="0.15s" values="1;13"/>
-                                                <animate id="SVGgDT19bUV" fill="freeze" attributeName="x" begin="SVG6rrusL2C.end" dur="0.15s" values="13;1"/>
-                                            </rect>
-                                        </svg>
-                                    {:else}
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                             stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-refresh-dot">
-                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                            <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
-                                            <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
-                                            <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
-                                        </svg>
-                                    {/if}
-                                </button>
+            </div>
+            <div class="setting-item">
+                <div class="option text readonly">
+                    <div class="top-section">
+                        <h1>Registration Token</h1>
+                        <div class="readonly-container token select-all">
+                            <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-key">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0"/>
+                                    <path d="M15 9h.01"/>
+                                </svg>
+                                {applicationSettings.security.general.registration_token}
                             </div>
-                        </div>
-                        <div class="bottom-section">
-                            <h3>A unique token, used to verify the user's access & permission, when registering a new account.</h3>
+                            <button title="Regenerate" onclick="{async () => {
+                                    if (isRegenerating) return;
+                                    applicationSettings.security.general.registration_token = 'Regenerating....';
+                                    applicationSettings.security.general.registration_token = await generateNewRegistrationToken();
+                                }}" class="regenerate-registration-token">
+                                {#if isRegenerating}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                        <rect width="10" height="10" x="1" y="1" fill="currentColor" rx="1">
+                                            <animate id="SVG7JagGz2Y" fill="freeze" attributeName="x" begin="0;SVGgDT19bUV.end" dur="0.15s" values="1;13"/>
+                                            <animate id="SVGpS1BddYk" fill="freeze" attributeName="y" begin="SVGc7yq8dne.end" dur="0.15s" values="1;13"/>
+                                            <animate id="SVGboa7EdFl" fill="freeze" attributeName="x" begin="SVG0ZX9C6Fa.end" dur="0.15s" values="13;1"/>
+                                            <animate id="SVG6rrusL2C" fill="freeze" attributeName="y" begin="SVGTOnnO5Dr.end" dur="0.15s" values="13;1"/>
+                                        </rect>
+                                        <rect width="10" height="10" x="1" y="13" fill="currentColor" rx="1">
+                                            <animate id="SVGc7yq8dne" fill="freeze" attributeName="y" begin="SVG7JagGz2Y.end" dur="0.15s" values="13;1"/>
+                                            <animate id="SVG0ZX9C6Fa" fill="freeze" attributeName="x" begin="SVGpS1BddYk.end" dur="0.15s" values="1;13"/>
+                                            <animate id="SVGTOnnO5Dr" fill="freeze" attributeName="y" begin="SVGboa7EdFl.end" dur="0.15s" values="1;13"/>
+                                            <animate id="SVGgDT19bUV" fill="freeze" attributeName="x" begin="SVG6rrusL2C.end" dur="0.15s" values="13;1"/>
+                                        </rect>
+                                    </svg>
+                                {:else}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                         stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-refresh-dot">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                        <path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/>
+                                        <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>
+                                        <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>
+                                    </svg>
+                                {/if}
+                            </button>
                         </div>
                     </div>
+                    <div class="bottom-section">
+                        <h3>A unique token, used to verify the user's access & permission, when registering a new account.</h3>
+                    </div>
                 </div>
-            {/if}
-            {#if currentView.category === 'system' && currentView.subcategory === 'logs' }
-                <Logs/>
-            {/if}
-            {#if currentView.category === 'system' && currentView.subcategory !== 'logs' }
-                <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
-                    <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
-                    {#if false}
-                        <p class="form-submission-meta success">Changes saved.</p>
-                    {:else if false }
-                        <p class="form-submission-meta saving">Saving...</p>
-                    {:else if (hasUnsavedChanges) }
-                        <p class="form-submission-meta unsaved">Unsaved changes.</p>
-                    {/if}
-                </div>
-            {/if}
-        </div>
-        <p class="version-tag">Version: 0.0.1-ALPHA</p>
+            </div>
+        {/if}
+        {#if currentView.category === 'security' && currentView.subcategory === 'accounts' }
+            <div class="settings-category-header">
+                <h1 class="header-title">Accounts</h1>
+                <h3 class="header-subtitle">Coming Soon.</h3>
+            </div>
+        {/if}
+        {#if currentView.category === 'security' && currentView.subcategory === 'privacy' }
+            <div class="settings-category-header">
+                <h1 class="header-title">Privacy</h1>
+                <h3 class="header-subtitle">Coming Soon.</h3>
+            </div>
+        {/if}
+        {#if currentView.category === 'security' && currentView.subcategory === 'api' }
+            <div class="settings-category-header">
+                <h1 class="header-title">API</h1>
+                <h3 class="header-subtitle">Coming Soon.</h3>
+            </div>
+        {/if}
+        {#if currentView.category === 'system' && currentView.subcategory === 'audit' }
+            <div class="settings-category-header">
+                <h1 class="header-title">Audit Logs</h1>
+                <h3 class="header-subtitle">Coming Soon.</h3>
+            </div>
+        {/if}
+        {#if currentView.category === 'system' && currentView.subcategory === 'logs' }
+            <div class="settings-category-header">
+                <h1 class="header-title">Logs</h1>
+            </div>
+            <Logs/>
+        {/if}
+        {#if currentView.category === 'system' && currentView.subcategory === 'tasks' }
+            <div class="settings-category-header">
+                <h1 class="header-title">Tasks</h1>
+                <h3 class="header-subtitle">Coming Soon.</h3>
+            </div>
+        {/if}
+        {#if currentView.category === 'other' && currentView.subcategory === 'feedback' }
+            <div class="settings-category-header">
+                <h1 class="header-title">Feedback</h1>
+                <h3 class="header-subtitle">Coming Soon.</h3>
+            </div>
+        {/if}
+        {#if currentView.category === 'other' && currentView.subcategory === 'faq' }
+            <div class="settings-category-header">
+                <h1 class="header-title">FAQ</h1>
+                <h3 class="header-subtitle">Coming Soon.</h3>
+            </div>
+        {/if}
+        {#if currentView.category === 'other' && currentView.subcategory === 'about' }
+            <div class="settings-category-header">
+                <h1 class="header-title">About</h1>
+                <h3 class="header-subtitle">Coming Soon.</h3>
+            </div>
+        {/if}
+        {#if !['audit','logs','tasks','accounts','privacy','api','feedback','faq','about'].includes(currentView.subcategory)}
+            <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
+                <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
+                {#if false}
+                    <p class="form-submission-meta success">Changes saved.</p>
+                {:else if false }
+                    <p class="form-submission-meta saving">Saving...</p>
+                {:else if (hasUnsavedChanges) }
+                    <p class="form-submission-meta unsaved">Unsaved changes.</p>
+                {/if}
+            </div>
+        {/if}
     </div>
 </section>
 
@@ -445,22 +497,23 @@
         align-items: flex-start;
         justify-content: center;
 
-        height: var(--theme-max-page-height);
+        height: 100vh;
         width: 100vw;
 
-        padding: clamp(2rem, 10vh, 15vh) 0;
-
         box-sizing: border-box;
+        overflow-y: scroll;
+
+        padding-top: 6rem;
+
+        scrollbar-gutter: stable;
+        scrollbar-width: thin;
+        scrollbar-color: var(--theme-text-accent) transparent;
 
         .sidebar {
             width: 13rem;
             height: 39.5rem;
-            border: var(--theme-border-width) solid var(--theme-border-container);
-            border-radius: var(--theme-border-radius);
             padding: 1rem 1.5rem;
             margin-right: .35rem;
-
-            background: var(--theme-background-container);
 
             .inventory-settings-nav {
                 display: flex;
@@ -525,33 +578,30 @@
         }
 
         .settings-container {
-            .container {
-                display: flex;
-                flex-flow: column nowrap;
-                justify-content: flex-start;
-                align-content: center;
+            display: flex;
+            flex-flow: column nowrap;
+            justify-content: flex-start;
+            align-content: center;
 
-                background: var(--theme-background-container);
-                border: var(--theme-border-width) solid var(--theme-border-container);
-                border-radius: var(--theme-border-radius);
+            width: 58rem;
 
-                width: 58rem;
+            height: 100%;
+            overflow: visible;
 
-                height: fit-content;
-                min-height: 18rem;
-                max-height: 39.5rem !important;
+            margin-left: .35rem;
+            padding: 2rem 3rem;
 
-                overflow-x: hidden;
-                overflow-y: scroll;
-                overflow: auto;
-                scrollbar-gutter: stable;
-                scrollbar-width: thin;
-                scrollbar-color: var(--theme-text-accent) transparent;
+            .settings-category-header {
+                margin-bottom: 1rem;
 
-                margin-left: .35rem;
-                padding: 3rem;
+                .header-title {
+                    font-family: 'FunnelDisplay', sans-serif;
+                    font-size: 2rem;
+                    font-weight: 800;
+                    color: var(--theme-text);
+                }
 
-                .mail-tip-header {
+                .header-subtitle {
                     display: flex;
                     flex-flow: row nowrap;
                     align-items: center;
@@ -561,8 +611,6 @@
                     font-size: 1.1rem;
                     font-weight: 450;
                     color: var(--theme-text-secondary);
-
-                    margin-bottom: 1rem;
 
                     a {
                         display: flex;
@@ -587,129 +635,64 @@
                         transition: var(--theme-transition-in);
                     }
                 }
+            }
 
-                .save-settings-div {
-                    margin-top: 1.5rem;
+            .save-settings-div {
+                margin-top: .5rem;
 
-                    .form-submission-meta {
-                        margin-left: .75rem;
-                    }
-
-                    .form-submission-meta.success {
-                        color: greenyellow;
-                    }
-
-                    .form-submission-meta.saving {
-                        color: var(--theme-text-accent);
-                    }
-
-                    .form-submission-meta.unsaved {
-                        color: var(--theme-text-third);
-                    }
+                .form-submission-meta {
+                    margin-left: .75rem;
                 }
 
-                .setting-item:first-child {
-                    padding-top: 0;
+                .form-submission-meta.success {
+                    color: greenyellow;
                 }
 
-                .setting-item {
-                    color: var(--theme-text);
-                    width: 100%;
-                    margin-bottom: 1.25rem;
+                .form-submission-meta.saving {
+                    color: var(--theme-text-accent);
+                }
 
-                    .option {
-                        transition: var(--theme-transition-out);
+                .form-submission-meta.unsaved {
+                    color: var(--theme-text-third);
+                }
+            }
 
-                        .top-section {
-                            h1 {
-                                display: flex;
-                                flex-flow: row nowrap;
-                                align-items: center;
+            .setting-item:first-child {
+                padding-top: 0;
+            }
 
-                                font-family: 'FunnelDisplay', sans-serif;
-                                font-size: 1.2rem;
-                                font-weight: 700;
-                                text-wrap: nowrap;
+            .setting-item {
+                color: var(--theme-text);
+                width: 100%;
+                margin-bottom: 1.25rem;
 
-                                margin-bottom: .25rem;
+                .option {
+                    transition: var(--theme-transition-out);
 
-                                width: 5.5rem;
-
-                                pointer-events: none;
-                                user-select: none;
-                            }
-
-                            .readonly-container, input, textarea {
-                                width: 100%;
-                            }
-
-                            input, textarea {
-                                width: 100%;
-
-                                background: var(--theme-background-input);
-                                border-radius: var(--theme-border-radius);
-                                border: var(--theme-border-width) solid var(--theme-border-input);
-
-                                font-size: 1.05rem;
-                                font-weight: 600;
-                                caret-shape: underscore;
-                                caret-color: var(--theme-text);
-
-                                user-select: none;
-                                transition: border-color var(--theme-transition-out);
-                            }
-
-                            textarea {
-                                min-height: 6rem;
-                                height: fit-content;
-                                max-height: 22rem;
-
-                                resize: none;
-                            }
-
-                            input::selection {
-                                color: #0D0D0D;
-                                background: var(--theme-text-accent);
-                            }
-
-                            input:focus, textarea:focus {
-                                border-color: var(--theme-border-input-focus);
-                                user-select: text;
-                                transition: border-color var(--theme-transition-in);
-                            }
-                        }
-
-                        h3 {
-                            max-width: 80%;
-                            margin-top: .5rem;
-                            margin-bottom: 0;
-
-                            font-family: 'FunnelSans', sans-serif;
-                            font-size: .9rem;
-                            text-wrap-style: pretty;
-                            color: var(--theme-text-secondary);
-
-                            button {
-                                font-weight: bold;
-
-                                cursor: pointer;
-                            }
-
-                            button:hover {
-                                color: var(--theme-text-accent);
-                            }
-                        }
-                    }
-
-                    .option.readonly {
-                        transition: var(--theme-transition-out);
-
-                        .readonly-container {
+                    .top-section {
+                        h1 {
                             display: flex;
                             flex-flow: row nowrap;
                             align-items: center;
-                            justify-content: space-between;
 
+                            font-family: 'FunnelDisplay', sans-serif;
+                            font-size: 1.2rem;
+                            font-weight: 700;
+                            text-wrap: nowrap;
+
+                            margin-bottom: .25rem;
+
+                            width: 5.5rem;
+
+                            pointer-events: none;
+                            user-select: none;
+                        }
+
+                        .readonly-container, input, textarea {
+                            width: 100%;
+                        }
+
+                        input, textarea {
                             width: 100%;
 
                             background: var(--theme-background-input);
@@ -718,167 +701,221 @@
 
                             font-size: 1.05rem;
                             font-weight: 600;
-                            color: var(--theme-text-third);
+                            caret-shape: underscore;
+                            caret-color: var(--theme-text);
 
-                            padding: .5rem 1rem .5rem .5rem;
+                            user-select: none;
+                            transition: border-color var(--theme-transition-out);
+                        }
+
+                        textarea {
+                            min-height: 6rem;
+                            height: fit-content;
+                            max-height: 22rem;
+
+                            resize: none;
+                        }
+
+                        input::selection {
+                            color: #0D0D0D;
+                            background: var(--theme-text-accent);
+                        }
+
+                        input:focus, textarea:focus {
+                            border-color: var(--theme-border-input-focus);
+                            user-select: text;
+                            transition: border-color var(--theme-transition-in);
+                        }
+                    }
+
+                    h3 {
+                        max-width: 80%;
+                        margin-top: .5rem;
+                        margin-bottom: 0;
+
+                        font-family: 'FunnelSans', sans-serif;
+                        font-size: .9rem;
+                        text-wrap-style: pretty;
+                        color: var(--theme-text-secondary);
+
+                        button {
+                            font-weight: bold;
+
+                            cursor: pointer;
+                        }
+
+                        button:hover {
+                            color: var(--theme-text-accent);
+                        }
+                    }
+                }
+
+                .option.readonly {
+                    transition: var(--theme-transition-out);
+
+                    .readonly-container.token {
+                        justify-content: space-between;
+                    }
+
+                    .readonly-container {
+                        display: flex;
+                        flex-flow: row nowrap;
+                        align-items: center;
+                        justify-content: flex-start;
+
+                        width: 100%;
+
+                        background: var(--theme-background-input);
+                        border-radius: var(--theme-border-radius);
+                        border: var(--theme-border-width) solid var(--theme-border-input);
+
+                        font-size: 1.05rem;
+                        font-weight: 600;
+                        color: var(--theme-text-third);
+
+                        padding: .5rem 1rem .5rem .5rem;
+
+                        transition: var(--theme-transition-out);
+
+                        svg {
+                            margin-right: .25rem;
+
+                            height: 1.25rem;
+                            width: 1.25rem;
+                        }
+
+                        .regenerate-registration-token {
+                            justify-self: flex-end !important;
+
+                            cursor: pointer;
 
                             transition: var(--theme-transition-out);
 
                             svg {
-                                margin-right: .25rem;
+                                position: relative;
+                                margin-right: 0;
+                                transform: translateX(.25rem);
 
-                                height: 1.25rem;
-                                width: 1.25rem;
-                            }
-
-                            .regenerate-registration-token {
-                                justify-self: flex-end !important;
-
-                                cursor: pointer;
-
-                                transition: var(--theme-transition-out);
-
-                                svg {
-                                    position: relative;
-                                    margin-right: 0;
-                                    transform: translateX(.25rem);
-
-                                    height: 1.5rem;
-                                    width: 100%;
-                                }
-                            }
-
-                            .regenerate-registration-token:hover {
-                                color: var(--theme-text-accent);
-                                transition: var(--theme-transition-in);
+                                height: 1.5rem;
+                                width: 100%;
                             }
                         }
 
-                        .readonly-container:hover, .readonly-container:focus {
-                            border-color: var(--theme-border-input-focus);
-                            color: var(--theme-text-secondary);
-                            transition: border-color var(--theme-transition-in);
-                        }
-
-                        .readonly-container::selection {
-                            color: #141514;
-                            background: var(--theme-text-accent);
-                            backdrop-filter: blur(2px);
+                        .regenerate-registration-token:hover {
+                            color: var(--theme-text-accent);
+                            transition: var(--theme-transition-in);
                         }
                     }
 
-                    .option.toggle {
-                        h1 {
-                            padding-left: 0;
-                        }
-
-                        h3 {
-                            margin-top: 0;
-                        }
-
-                        .top-section {
-                            display: flex;
-                            flex-flow: row nowrap;
-                            justify-content: space-between;
-                            align-items: center;
-
-                            .toggle-container {
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-
-                                width: 4rem;
-                                height: 2rem;
-
-                                background: var(--theme-background-input);
-                                border-radius: 1rem;
-                                border-style: solid;
-                                border-width: var(--theme-border-width);
-
-                                border-color: var(--theme-border-input);
-
-                                cursor: pointer;
-
-                                transition: background 150ms ease;
-
-                                #toggle-slider {
-                                    height: 1.4rem;
-                                    width: 1.4rem;
-
-                                    transform: translateX(-.925rem);
-
-                                    background: #FFFFF2;
-                                    border-radius: 100%;
-
-                                    transition: 100ms;
-                                    transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
-                                }
-                            }
-
-                            .toggle-container.on {
-                                background: var(--theme-text-accent) !important;
-                                border-color: oklch(0.676 0.173 130.222) !important;
-                                filter: drop-shadow(0 0 .4rem rgba(from var(--theme-text-accent) r g b / 15%));
-
-                                #toggle-slider {
-                                    transform: translateX(.925rem);
-                                    filter: drop-shadow(0 0 .6rem rgba(0, 0, 0, 0.4));
-                                }
-                            }
-                        }
+                    .readonly-container:hover, .readonly-container:focus {
+                        border-color: var(--theme-border-input-focus);
+                        color: var(--theme-text-secondary);
+                        transition: border-color var(--theme-transition-in);
                     }
 
-                    form {
+                    .readonly-container::selection {
+                        color: #141514;
+                        background: var(--theme-text-accent);
+                        backdrop-filter: blur(2px);
+                    }
+                }
+
+                .option.toggle {
+                    h1 {
+                        padding-left: 0;
+                    }
+
+                    h3 {
+                        margin-top: 0;
+                    }
+
+                    .top-section {
                         display: flex;
-                        flex-flow: column nowrap;
-                        gap: 1.5rem;
+                        flex-flow: row nowrap;
+                        justify-content: space-between;
+                        align-items: center;
 
-                        min-width: fit-content;
+                        .toggle-container {
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
 
-                        label {
-                            font-family: 'FunnelDisplay', sans-serif;
+                            width: 4rem;
+                            height: 2rem;
 
-                            input {
-                                font-size: 1.5rem;
-                                font-weight: 550;
+                            background: var(--theme-background-input);
+                            border-radius: 1rem;
+                            border-style: solid;
+                            border-width: var(--theme-border-width);
 
-                                padding: .75rem 1.25rem;
+                            border-color: var(--theme-border-input);
 
-                                width: 100%;
+                            cursor: pointer;
+
+                            transition: background 150ms ease;
+
+                            #toggle-slider {
+                                height: 1.4rem;
+                                width: 1.4rem;
+
+                                transform: translateX(-.925rem);
+
+                                background: #FFFFF2;
+                                border-radius: 100%;
+
+                                transition: 100ms;
+                                transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
                             }
+                        }
 
-                            textarea {
-                                color: var(--theme-text);
-                                appearance: none;
-                                outline: none;
-                                width: 100%;
-                                field-sizing: content;
-                                min-height: 12rem !important;
-                                max-height: 18rem !important;
-                                scrollbar-width: thin;
-                                scrollbar-gutter: stable;
-                                scroll-behavior: smooth;
-                                scrollbar-color: var(--theme-text-accent) transparent;
-                                resize: none;
+                        .toggle-container.on {
+                            background: var(--theme-text-accent) !important;
+                            border-color: oklch(0.676 0.173 130.222) !important;
+                            filter: drop-shadow(0 0 .4rem rgba(from var(--theme-text-accent) r g b / 15%));
+
+                            #toggle-slider {
+                                transform: translateX(.925rem);
+                                filter: drop-shadow(0 0 .6rem rgba(0, 0, 0, 0.4));
                             }
                         }
                     }
                 }
-            }
 
-            .version-tag {
-                margin-top: .5rem;
-                margin-left: 1rem;
+                form {
+                    display: flex;
+                    flex-flow: column nowrap;
+                    gap: 1.5rem;
 
-                color: var(--theme-text-third);
-                font-family: 'JetBrains Mono', sans-serif;
-                font-weight: 700;
-                font-size: .75rem;
+                    min-width: fit-content;
 
-                opacity: .25;
+                    label {
+                        font-family: 'FunnelDisplay', sans-serif;
 
-                user-select: text;
-                cursor: default;
+                        input {
+                            font-size: 1.5rem;
+                            font-weight: 550;
+
+                            padding: .75rem 1.25rem;
+
+                            width: 100%;
+                        }
+
+                        textarea {
+                            color: var(--theme-text);
+                            appearance: none;
+                            outline: none;
+                            width: 100%;
+                            field-sizing: content;
+                            min-height: 12rem !important;
+                            max-height: 18rem !important;
+                            scrollbar-width: thin;
+                            scrollbar-gutter: stable;
+                            scroll-behavior: smooth;
+                            scrollbar-color: var(--theme-text-accent) transparent;
+                            resize: none;
+                        }
+                    }
+                }
             }
         }
     }

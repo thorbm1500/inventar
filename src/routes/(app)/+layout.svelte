@@ -65,6 +65,5 @@
         z-index: 1;
         background: var(--theme-background) !important;
         overflow: hidden;
-        padding-top: 4.5rem;
     }
 </style>
