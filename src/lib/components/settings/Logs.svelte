@@ -30,6 +30,8 @@
     .logs-container {
         width: 100%;
         height: 100%;
+        min-height: 32rem;
+        max-height: 65vh;
 
         border: var(--theme-border-width) solid var(--theme-border-container);
         border-radius: var(--theme-border-radius);
