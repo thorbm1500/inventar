@@ -68,7 +68,7 @@ async function ensureTables(): Promise<void> {
                   CONSTRAINT inventories_uuid_u
                       UNIQUE (uuid)
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'inventories'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'inventories'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS inventory_settings
               (
@@ -85,7 +85,7 @@ async function ensureTables(): Promise<void> {
                   CONSTRAINT inventory_settings_uuid_fk
                       FOREIGN KEY (uuid) REFERENCES inventories (uuid) ON DELETE CASCADE
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'inventory_settings'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'inventory_settings'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS users
               (
@@ -106,7 +106,7 @@ async function ensureTables(): Promise<void> {
                   CONSTRAINT users_primary_inventory_fk
                       FOREIGN KEY (primary_inventory) REFERENCES inventories (uuid)
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'users'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'users'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS user_settings
               (
@@ -125,7 +125,7 @@ async function ensureTables(): Promise<void> {
                   CONSTRAINT user_settings_uuid_fk
                       FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'user_settings'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'user_settings'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS inventory_access
               (
@@ -150,7 +150,7 @@ async function ensureTables(): Promise<void> {
                       FOREIGN KEY (user) REFERENCES users (uuid)
                           ON DELETE CASCADE
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'inventory_access'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'inventory_access'. `, err));
 
     //todo: Expand to allow for custom colors in the future.
     await sql`CREATE TABLE IF NOT EXISTS labels
@@ -166,7 +166,7 @@ async function ensureTables(): Promise<void> {
                       FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                           ON DELETE CASCADE
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'labels'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'labels'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS default_label_colors
               (
@@ -179,7 +179,7 @@ async function ensureTables(): Promise<void> {
                   CONSTRAINT default_label_colors_id_u
                       UNIQUE (id)
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'default_label_colors'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'default_label_colors'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS items
               (
@@ -211,7 +211,7 @@ async function ensureTables(): Promise<void> {
                   CONSTRAINT items_created_by_fk
                       FOREIGN KEY (created_by) REFERENCES users (uuid)
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'items'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'items'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS item_labels
               (
@@ -229,7 +229,7 @@ async function ensureTables(): Promise<void> {
                       FOREIGN KEY (label) REFERENCES labels (uuid)
                           ON DELETE CASCADE
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'item_labels'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'item_labels'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS sessions
               (
@@ -250,7 +250,7 @@ async function ensureTables(): Promise<void> {
                       FOREIGN KEY (uuid) REFERENCES users (uuid)
                           ON DELETE CASCADE
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'sessions'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'sessions'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS reset_tokens
               (
@@ -262,7 +262,7 @@ async function ensureTables(): Promise<void> {
                       FOREIGN KEY (uuid) REFERENCES users (uuid)
                           ON DELETE CASCADE
               )`
-        .catch((err: Error): void => LOGGER.error(`Failed to create table 'reset_tokens'. `, err));
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'reset_tokens'. `, err));
 }
 
 /**
@@ -278,13 +278,17 @@ async function ensureConstraints(): Promise<void> {
                                  FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
                                  WHERE TABLE_SCHEMA = 'inventar'
                                    AND TABLE_NAME = 'inventories'
-                                   AND CONSTRAINT_NAME = 'inventories_owner_fk'`;
+                                   AND CONSTRAINT_NAME = 'inventories_owner_fk'`
+        .catch((err: any): [] => {
+            LOGGER.error(`Failed to select existing constraints from table 'inventories'. `, err);
+            return [];
+        });
 
     if (constraint[0].name !== 'inventories_owner_fk') {
         await sql`ALTER TABLE inventories
             ADD CONSTRAINT inventories_owner_fk
                 FOREIGN KEY (owner) REFERENCES users (uuid)`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Failed to add constraint 'fk_owner' to table 'inventories'. `, err);
                 return [];
             });
@@ -302,7 +306,7 @@ async function ensureDefaultValues(): Promise<void> {
                   VALUES (${row.id}, ${row.code}, ${row.format ?? '%value%'})
                   ON DUPLICATE KEY UPDATE code=${row.code},
                                           format=${row.format ?? '%value%'}`
-            .catch(err => LOGGER.error(`Failed to add default values to table 'currencies'. `, err as Error))
+            .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'currencies'. `, err))
     }
 
     for (const row of colors) {
@@ -312,7 +316,7 @@ async function ensureDefaultValues(): Promise<void> {
                                           background=${row.background},
                                           dark_border=${row.dark_border},
                                           dark_background=${row.dark_background}`
-            .catch(err => LOGGER.error(`Failed to add default values to table 'default_label_colors'. `, err as Error))
+            .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'default_label_colors'. `, err))
     }
 }
 
@@ -323,8 +327,8 @@ export async function getCurrencies(): Promise<Currency[]> {
     return await sql`SELECT *
                      FROM currencies
                      ORDER BY code ASC`
-        .catch((err): Currency[] => {
-            LOGGER.error(`getCurrencies[0]: Database request failed. `, err as Error)
+        .catch((err: any): Currency[] => {
+            LOGGER.error(`getCurrencies[0]: Database request failed. `, err)
             return [];
         }) as Currency[];
 }
@@ -345,13 +349,13 @@ export class Inventories {
 
         await sql`INSERT INTO inventories(uuid, owner, name, description)
                   VALUES (${uuid}, ${owner}, ${name}, ${description ?? null})`
-            .catch((err: Error): void => LOGGER.error(`Inventories#create[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Inventories#create[0]: Database request failed. `, err));
 
         const result: Inventory[] = await sql`SELECT *
                                               FROM inventories
                                               WHERE uuid = ?
                                               LIMIT 1`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Inventories#create[1]: Database request failed. `, err)
                 return [];
             });
@@ -385,7 +389,7 @@ export class Inventories {
             const itemAmounts = await sql`SELECT COUNT(amount) as item_amount, inventory
                                           FROM items
                                           GROUP BY inventory`
-                .catch((err: Error): [] => {
+                .catch((err: any): [] => {
                     LOGGER.error(`Inventories#fetch[1]: Database request failed. `, err)
                     return [];
                 });
@@ -492,9 +496,9 @@ export class Items {
                                          FROM items
                                                   LEFT JOIN currencies ON items.currency = currencies.code
                                          WHERE items.inventory = ${inventory}
-                                         ORDER BY ${order_by ? order_by : 'created_at'} ${order}
+                                         ORDER BY ${sql(order_by ?? 'created_at') + ' ' + order}
                                          LIMIT ${amount} OFFSET ${offset}`
-            .catch((err: Error): Item[] => {
+            .catch((err: any): Item[] => {
                 LOGGER.error(`Items#fetch[0]: Database request failed. `, err)
                 return [];
             });
