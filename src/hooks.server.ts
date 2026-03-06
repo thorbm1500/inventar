@@ -4,7 +4,7 @@ import type {Session, User} from "$lib/server/db/interfaces";
 import * as auth from '$lib/server/internal/auth';
 import {building} from '$app/environment';
 import {env} from "$env/dynamic/private";
-import {type Handle, redirect, type ServerInit} from '@sveltejs/kit';
+import {type Handle, type HandleServerError, redirect, type ServerInit} from '@sveltejs/kit';
 import utilities from "$lib/server/internal/utilities";
 import cron from "$lib/server/internal/cron";
 import {Logger, LogLevel} from "$lib/server/internal/logger";
@@ -44,6 +44,16 @@ export const init: ServerInit = async (): Promise<void> => {
 
     LOGGER.done(`Server initialized. [`, Math.round((Bun.nanoseconds() - startTime) / 1000000), 'ms]')
 }
+
+export const handleError: HandleServerError = async ({ error, event, status, message }) => {
+    const errorMessage: string = (error as Error)?.message ?? 'Internal Error';
+
+    LOGGER.error(errorMessage);
+
+    return {
+        message: 'Whoops.. Sorry!'
+    };
+};
 
 const public_paths = [
     '/register',
