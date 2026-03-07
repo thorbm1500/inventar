@@ -19,8 +19,6 @@ export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's
 
     if (!inventory) throw new Error('Failed to load inventory!');
 
-    await Bun.sleep(5000);
-
     return inventory;
 });
 
