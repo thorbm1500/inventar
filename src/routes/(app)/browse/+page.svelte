@@ -202,8 +202,8 @@
 
             .meta {
                 font-family: 'FunnelDisplay', sans-serif;
-                font-weight: 700;
-                font-size: 2.5rem;
+                font-weight: 750;
+                font-size: 2.75rem;
 
                 color: var(--theme-text);
             }
@@ -311,7 +311,6 @@
                     gap: .35em;
 
                     span, a {
-                        font-family: 'FunnelSans', sans-serif;
                         font-size: 1.05rem;
                     }
 
@@ -430,8 +429,6 @@
                     background: var(--theme-background-container);
                     border: var(--theme-border-width) solid var(--theme-border-container);
                     border-radius: var(--theme-border-radius);
-
-                    font-family: 'FunnelSans', sans-serif;
 
                     margin: .5rem 0;
 

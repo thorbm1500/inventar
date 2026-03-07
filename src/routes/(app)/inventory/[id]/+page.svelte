@@ -30,6 +30,7 @@
     import {deleteItem, updatePrimaryInventory} from "./data.remote";
     import {Filters} from "./FilterHandler.svelte";
     import {ignorePasswordManagers} from "$lib/utilities";
+    import {blur} from "svelte/transition";
 
     const latestIcons: number[] = [99, 99, 99];
 
@@ -256,162 +257,164 @@
                         </div>
                     </div>
                 </section>
-                {#if isLoaded && isFilterContainerOpen }
-                    <div class="extra-container open inventory-filter-container">
-                        <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
-                            <h1>Filters</h1>
-                            <button class="filters-save-button {filters.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
-                                <svg width="16" height="16" fill="currentColor" class="bi bi-floppy-fill" viewBox="0 0 16 16">
-                                    <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0H3v5.5A1.5 1.5 0 0 0 4.5 7h7A1.5 1.5 0 0 0 13 5.5V0h.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5H14v-5.5A1.5 1.5 0 0 0 12.5 9h-9A1.5 1.5 0 0 0 2 10.5V16h-.5A1.5 1.5 0 0 1 0 14.5z"/>
-                                    <path d="M3 16h10v-5.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5zm9-16H4v5.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5zM9 1h2v4H9z"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <section class="filters">
-                            <div class="filter columns">
-                                <div style="display:flex;flex-flow:row nowrap;gap:.2rem;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                         stroke-linejoin="round" class="lucide lucide-table2-icon lucide-table-2">
-                                        <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
-                                    </svg>
-                                    <h1>Columns</h1>
+                {#if isFilterContainerOpen || isItemCreatorOpen}
+                    <div transition:blur={{duration:150}}>
+                        {#if isLoaded && isFilterContainerOpen }
+                            <div class="extra-container open inventory-filter-container">
+                                <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
+                                    <h1>Filters</h1>
+                                    <button class="filters-save-button {filters.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
+                                        <svg width="16" height="16" fill="currentColor" class="bi bi-floppy-fill" viewBox="0 0 16 16">
+                                            <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0H3v5.5A1.5 1.5 0 0 0 4.5 7h7A1.5 1.5 0 0 0 13 5.5V0h.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5H14v-5.5A1.5 1.5 0 0 0 12.5 9h-9A1.5 1.5 0 0 0 2 10.5V16h-.5A1.5 1.5 0 0 1 0 14.5z"/>
+                                            <path d="M3 16h10v-5.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5zm9-16H4v5.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5zM9 1h2v4H9z"/>
+                                        </svg>
+                                    </button>
                                 </div>
-                                <div class="buttons">
-                                    <button class="extra-container-button price filter-button {filters.price ? '' : 'off'}"
-                                            style="order:{filters.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => {
+                                <section class="filters">
+                                    <div class="filter columns">
+                                        <div style="display:flex;flex-flow:row nowrap;gap:.2rem;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                 stroke-linejoin="round" class="lucide lucide-table2-icon lucide-table-2">
+                                                <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+                                            </svg>
+                                            <h1>Columns</h1>
+                                        </div>
+                                        <div class="buttons">
+                                            <button class="extra-container-button price filter-button {filters.price ? '' : 'off'}"
+                                                    style="order:{filters.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
+                                                    onclick={() => {
                                                 filters.price = !filters.price;
                                                 filters.reset();
                                             }}>
-                                        {#if filters.price }
-                                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="currentColor"
-                                                      d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
-                                            </svg>
-                                        {:else}
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
-                                            </svg>
-                                        {/if}
-                                        Prices
-                                    </button>
-                                    <button class="extra-container-button last-updated filter-button {filters.last_updated ? '' : 'off'}"
-                                            style="order:{filters.last_updated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => {
+                                                {#if filters.price }
+                                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                                        <path fill="currentColor"
+                                                              d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
+                                                    </svg>
+                                                {:else}
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                              d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
+                                                    </svg>
+                                                {/if}
+                                                Prices
+                                            </button>
+                                            <button class="extra-container-button last-updated filter-button {filters.last_updated ? '' : 'off'}"
+                                                    style="order:{filters.last_updated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
+                                                    onclick={() => {
                                                 filters.last_updated = !filters.last_updated;
                                                 filters.reset();
                                             }}>
-                                        {#if filters.last_updated }
-                                            <svg width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="currentColor"
-                                                      d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
-                                            </svg>
-                                        {:else}
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
-                                            </svg>
-                                        {/if}
-                                        Last Updated
-                                    </button>
-                                    <button class="extra-container-button description filter-button {filters.description ? '' : 'off'}"
-                                            style="order:{filters.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
-                                            onclick={() => {
+                                                {#if filters.last_updated }
+                                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                                        <path fill="currentColor"
+                                                              d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
+                                                    </svg>
+                                                {:else}
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                              d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
+                                                    </svg>
+                                                {/if}
+                                                Last Updated
+                                            </button>
+                                            <button class="extra-container-button description filter-button {filters.description ? '' : 'off'}"
+                                                    style="order:{filters.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
+                                                    onclick={() => {
                                                 filters.description = !filters.description
                                                 filters.reset();
                                             }}>
-                                        {#if filters.description }
+                                                {#if filters.description }
+                                                    <svg width="24" height="24" viewBox="0 0 24 24">
+                                                        <path fill="currentColor"
+                                                              d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
+                                                    </svg>
+                                                {:else}
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                                                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                              d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
+                                                    </svg>
+                                                {/if}
+                                                Description
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="filter row-amount" style="display:flex;flex-flow:column nowrap">
+                                        <div style="display:flex;flex-flow:row nowrap;">
                                             <svg width="24" height="24" viewBox="0 0 24 24">
                                                 <path fill="currentColor"
-                                                      d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
+                                                      d="M8 5.5h8a3 3 0 0 0 3-3a.5.5 0 0 0-.5-.5h-13a.5.5 0 0 0-.5.5a3 3 0 0 0 3 3m8 13H8a3 3 0 0 0-3 3a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5a3 3 0 0 0-3-3"
+                                                      opacity="0.5"/>
+                                                <path fill="currentColor"
+                                                      d="M5 11.5c0-1.886 0-2.828.586-3.414S7.114 7.5 9 7.5h6c1.886 0 2.828 0 3.414.586S19 9.614 19 11.5v1c0 1.886 0 2.828-.586 3.414S16.886 16.5 15 16.5H9c-1.886 0-2.828 0-3.414-.586S5 14.386 5 12.5z"/>
                                             </svg>
-                                        {:else}
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                                                <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M21 9q-3.6 4-9 4T3 9m0 6l2.5-3.8M21 14.976L18.508 11.2M9 17l.5-4m5.5 4l-.5-4"/>
-                                            </svg>
-                                        {/if}
-                                        Description
+                                            <h1>Row Amount</h1>
+                                        </div>
+                                        <div style="display:flex;flex-flow:row nowrap;gap:.25rem;">
+                                            <button onclick={() => filters.rowAmount = 15} class="extra-container-button filter-button row-amount {filters.rowAmount === 15 ? 'selected' : ''}">
+                                                15
+                                            </button>
+                                            <button onclick={() => filters.rowAmount = 30} class="extra-container-button filter-button row-amount {filters.rowAmount === 30 ? 'selected' : ''}">
+                                                30
+                                            </button>
+                                            <button onclick={() => filters.rowAmount = 45} class="extra-container-button filter-button row-amount {filters.rowAmount === 45 ? 'selected' : ''}">
+                                                45
+                                            </button>
+                                            <button onclick={() => filters.rowAmount = 60} class="extra-container-button filter-button row-amount {filters.rowAmount === 60 ? 'selected' : ''}">
+                                                60
+                                            </button>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        {:else if isLoaded && isItemCreatorOpen }
+                            <div class="extra-container open create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
+                                <form {...createItem.enhance(async ({form, data, submit}) => {
+                                    try {
+                                        await submit();
+                                        form.reset();
+                                        isItemCreatorOpen = false;
+                                        await refresh();
+                                    } catch (err) {
+                                        console.log(err);
+                                    }
+                                })} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
+                                    <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
+                                    <input {...quickAdd.fields.user.as('text')} value="{user?.uuid??'x'}" use:ignorePasswordManagers hidden required/>
+                                    <input {...quickAdd.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" use:ignorePasswordManagers hidden required/>
+                                    <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
+                                        <div class="option-container" style="width:52rem;">
+                                            <h1>Name</h1>
+                                            <input style="width:100%;" {...quickAdd.fields.name.as('text')} placeholder="Item Name..." use:ignorePasswordManagers required/>
+                                        </div>
+                                        <div class="option-container">
+                                            <h1>Amount</h1>
+                                            <input {...quickAdd.fields.amount.as('number')} value=0 required/>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;gap:.4rem;margin:.5rem 0;">
+                                    <button form="item-creator-form" type="submit" class="theme-button" onclick="{() => window.location.href = window.location.href.concat('/add')}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M19.953 8.017l1.047 6.983v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-2l1.245 -8.297a2 2 0 0 1 1.977 -1.703h3.778"/>
+                                            <path d="M3 15h18"/>
+                                            <path d="M13 3l5.5 1.5"/>
+                                            <path d="M15.75 3.75l-2 7"/>
+                                            <path d="M7 10.5c1.667 -.667 3.333 -.667 5 0c1.667 .667 3.333 .667 5 0"/>
+                                        </svg>
+                                        Open Creator
+                                    </button>
+                                    <button onmouseenter="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
+                                            onfocus="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
+                                            form="item-creator-form" type="submit" class="theme-button confirm-creation-button" id="confirm-creation-button">
+                                        {@html itemCreatorConfirmCreationButtonIcon }
+                                        Quick Add
                                     </button>
                                 </div>
                             </div>
-                            <div class="filter row-amount" style="display:flex;flex-flow:column nowrap">
-                                <div style="display:flex;flex-flow:row nowrap;">
-                                    <svg width="24" height="24" viewBox="0 0 24 24">
-                                        <path fill="currentColor"
-                                              d="M8 5.5h8a3 3 0 0 0 3-3a.5.5 0 0 0-.5-.5h-13a.5.5 0 0 0-.5.5a3 3 0 0 0 3 3m8 13H8a3 3 0 0 0-3 3a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5a3 3 0 0 0-3-3"
-                                              opacity="0.5"/>
-                                        <path fill="currentColor"
-                                              d="M5 11.5c0-1.886 0-2.828.586-3.414S7.114 7.5 9 7.5h6c1.886 0 2.828 0 3.414.586S19 9.614 19 11.5v1c0 1.886 0 2.828-.586 3.414S16.886 16.5 15 16.5H9c-1.886 0-2.828 0-3.414-.586S5 14.386 5 12.5z"/>
-                                    </svg>
-                                    <h1>Row Amount</h1>
-                                </div>
-                                <div style="display:flex;flex-flow:row nowrap;gap:.25rem;">
-                                    <button onclick={() => filters.rowAmount = 15} class="extra-container-button filter-button row-amount {filters.rowAmount === 15 ? 'selected' : ''}">
-                                        15
-                                    </button>
-                                    <button onclick={() => filters.rowAmount = 30} class="extra-container-button filter-button row-amount {filters.rowAmount === 30 ? 'selected' : ''}">
-                                        30
-                                    </button>
-                                    <button onclick={() => filters.rowAmount = 45} class="extra-container-button filter-button row-amount {filters.rowAmount === 45 ? 'selected' : ''}">
-                                        45
-                                    </button>
-                                    <button onclick={() => filters.rowAmount = 60} class="extra-container-button filter-button row-amount {filters.rowAmount === 60 ? 'selected' : ''}">
-                                        60
-                                    </button>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                {:else if isLoaded && isItemCreatorOpen }
-                    <div class="extra-container open create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
-                        <form {...createItem.enhance(async ({form, data, submit}) => {
-                            try {
-                                await submit();
-                                form.reset();
-                                isItemCreatorOpen = false;
-                                await refresh();
-                            } catch (err) {
-                                console.log(err);
-                            }
-                        })} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
-                            <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                            <input {...quickAdd.fields.user.as('text')} value="{user?.uuid??'x'}" use:ignorePasswordManagers hidden
-                                   required/>
-                            <input {...quickAdd.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" use:ignorePasswordManagers hidden
-                                   required/>
-                            <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
-                                <div class="option-container" style="width:52rem;">
-                                    <h1>Name</h1>
-                                    <input style="width:100%;" {...quickAdd.fields.name.as('text')} placeholder="Item Name..." use:ignorePasswordManagers required/>
-                                </div>
-                                <div class="option-container">
-                                    <h1>Amount</h1>
-                                    <input {...quickAdd.fields.amount.as('number')} value=0 required/>
-                                </div>
-                            </div>
-                        </form>
-                        <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;gap:.4rem;margin:.5rem 0;">
-                            <button form="item-creator-form" type="submit" class="theme-button" onclick="{() => window.location.href = window.location.href.concat('/add')}">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                     stroke-linejoin="round">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M19.953 8.017l1.047 6.983v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-2l1.245 -8.297a2 2 0 0 1 1.977 -1.703h3.778"/>
-                                    <path d="M3 15h18"/>
-                                    <path d="M13 3l5.5 1.5"/>
-                                    <path d="M15.75 3.75l-2 7"/>
-                                    <path d="M7 10.5c1.667 -.667 3.333 -.667 5 0c1.667 .667 3.333 .667 5 0"/>
-                                </svg>
-                                Open Creator
-                            </button>
-                            <button onmouseenter="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
-                                    onfocus="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
-                                    form="item-creator-form" type="submit" class="theme-button confirm-creation-button" id="confirm-creation-button">
-                                {@html itemCreatorConfirmCreationButtonIcon }
-                                Quick Add
-                            </button>
-                        </div>
+                        {/if}
                     </div>
                 {/if}
                 <section class="inventory-body-section">
@@ -592,12 +595,12 @@
     }
 
     .body-section {
-        height: var(--theme-max-page-height);
+        height: calc(100vh - 4rem);
         overflow: hidden;
         box-sizing: border-box;
         width: 100%;
         position: absolute;
-        top: var(--theme-height-header);
+        top: 4rem;
         z-index: 10;
     }
 
@@ -887,7 +890,6 @@
 
                     font-family: 'FunnelSans', sans-serif;
                     color: var(--theme-text);
-                    caret-shape: underscore;
                     caret-color: var(--theme-text);
 
                     transition: border-color var(--theme-transition-out);

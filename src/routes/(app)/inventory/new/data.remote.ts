@@ -1,9 +1,8 @@
 import {LOGGER} from "../../../../hooks.server";
 import * as v from 'valibot';
 import {form} from "$app/server";
-import * as db from '$lib/server/db/database';
-import {redirect} from "@sveltejs/kit";
 import type {Inventory} from "$lib/server/db/interfaces";
+import {Inventories} from "$lib/server/db/database";
 
 export const createInventory = form(
     v.object({
@@ -11,13 +10,13 @@ export const createInventory = form(
         name: v.pipe(v.string(), v.nonEmpty('Error: No inventory name found. New inventories must be given a name, when created!')),
         description: v.optional(v.string(), undefined)
     }),
-    async ({owner, name, description}) => {
-        const inventory: Inventory | undefined = await db.Inventories.create(owner, name, description);
+    async ({owner, name, description}): Promise<{ success: boolean, message: string, redirect: string }> => {
+        const inventory: Inventory | undefined = await Inventories.create(owner, name, description);
         if (!inventory) {
             LOGGER.error(`Failed to create new inventory with name: ${name}`)
-            return {success: false, message: 'Failed to create new inventory!'};
+            return {success: false, message: 'Failed to create new inventory!', redirect: ''};
         }
 
-        redirect(302, '/inventory/'.concat(inventory.uuid));
+        return {success: true, message: '', redirect: '/inventory/'.concat(inventory.uuid)};
     }
 );

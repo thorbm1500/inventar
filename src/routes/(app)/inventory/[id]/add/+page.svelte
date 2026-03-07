@@ -94,7 +94,6 @@
                 font-family: 'FunnelSans', sans-serif;
                 font-weight: 500;
 
-                caret-shape: underscore;
                 resize: none;
                 appearance: none;
 

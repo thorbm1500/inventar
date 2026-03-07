@@ -85,7 +85,6 @@
                     border-color: #505779;
                     color: #FFFFF2;
                     accent-color: var(--theme-text-accent);
-                    caret-shape: underscore;
                 }
 
                 input:invalid {

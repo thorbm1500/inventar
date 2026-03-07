@@ -351,7 +351,7 @@ export class Inventories {
 
         const result: Inventory[] = await sql`SELECT *
                                               FROM inventories
-                                              WHERE uuid = ?
+                                              WHERE uuid = ${uuid}
                                               LIMIT 1`
             .catch((err: any): [] => {
                 LOGGER.error(`Inventories#create[1]: Database request failed. `, err)

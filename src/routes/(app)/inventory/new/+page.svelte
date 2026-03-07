@@ -7,20 +7,23 @@
     import 'tippy.js/dist/backdrop.css';
     import 'tippy.js/animations/shift-away.css';
     import Toast from "$lib/components/toast.svelte";
-    import { ignorePasswordManagers } from "$lib/utilities";
+    import {ignorePasswordManagers} from "$lib/utilities";
 
     let user: User = $state(getContext('user'));
     let toast: Toast = getContext('toasts') as Toast
 
     let value = $state('');
-    let canSubmit = $derived(createInventory.pending === 0 && !createInventory.result?.success);
 
-    function attemptSubmit(): void {
+    function validateSubmission(): boolean {
         if (value.length === 0) {
-            toast?.addWarningToast('An inventory name is required.')
+            toast?.addWarningToast('An inventory name is required.');
+            return false;
         } else if (value.length <= 3) {
-            toast?.addWarningToast('The inventory name is invalid.')
+            toast?.addWarningToast('The inventory name is invalid.');
+            return false;
         }
+
+        return true;
     }
 
     function tooltip(node: SVGElement, content: string) {
@@ -41,18 +44,30 @@
 </script>
 
 <section class="inventory-creator-page">
-    <form {...createInventory} id="create-inventory-form" encType="multipart/form-data">
+    <form {...createInventory.enhance(async ({submit}) => {
+        if (!validateSubmission()) return;
+
+        try {
+            await submit();
+        } catch (error) {
+            toast?.addSuccessToast(String(error) ?? 'Failed to create inventory!');
+        }
+
+        if (createInventory.result?.success) {
+            window.location.href = createInventory.result.redirect;
+        } else {
+            toast?.addErrorToast('Something went wrong!');
+        }
+    })} id="create-inventory-form" encType="multipart/form-data" use:ignorePasswordManagers>
         <input {...createInventory.fields.owner.as('text')} value="{user?.uuid}" hidden>
         <div class="field-container name">
-            <input {...createInventory.fields.name.as('text')} bind:value use:ignorePasswordManagers class="field inventory-name" placeholder="Inventory Name..." spellcheck="false" required>
+            <input {...createInventory.fields.name.as('text')} bind:value class="field inventory-name" placeholder="Inventory Name..." spellcheck="false" required>
             <div style="display:flex;flex-flow:row nowrap;align-items:center;gap:.5rem;">
                 <svg use:tooltip={`Once created, all settings will be available to customize.`} class="information-icon name" width="24" height="24" viewBox="0 0 24 24">
                     <path fill="currentColor"
                           d="M14.6 8.075q0-1.075-.712-1.725T12 5.7q-.725 0-1.312.313t-1.013.912q-.4.575-1.088.663T7.4 7.225q-.35-.325-.387-.8t.237-.9q.8-1.2 2.038-1.862T12 3q2.425 0 3.938 1.375t1.512 3.6q0 1.125-.475 2.025t-1.75 2.125q-.925.875-1.25 1.363T13.55 14.6q-.1.6-.513 1t-.987.4t-.987-.387t-.413-.963q0-.975.425-1.787T12.5 11.15q1.275-1.125 1.688-1.737t.412-1.338M12 22q-.825 0-1.412-.587T10 20t.588-1.412T12 18t1.413.588T14 20t-.587 1.413T12 22"/>
                 </svg>
-                <button onclick={() => {
-                    if (canSubmit) attemptSubmit();
-                }} class="theme-button" type="button">Create</button>
+                <button type="submit" class="theme-button">Create</button>
             </div>
         </div>
         <div class="field-container description">
@@ -93,10 +108,10 @@
 
             input, textarea {
                 color: var(--theme-text);
-                caret-shape: underscore !important;
                 background: none;
                 border: none;
                 width: 32rem;
+                user-select: none;
             }
 
             input:focus, textarea:focus {

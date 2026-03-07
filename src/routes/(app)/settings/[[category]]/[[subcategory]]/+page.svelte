@@ -683,7 +683,6 @@
 
                             font-size: 1.05rem;
                             font-weight: 600;
-                            caret-shape: underscore;
                             caret-color: var(--theme-text);
 
                             user-select: none;

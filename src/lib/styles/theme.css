@@ -105,3 +105,8 @@
     --color-button-border: #B9C1C9;
     --color-input-border: var(--theme-border-input);
 }
+
+.main-container {
+    caret-shape: block !important;
+    caret-color: var(--theme-text) !important;
+}
