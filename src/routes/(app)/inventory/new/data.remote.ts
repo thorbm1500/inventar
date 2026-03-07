@@ -18,6 +18,6 @@ export const createInventory = form(
             return {success: false, message: 'Failed to create new inventory!'};
         }
 
-        return redirect(302, '/inventory/'.concat(inventory.uuid));
+        redirect(302, '/inventory/'.concat(inventory.uuid));
     }
 );

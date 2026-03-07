@@ -8,7 +8,7 @@
     let order_by = $state('name');
     let order = $state('');
     let currentPage = $state(1);
-    let viewType: string = $state('list');
+    let viewType: string = $state('card');
 
     let inventories: Inventory[] = $state.raw([]);
     await refresh();
@@ -103,7 +103,7 @@
                 </button>
             </div>
         </div>
-        <div class="inventory-list">
+        <div class="inventory-list {viewType}">
             {#if inventories.length > 0 }
                 {#each inventories as {uuid, name, description, item_amount, last_update}}
                     {#if viewType === 'list'}
@@ -285,10 +285,18 @@
                 }
             }
 
-            .inventory-list {
-                display: flex;
+            .inventory-list.list {
                 flex-flow: column nowrap;
                 justify-content: flex-start;
+            }
+
+            .inventory-list.card {
+                flex-flow: row wrap;
+                justify-content: space-between;
+            }
+
+            .inventory-list {
+                display: flex;
 
                 overflow-y: scroll;
                 overflow-x: hidden;
@@ -410,14 +418,33 @@
                     }
                 }
 
-                .inventory-name {
-                    flex: 1 0 50%;
-                    justify-content: center;
-                }
+                .card-entry {
+                    width: 29rem;
+                    height: 28rem !important;
 
-                .inventory-item-amount {
-                    flex: 1 0 25%;
+                    display: flex;
+                    flex-flow: column nowrap;
                     justify-content: center;
+                    align-items: center;
+                    align-content: center;
+
+                    background: var(--theme-background-container);
+                    border: var(--theme-border-width) solid var(--theme-border-container);
+                    border-radius: var(--theme-border-radius);
+
+                    font-family: 'FunnelSans', sans-serif;
+
+                    margin: .5rem 0;
+
+                    .inventory-name {
+                        font-size: 1.75rem;
+                        font-weight: 800;
+                    }
+
+                    span {
+                        font-weight: 450;
+                        color: var(--theme-text-third);
+                    }
                 }
             }
         }

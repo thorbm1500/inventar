@@ -4,6 +4,7 @@
     import {onMount} from "svelte";
     import {page} from "$app/state";
     import type {ApplicationSettings} from "$lib/server/internal/settings";
+    import { ignorePasswordManagers } from "$lib/utilities";
 
     let {data} = $props();
 
@@ -255,9 +256,7 @@
                 <div class="option text">
                     <div class="top-section">
                         <h1>Host</h1>
-                        <input name="mail_host" id="mail_host" placeholder="smtp.inventar.dev"
-                               bind:value={applicationSettings.general.mail.host} spellcheck="false"
-                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                        <input name="mail_host" id="mail_host" placeholder="smtp.inventar.dev" bind:value={applicationSettings.general.mail.host} use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
                         <!--todo <h3>SUBTITLE</h3>-->
@@ -269,8 +268,7 @@
                     <div class="top-section">
                         <h1>Port</h1>
                         <input name="mail_port" id="mail_port" placeholder="587"
-                               value="{applicationSettings.general.mail.port}" spellcheck="false"
-                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                               value="{applicationSettings.general.mail.port}" use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
                         <h3>For encrypted/TLS connections use 587, 2465, 2587.</h3>
@@ -282,8 +280,7 @@
                     <div class="top-section">
                         <h1>User</h1>
                         <input name="mail_user" id="mail_user" placeholder="inventar"
-                               value="{applicationSettings.general.mail.user}" spellcheck="false"
-                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                               value="{applicationSettings.general.mail.user}" use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
                         <!--todo <h3>SUBTITLE</h3>-->
@@ -295,8 +292,7 @@
                     <div class="top-section">
                         <h1>Password</h1>
                         <input type="password" name="mail_password" id="mail_password" placeholder="Enter Password..."
-                               value="{applicationSettings.general.mail.password}" spellcheck="false"
-                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                               value="{applicationSettings.general.mail.password}" use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
                         <!--todo <h3>SUBTITLE</h3>-->
@@ -308,8 +304,7 @@
                     <div class="top-section">
                         <h1>Sender Mail</h1>
                         <input name="mail_sender_mail" id="mail_sender_mail" placeholder="inventar@prodzeus.dev"
-                               value="{applicationSettings.general.mail.sender_mail}" spellcheck="false"
-                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                               value="{applicationSettings.general.mail.sender_mail}" use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
                         <!--todo <h3>SUBTITLE</h3>-->
@@ -321,8 +316,7 @@
                     <div class="top-section">
                         <h1>Sender Name</h1>
                         <input name="mail_sender_name" id="mail_sender_name" placeholder="zeus"
-                               value="{applicationSettings.general.mail.sender_name}" spellcheck="false"
-                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                               value="{applicationSettings.general.mail.sender_name}" use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
                         <h3>Optional</h3>

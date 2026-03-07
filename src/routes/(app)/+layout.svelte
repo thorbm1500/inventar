@@ -4,6 +4,7 @@
     import {onMount, setContext} from "svelte";
     import type {User} from "$lib/server/db/interfaces";
     import Toast from "$lib/components/toast.svelte";
+    import { blur, slide } from 'svelte/transition';
 
     let {children, data} = $props();
 
@@ -21,12 +22,14 @@
 </script>
 
 <section class="header {user.preferred_theme}">
-    <Header />
+    <Header/>
 </section>
 
 <div class="toasts {user.preferred_theme}">
     {#each toastHandler.toasts as toast}
-        {@html toast}
+        <div class="toast" in:slide out:blur|global>
+            {@html toast}
+        </div>
     {/each}
 </div>
 

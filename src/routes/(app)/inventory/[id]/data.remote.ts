@@ -7,7 +7,7 @@ import util from "$lib/server/internal/utilities";
 import type {Inventory, Item} from "$lib/server/db/interfaces";
 import {promises as fs} from "fs";
 
-export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's UUID must be provided when attempting the browse its contents!`)), async (id: string): Promise<Inventory | undefined> => {
+export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's UUID must be provided when attempting the browse its contents!`)), async (id: string): Promise<Inventory> => {
     let inventory: Inventory | undefined;
 
     if (!util.isOffline()) {
@@ -15,8 +15,11 @@ export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's
         if (!inventory) {
             LOGGER.error(`Failed to fetch inventory with ID: ${id}`);
         }
-
     }
+
+    if (!inventory) throw new Error('Failed to load inventory!');
+
+    await Bun.sleep(5000);
 
     return inventory;
 });
@@ -30,10 +33,13 @@ const itemsObj = v.object({
 });
 
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
-    if (!util.isOffline()) {
-        return (await db.Items.fetch(data.inventory, data.amount, data.order == '' ? 'ASC' : data.order, data.offset, data.order_by)) as Item[];
+    if (util.isOffline()) {
+        return [];
     }
-    return [];
+
+    const items = await db.Items.fetch(data.inventory, data.amount, data.offset, data.order_by);
+
+    return data.order === 'DESC' ? items.reverse() : items;
 });
 
 export const getTotalItemCount = query(v.string(), async (id: string): Promise<number> => {
@@ -103,11 +109,11 @@ export const createItem = form(
         return redirect(302, '/inventory/' + inventoryUuid);
     });
 
-export const updatePrimaryIvnentory = command(
+export const updatePrimaryInventory = command(
     v.object({
         user: v.pipe(v.string(), v.nonEmpty()),
-        inventory: v.optional(v.string(), undefined)
+        inventory_uuid: v.optional(v.string(), undefined)
     }),
-    async ({user, inventory}) => {
-        await db.Users.updatePrimaryInventory(user, inventory ?? null);
+    async ({user, inventory_uuid}) => {
+        await db.Users.updatePrimaryInventory(user, inventory_uuid ?? null);
     });

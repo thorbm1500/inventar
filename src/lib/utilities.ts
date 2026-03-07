@@ -1,4 +1,5 @@
 import moment from "moment";
+import type {Action} from "svelte/action";
 
 const nonWordCharacterRegex = new RegExp(/\W/, 'g');
 const wordCharacterRegex = new RegExp(/\w/, 'g');
@@ -100,4 +101,21 @@ export function formatLogs(logs: string[]): string[] {
         content.push(formatLine(line));
     }
     return content;
+}
+
+/**
+ * Adds attributes to the element, attempting to have the element be ignored by most major password managers.
+ * @param node
+ */
+export const ignorePasswordManagers: Action = (node: HTMLElement) => {
+    // Proton Pass
+    node.setAttribute('data-protonpass-ignore', 'true');
+    // LastPass
+    node.setAttribute('data-lpignore', 'true');
+    // 1Password
+    node.setAttribute('data-1p-ignore', '');
+    // Bitwarden
+    node.setAttribute('data-bwignore', '');
+
+    return { destroy() {} };
 }

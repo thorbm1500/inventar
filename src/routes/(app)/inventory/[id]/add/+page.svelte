@@ -1,5 +1,6 @@
 <script lang="ts">
-    import {createItem} from "./data.remote";
+    import {createItem} from "./data.remote"
+    import { ignorePasswordManagers } from "$lib/utilities";
 </script>
 
 <section class="item-creator-section">
@@ -12,15 +13,15 @@
     <form {...createItem}>
         <div class="form-field">
             <h1>Name</h1>
-            <input {...createItem.fields.name.as('text')} placeholder="Required." data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore required/>
+            <input {...createItem.fields.name.as('text')} placeholder="Required." use:ignorePasswordManagers required/>
         </div>
         <div class="form-field">
             <h1>Description</h1>
-            <textarea {...createItem.fields.description.as('text')} placeholder="Optional" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore></textarea>
+            <textarea {...createItem.fields.description.as('text')} placeholder="Optional" use:ignorePasswordManagers></textarea>
         </div>
         <div class="form-field">
             <h1>Amount</h1>
-            <input {...createItem.fields.amount.as('number')} min="0" value="0" placeholder="Required." data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore required/>
+            <input {...createItem.fields.amount.as('number')} min="0" value="0" placeholder="Required." use:ignorePasswordManagers required/>
         </div>
     </form>
 </section>

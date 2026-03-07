@@ -8,15 +8,13 @@ import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
 
 const sql: SQL = new SQL({
     adapter: 'mysql',
-    max: 10,
-    idleTimeout: 60,
-    connectionTimeout: 30,
+    max: 4,
     bigint: true,
     onconnect: (err) => {
         if (err) {
-            LOGGER.error(`Failed to connect to database.`, err);
+            LOGGER.error(`Failed to connect to database. `, err);
         } else {
-            LOGGER.debug('Database connection established.');
+            LOGGER.debug('New database connection established.');
         }
     }
 });
@@ -414,7 +412,7 @@ export class Inventories {
     static async fetchTotalInventoryCount(): Promise<number> {
         const inventoryCount = await sql`SELECT COUNT(uuid) AS amount
                                          FROM inventories`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Inventories#fetchTotalInventoryCount[0]: Database request failed. `, err)
                 return [];
             });
@@ -431,7 +429,7 @@ export class Inventories {
                                               FROM inventories
                                               WHERE uuid = ${uuid}
                                               LIMIT 1`
-            .catch((err: Error): Inventory[] => {
+            .catch((err: any): Inventory[] => {
                 LOGGER.error(`Inventories#fetchInventoryByUuid[0]: Database request failed. `, err)
                 return [];
             });
@@ -459,13 +457,13 @@ export class Items {
 
         await sql`INSERT INTO items (uuid, created_by, inventory, name, description, amount, image, url, price, currency)
                   VALUES (${uuid}, ${created_by}, ${inventory}, ${name}, ${description ?? null}, ${amount}, ${image ?? null}, ${url ?? null}, ${price}, ${currency})`
-            .catch((err: Error): void => LOGGER.error(`Items#create[0]: Database request failed. ${err.name}`, err));
+            .catch((err: any): void => LOGGER.error(`Items#create[0]: Database request failed. ${err.name}`, err));
 
         const result: Item[] = await sql`SELECT *
                                          FROM items
                                          WHERE uuid = ${uuid}
                                          LIMIT 1`
-            .catch((err: Error): Item[] => {
+            .catch((err: any): Item[] => {
                 LOGGER.error(`Items#create[1]: Database request failed. `, err)
                 return [];
             });
@@ -481,7 +479,7 @@ export class Items {
      * @param order
      * @param offset
      */
-    static async fetch(inventory: string, amount: number = 15, order: string, offset: number = 0, order_by?: string): Promise<Item[]> {
+    static async fetch(inventory: string, amount: number = 15, offset: number = 0, order_by?: string): Promise<Item[]> {
         const result: Item[] = await sql`SELECT items.uuid        as uuid,
                                                 items.inventory   as inventory,
                                                 items.name        as name,
@@ -496,7 +494,7 @@ export class Items {
                                          FROM items
                                                   LEFT JOIN currencies ON items.currency = currencies.code
                                          WHERE items.inventory = ${inventory}
-                                         ORDER BY ${sql(order_by ?? 'created_at') + ' ' + order}
+                                         ORDER BY ${sql(order_by ?? 'last_update')}
                                          LIMIT ${amount} OFFSET ${offset}`
             .catch((err: any): Item[] => {
                 LOGGER.error(`Items#fetch[0]: Database request failed. `, err)
@@ -514,7 +512,7 @@ export class Items {
         const result: Item[] = await sql`SELECT COUNT(uuid) AS amount
                                          FROM items
                                          WHERE inventory = ${inventory}`
-            .catch((err: Error): Item[] => {
+            .catch((err: any): Item[] => {
                 LOGGER.error(`Items#fetchTotalItemCount[0]: Database request failed. `, err)
                 return [];
             });
@@ -530,7 +528,7 @@ export class Items {
         await sql`DELETE
                   FROM items
                   WHERE uuid = ${uuid}`
-            .catch((err: Error): void => LOGGER.error(`Items#deleteItem[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Items#deleteItem[0]: Database request failed. `, err));
     }
 }
 
@@ -550,13 +548,13 @@ export class Users {
 
         await sql`INSERT INTO users (uuid, email, username, password_hash, superuser)
                   VALUES (${uuid}, ${email}, ${username}, ${password_hash}, ${superuser})`
-            .catch((err: Error): void => LOGGER.error(`Users#create[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Users#create[0]: Database request failed. `, err));
 
         const result: User[] = await sql`SELECT *
                                          FROM users
                                          WHERE uuid = ${uuid}
                                          LIMIT 1`
-            .catch((err: Error): User[] => {
+            .catch((err: any): User[] => {
                 LOGGER.error(`Users#create[1]: Database request failed. `, err)
                 return [];
             });
@@ -572,7 +570,7 @@ export class Users {
         const result: User[] = await sql`SELECT *
                                          FROM users
                                          WHERE uuid = ${uuid}`
-            .catch((err: Error): User[] => {
+            .catch((err: any): User[] => {
                 LOGGER.error(`Users#getFromUuid[0]: Database request failed. `, err)
                 return [];
             });
@@ -588,7 +586,7 @@ export class Users {
         const result: User[] = await sql`SELECT *
                                          FROM users
                                          WHERE email = ${email}`
-            .catch((err: Error): User[] => {
+            .catch((err: any): User[] => {
                 LOGGER.error(`Users#getFromEmail[0]: Database request failed. `, err)
                 return [];
             });
@@ -604,7 +602,7 @@ export class Users {
         const result = await sql`SELECT password_hash
                                  FROM users
                                  WHERE uuid = ${uuid}`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Users#getPasswordHash[0]: Database request failed. `, err)
                 return [];
             });
@@ -621,7 +619,7 @@ export class Users {
         await sql`UPDATE users
                   SET password_hash = ${passwordHash}
                   WHERE uuid = ${uuid}`
-            .catch((err: Error): void => LOGGER.error(`Users#setPasswordHash[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Users#setPasswordHash[0]: Database request failed. `, err));
     }
 
     /**
@@ -632,7 +630,7 @@ export class Users {
         await sql`UPDATE users
                   SET last_login = CURRENT_TIMESTAMP
                   WHERE uuid = ${uuid}`
-            .catch((err: Error): void => LOGGER.error(`Users#updateLastLogin[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Users#updateLastLogin[0]: Database request failed. `, err));
     }
 
     /**
@@ -641,7 +639,7 @@ export class Users {
     static async getUserAmount(): Promise<number> {
         const result = await sql`SELECT count(uuid) as amount
                                  FROM users`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Users#getUserAmount[0]: Database request failed. `, err)
                 return [];
             });
@@ -658,7 +656,7 @@ export class Users {
         await sql`UPDATE users
                   SET primary_inventory = ${inventory}
                   WHERE uuid = ${uuid}`
-            .catch((err: Error): void => LOGGER.error(`Users#setPrimaryInventory[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Users#setPrimaryInventory[0]: Database request failed. `, err));
     }
 
     /**
@@ -670,7 +668,7 @@ export class Users {
         await sql`UPDATE users
                   SET preferred_theme = ${theme}
                   WHERE uuid = ${uuid}`
-            .catch((err: Error): void => LOGGER.error(`Users#updatePreferredTheme[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Users#updatePreferredTheme[0]: Database request failed. `, err));
     }
 
     /**
@@ -684,7 +682,7 @@ export class Users {
                                                                                               FROM user_settings
                                                                                               WHERE uuid = ${uuid}
                                                                                               ORDER BY category_order`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Users#getSettings[0]: Database request failed. `, err);
                 return [];
             });
@@ -698,7 +696,7 @@ export class Users {
                         FROM user_settings
                         WHERE uuid = ${uuid}
                         ORDER BY category_order, subcategory_order`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Users#getSettings[1]: Database request failed. `, err);
                 return [];
             });
@@ -707,7 +705,7 @@ export class Users {
                                              FROM user_settings
                                              WHERE uuid = ${uuid}
                                              ORDER BY category_order, subcategory_order, setting_order`
-            .catch((err: Error): Setting[] => {
+            .catch((err: any): Setting[] => {
                 LOGGER.error(`Users#getSettings[2]: Database request failed. `, err);
                 return [];
             });
@@ -724,7 +722,7 @@ export class Users {
         const result = await sql`SELECT superuser
                                  FROM users
                                  WHERE uuid = ${uuid}`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Users#isSuperuser[0]: Database request failed. `, err)
                 return [];
             });
@@ -746,7 +744,7 @@ export class Auth {
                   VALUES (${session.uuid}, ${session.session_id})
                   ON DUPLICATE KEY UPDATE session_id = ${session.session_id},
                                           expires=(ADDTIME(CURRENT_TIMESTAMP, "7 0:0"))`
-            .catch((err: Error): void => LOGGER.error(`Auth#newSession[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Auth#newSession[0]: Database request failed. `, err));
 
         session.expires = await this.getSessionExpiration(session.session_id);
     }
@@ -759,7 +757,7 @@ export class Auth {
         const result: Session[] = await sql`SELECT *
                                             FROM sessions
                                             WHERE session_id = ${session_id}`
-            .catch((err: Error): Session[] => {
+            .catch((err: any): Session[] => {
                 LOGGER.error(`Auth#getSession[0]: Database request failed. `, err)
                 return [];
             });
@@ -776,7 +774,7 @@ export class Auth {
                                   FROM sessions
                                   WHERE uuid = ${uuid}
                                   ORDER BY last_accessed`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Auth#getSession[0]: Database request failed. `, err)
                 return [];
             });
@@ -800,7 +798,7 @@ export class Auth {
         await sql`UPDATE sessions
                   SET expires = (ADDTIME(CURRENT_TIMESTAMP, "7 0:0"))
                   WHERE session_id = ${session.session_id}`
-            .catch((err: Error): void => LOGGER.error(`Auth#renewSession[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Auth#renewSession[0]: Database request failed. `, err));
 
         session.expires = await this.getSessionExpiration(session.session_id);
     }
@@ -813,7 +811,7 @@ export class Auth {
         await sql`DELETE
                   FROM sessions
                   WHERE session_id = ${session_id}`
-            .catch((err: Error): void => LOGGER.error(`Auth#invalidateSession[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Auth#invalidateSession[0]: Database request failed. `, err));
     }
 
     /**
@@ -824,7 +822,7 @@ export class Auth {
         const results = await sql`SELECT expires
                                   FROM sessions
                                   WHERE session_id = ${session_id}`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Auth#getSessionExpiration[0]: Database request failed. `, err);
                 return [];
             });
@@ -840,7 +838,7 @@ export class Auth {
         await sql`UPDATE sessions
                   SET last_accessed = CURRENT_TIMESTAMP
                   WHERE session_id = ${session_id}`
-            .catch((err: Error): void => LOGGER.error(`Auth#updateLastAccess[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Auth#updateLastAccess[0]: Database request failed. `, err));
     }
 
     /**
@@ -866,7 +864,7 @@ export class Auth {
                       device    = ${data.device ?? null},
                       platform  = ${data.platform ?? null}
                   WHERE session_id = ${session_id}`
-            .catch((err: Error): void => LOGGER.error(`Auth#updateSessionInformation[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Auth#updateSessionInformation[0]: Database request failed. `, err));
     }
 
     /**
@@ -877,7 +875,7 @@ export class Auth {
         const [result] = await sql`SELECT ip, continent, country, region, city, device, platform
                                    FROM sessions
                                    WHERE session_id = ${session_id}`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Auth#updateSessionInformation[0]: Database request failed. `, err)
                 return [];
             });
@@ -893,7 +891,7 @@ export class Auth {
         const result = await sql`SELECT *
                                  FROM reset_tokens
                                  WHERE token = ${token}`
-            .catch((err: Error): [] => {
+            .catch((err: any): [] => {
                 LOGGER.error(`Auth#getResetRequest[0]: Database request failed. `, err)
                 return [];
             });
@@ -909,7 +907,7 @@ export class Auth {
         const result: ResetRequest[] = await sql`SELECT *
                                                  FROM reset_tokens
                                                  WHERE uuid = ${uuid}`
-            .catch((err: Error): ResetRequest[] => {
+            .catch((err: any): ResetRequest[] => {
                 LOGGER.error(`Auth#getResetRequestFromUuid[0]: Database request failed. `, err)
                 return [];
             });
@@ -927,7 +925,7 @@ export class Auth {
                   VALUES (${uuid}, ${token})
                   ON DUPLICATE KEY UPDATE token   = ${token},
                                           expires = (ADDTIME(CURRENT_TIMESTAMP, "30:0"))`
-            .catch((err: Error): void => LOGGER.error(`Auth#setResetToken[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Auth#setResetToken[0]: Database request failed. `, err));
     }
 
     /**
@@ -938,7 +936,7 @@ export class Auth {
         await sql`DELETE
                   FROM reset_tokens
                   WHERE token = ${token}`
-            .catch((err: Error): void => LOGGER.error(`Auth#deleteResetToken[0]: Database request failed. `, err));
+            .catch((err: any): void => LOGGER.error(`Auth#deleteResetToken[0]: Database request failed. `, err));
     }
 }
 

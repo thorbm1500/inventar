@@ -4,6 +4,7 @@
     import {getContext} from "svelte";
     import type {UserSettings} from "$lib/components/settings/UserSettings";
     import Sessions from "$lib/components/Sessions.svelte";
+    import { ignorePasswordManagers } from "$lib/utilities";
 
     const user: User = $derived(getContext('user'));
 
@@ -56,12 +57,12 @@
                                                             {setting.value}
                                                         </div>
                                                     {:else}
-                                                        <input bind:value={setting.value} name="name" id="name" placeholder="Inventory Name..." spellcheck="false"
-                                                               data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore>
+                                                        <input bind:value={setting.value} name="name" id="name" placeholder="Inventory Name..."
+                                                               use:ignorePasswordManagers spellcheck="false">
                                                     {/if}
                                                 {:else if (setting.type === 'textarea')}
-                                        <textarea {...accountSettings.fields.email.as('text')} bind:value={setting.value} name="name" id="name" placeholder="{setting.title}..." spellcheck="false"
-                                                  data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore></textarea>
+                                        <textarea {...accountSettings.fields.email.as('text')} bind:value={setting.value} name="name" id="name" placeholder="{setting.title}..."
+                                                  use:ignorePasswordManagers spellcheck="false"></textarea>
                                                 {:else if (setting.type === 'toggle')}
                                                     <label class="toggle-container {Boolean(setting.value) ? 'on' : ''}">
                                                         <div id="toggle-slider"></div>

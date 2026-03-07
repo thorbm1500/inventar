@@ -21,71 +21,86 @@
 </script>
 
 <script lang="ts">
-    import type {PageProps} from './$types';
     import {getContext, onMount} from "svelte";
     import {page} from "$app/state";
     import type {Inventory, Item, User} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/utilities'
-    import {getItems, getTotalItemCount, quickAdd} from './data.remote.ts';
-    import Utility from "../../browse/utility";
+    import {getInventory, getItems, getTotalItemCount, quickAdd} from './data.remote.ts';
     import {createItem} from './data.remote.ts';
-    import {deleteItem, updatePrimaryIvnentory} from "./data.remote";
+    import {deleteItem, updatePrimaryInventory} from "./data.remote";
     import {Filters} from "./FilterHandler.svelte";
+    import {ignorePasswordManagers} from "$lib/utilities";
 
-    let {data}: PageProps = $props();
+    const latestIcons: number[] = [99, 99, 99];
 
     const user: User = $state(getContext('user'));
+
+    type TableItemSize = 'small' | 'medium' | 'large';
+
+    /* Variable declarations */
     //todo: Add option to save filters, and make them persistent for the user.
     const filters: Filters = new Filters(user.uuid);
-
     let addItemHover = $state(false);
-
     // svelte-ignore state_referenced_locally
-    let inventory: Inventory = $state(data.inventory);
+    let isItemCreatorOpen: boolean = $state(false);
+    let isFilterContainerOpen: boolean = $state(false);
+    let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
+    let tableSize: TableItemSize = $state('small');
+    let currentPage = $state(1);
+    let offset = $derived(filters.rowAmount * (currentPage - 1));
+    let inventory: Inventory | undefined = $state();
+    let isLoaded: boolean = $derived(inventory !== undefined);
+    getInventory(String(page.params.id)).then(async (res) => {
+        inventory = res;
+        await refresh();
+    });
+    //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
+    let items: Item[] = $state([]);
+    let itemCount: number = $state(0);
+    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filters.rowAmount) ?? 1));
 
-    onMount(async () => {
+    onMount(() => {
         const openItemCreatorButtonElement = document.getElementById('create-item-button');
         openItemCreatorButtonElement?.addEventListener('mouseover', () => addItemHover = true);
         openItemCreatorButtonElement?.addEventListener('mouseout', () => addItemHover = false);
     })
 
-    let isItemCreatorOpen: boolean = $state(false);
-    let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
-    let isFilterContainerOpen: boolean = $state(false);
-
-    type TableItemSize = 'small' | 'medium' | 'large';
-    let tableSize: TableItemSize = $state('small');
-
-    /* Item Container*/
-    let currentPage = $state(1);
-
-    let offset = $derived(filters.rowAmount * (currentPage - 1));
-
-    //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
-    let items: Item[] = $derived(await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}));
-    let itemCount: number = $derived(await getTotalItemCount(inventory.uuid));
-    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filters.rowAmount) ?? 1));
-
-    async function goToFirstPage() {
+    /**
+     * Sets the current page to 1.
+     */
+    function goToFirstPage() {
         currentPage = 1;
     }
 
-    async function goToLastPage() {
+    /**
+     * Sets the current page to the highest possible page number.
+     */
+    function goToLastPage(): null {
         currentPage = totalPages;
+        return null;
     }
 
-    async function updatePage(pageChange: number = 0) {
-        currentPage += pageChange;
-        if (currentPage < 1) currentPage = 1;
-        else if (currentPage > totalPages) currentPage = totalPages;
+    /**
+     * Updates the current page, according to the provided difference.
+     * @param difference Pages to go up or down. Takes positive values for incrementing current page, and negative values to decrement the current page.
+     */
+    async function updatePage(difference: number) {
+        const newPage = currentPage + difference;
+
+        // Ensure the new page is legal.
+        if (newPage < 1) goToFirstPage();
+        else if (newPage > totalPages) goToLastPage();
+        else currentPage += difference;
     }
 
     async function refresh() {
+        if (!inventory) return;
         await getTotalItemCount(inventory.uuid).refresh();
-        await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
-    }
+        getTotalItemCount(inventory.uuid).then((res) => itemCount = res);
 
-    const latestIcons: number[] = [99, 99, 99];
+        await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
+        getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).then((res) => items = res);
+    }
 
     function getRandomIcon(): string {
         let next: number = 99;
@@ -107,26 +122,28 @@
                 <section class="inventory-header-section">
                     <div class="inventory-header-content">
                         <div class="inventory-name">
-                            <h1>{inventory.name}</h1>
-                            <button class="primary-inventory-bookmark-icon" onclick="{() =>{
-                                updatePrimaryIvnentory({user:user.uuid,inventory:user.primary_inventory === inventory.uuid ? undefined : inventory.uuid});
-                                user.primary_inventory = user.primary_inventory === inventory.uuid ? '' : inventory.uuid;
-                            }}">
-                                {#if user.primary_inventory === inventory.uuid }
-                                    <svg style="color:var(--theme-text-accent);" width="24" height="24" viewBox="0 0 24 24">
-                                        <path fill="currentColor" fill-rule="evenodd"
-                                              d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6"
-                                              clip-rule="evenodd"/>
-                                    </svg>
-                                {:else}
-                                    <svg width="24" height="24" viewBox="0 0 24 24">
-                                        <g fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 16.09v-4.992c0-4.29 0-6.433-1.318-7.766C18.364 2 16.242 2 12 2S5.636 2 4.318 3.332S3 6.81 3 11.098v4.993c0 3.096 0 4.645.734 5.321c.35.323.792.526 1.263.58c.987.113 2.14-.907 4.445-2.946c1.02-.901 1.529-1.352 2.118-1.47c.29-.06.59-.06.88 0c.59.118 1.099.569 2.118 1.47c2.305 2.039 3.458 3.059 4.445 2.945c.47-.053.913-.256 1.263-.579c.734-.676.734-2.224.734-5.321Z"/>
-                                            <path stroke-linecap="round" d="M15 6H9" opacity="0.5"/>
-                                        </g>
-                                    </svg>
-                                {/if}
-                            </button>
+                            <h1>{isLoaded ? inventory?.name : 'Loading...'}</h1>
+                            {#if isLoaded}
+                                <button class="primary-inventory-bookmark-icon" onclick={() => {
+                                user.primary_inventory = user.primary_inventory === inventory?.uuid ? undefined : inventory?.uuid;
+                                updatePrimaryInventory({user: user.uuid, inventory_uuid: user.primary_inventory});
+                            }}>
+                                    {#if user.primary_inventory === inventory?.uuid }
+                                        <svg style="color:var(--theme-text-accent);" width="24" height="24" viewBox="0 0 24 24">
+                                            <path fill="currentColor" fill-rule="evenodd"
+                                                  d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6"
+                                                  clip-rule="evenodd"/>
+                                        </svg>
+                                    {:else}
+                                        <svg width="24" height="24" viewBox="0 0 24 24">
+                                            <g fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M21 16.09v-4.992c0-4.29 0-6.433-1.318-7.766C18.364 2 16.242 2 12 2S5.636 2 4.318 3.332S3 6.81 3 11.098v4.993c0 3.096 0 4.645.734 5.321c.35.323.792.526 1.263.58c.987.113 2.14-.907 4.445-2.946c1.02-.901 1.529-1.352 2.118-1.47c.29-.06.59-.06.88 0c.59.118 1.099.569 2.118 1.47c2.305 2.039 3.458 3.059 4.445 2.945c.47-.053.913-.256 1.263-.579c.734-.676.734-2.224.734-5.321Z"/>
+                                                <path stroke-linecap="round" d="M15 6H9" opacity="0.5"/>
+                                            </g>
+                                        </svg>
+                                    {/if}
+                                </button>
+                            {/if}
                         </div>
                         <div class="header-buttons">
                             <div class="size-switcher">
@@ -144,6 +161,7 @@
                                         <path d="M15 15l6 6"/>
                                     </svg>
                                 </button>
+                                <div class="size-switcher-button-seperator"></div>
                                 <button class="{tableSize==='medium'?'selected':''}" title="medium" onclick="{() => tableSize = 'medium'}">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                          stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-maximize">
@@ -154,6 +172,7 @@
                                         <path d="M16 20h2a2 2 0 0 0 2 -2v-2"/>
                                     </svg>
                                 </button>
+                                <div class="size-switcher-button-seperator"></div>
                                 <button class="{tableSize==='large'?'selected':''}" title="large" onclick="{() => tableSize = 'large'}">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                          stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-arrows-maximize">
@@ -220,14 +239,14 @@
                                 {/if}
                                 Add Item
                             </button>
-                            <button id="refresh-button" class="theme-button refresh-button" title="Refresh" onclick="{async () => await refresh()}">
+                            <button id="refresh-button" class="theme-button refresh-button" title="Refresh" onclick="{refresh}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
                                 </svg>
                             </button>
                             <button id="inventory-settings-button" class="theme-button inventory-settings-button" title="Settings"
-                                    onclick="{() => window.location.href=`/inventory/${inventory.uuid}/settings`}">
+                                    onclick="{() => window.location.href=`/inventory/${inventory?.uuid??'unknown'}/settings`}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
@@ -237,8 +256,8 @@
                         </div>
                     </div>
                 </section>
-                {#if isFilterContainerOpen }
-                    <div class="extra-container {isFilterContainerOpen?'open':'closed'} inventory-filter-container">
+                {#if isLoaded && isFilterContainerOpen }
+                    <div class="extra-container open inventory-filter-container">
                         <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
                             <h1>Filters</h1>
                             <button class="filters-save-button {filters.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
@@ -345,27 +364,27 @@
                             </div>
                         </section>
                     </div>
-                {:else if isItemCreatorOpen }
-                    <div class="extra-container {isItemCreatorOpen?'open':'open'} create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
+                {:else if isLoaded && isItemCreatorOpen }
+                    <div class="extra-container open create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
                         <form {...createItem.enhance(async ({form, data, submit}) => {
                             try {
                                 await submit();
                                 form.reset();
+                                isItemCreatorOpen = false;
                                 await refresh();
                             } catch (err) {
                                 console.log(err);
                             }
                         })} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                             <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                            <input {...quickAdd.fields.user.as('text')} value="{user?.uuid??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
+                            <input {...quickAdd.fields.user.as('text')} value="{user?.uuid??'x'}" use:ignorePasswordManagers hidden
                                    required/>
-                            <input {...quickAdd.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" data-protonpass-ignore="true" data-lpignore="true" data-1p-ignore data-bwignore hidden
+                            <input {...quickAdd.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" use:ignorePasswordManagers hidden
                                    required/>
                             <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
                                 <div class="option-container" style="width:52rem;">
                                     <h1>Name</h1>
-                                    <input style="width:100%;" {...quickAdd.fields.name.as('text')} placeholder="Item Name..." data-protonpass-ignore="true" data-lpignore="true"
-                                           data-1p-ignore data-bwignore required/>
+                                    <input style="width:100%;" {...quickAdd.fields.name.as('text')} placeholder="Item Name..." use:ignorePasswordManagers required/>
                                 </div>
                                 <div class="option-container">
                                     <h1>Amount</h1>
@@ -417,7 +436,7 @@
                             </div>
                         </div>
                         <div class="inventory-list">
-                            {#if inventory }
+                            {#if isLoaded }
                                 {#if items.length > 0 }
                                     {#each items as item}
                                         <a data-sveltekit-preload-data="tap" href='/' target='_parent' class="inventory-list-entry">
@@ -508,7 +527,7 @@
                         <div class="inventory-footer">
                             <div class="inventory-footer-items">
                                 <button class="pagination-back-button pagination-button" style="visibility: { currentPage === 1 ? 'hidden' : 'visible' }"
-                                        onclick={async () => { await goToFirstPage() } } title="Switch to previous page">
+                                        onclick={goToFirstPage} title="Switch to previous page">
                                     <svg width="19" height="19" viewBox="0 0 16 16">
                                         <path fill="currentColor" fill-rule="evenodd"
                                               d="M7.721 2.22a.75.75 0 0 1 1.061 1.06L4.061 8.002l4.721 4.721a.75.75 0 0 1-1.06 1.061L2.47 8.532a.75.75 0 0 1 0-1.06L7.722 2.22Zm5 0a.75.75 0 0 1 1.061 1.06L9.061 8.002l4.721 4.721a.75.75 0 0 1-1.06 1.061L7.47 8.532a.75.75 0 0 1 0-1.06z"
@@ -516,7 +535,7 @@
                                     </svg>
                                 </button>
                                 <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
-                                        onclick={async () => { await updatePage(-1) } } title="Switch to previous page">
+                                        onclick={() => { updatePage(-1) } } title="Switch to previous page">
                                     <svg width="19" height="19" viewBox="0 0 16 16">
                                         <path fill="currentColor" fill-rule="evenodd"
                                               d="M10.78 2.22a.75.75 0 0 0-1.06 0L4.468 7.472a.75.75 0 0 0 0 1.06l5.252 5.252a.75.75 0 1 0 1.06-1.06L6.06 8.001l4.72-4.721a.75.75 0 0 0 0-1.06"
@@ -527,7 +546,7 @@
                                     {currentPage}
                                 </p>
                                 <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
-                                        onclick={async () => { await updatePage(1) } } title="Switch to next page">
+                                        onclick={() => { updatePage(1) } } title="Switch to next page">
                                     <svg width="19" height="19" viewBox="0 0 16 16">
                                         <path fill="currentColor" fill-rule="evenodd"
                                               d="M5.22 2.22a.75.75 0 0 1 1.06 0l5.252 5.252a.75.75 0 0 1 0 1.06L6.28 13.784a.75.75 0 1 1-1.06-1.06l4.72-4.723L5.22 3.28a.75.75 0 0 1 0-1.06"
@@ -535,7 +554,7 @@
                                     </svg>
                                 </button>
                                 <button class="pagination-forward-button pagination-button" style="visibility: { currentPage === totalPages ? 'hidden' : 'visible' }"
-                                        onclick={async () => { await goToLastPage() } } title="Switch to next page">
+                                        onclick={goToLastPage()} title="Switch to next page">
                                     <svg width="19" height="19" viewBox="0 0 16 16">
                                         <path fill="currentColor" fill-rule="evenodd"
                                               d="M3.53 2.22a.75.75 0 0 0-1.06 1.06l4.72 4.722l-4.72 4.721a.75.75 0 0 0 1.06 1.061l5.252-5.252a.75.75 0 0 0 0-1.06zm5 0a.75.75 0 0 0-1.06 1.06l4.721 4.722l-4.721 4.721a.75.75 0 0 0 1.06 1.061l5.252-5.252a.75.75 0 0 0 0-1.06z"
@@ -554,6 +573,10 @@
 <style>
     :root {
         --inventory-header-height: 6rem;
+    }
+
+    .page-content {
+        color: #FFFFF2;
     }
 
     .inventory-list * {
@@ -667,6 +690,7 @@
                         display: flex;
                         flex-flow: row nowrap;
                         align-items: center;
+                        align-content: center;
                         justify-content: space-between;
 
                         background: var(--theme-background-button);
@@ -677,24 +701,40 @@
 
                         color: var(--theme-text);
 
+                        .size-switcher-button-seperator {
+                            background: var(--theme-border-button);
+                            opacity: .5;
+                            width: .35rem;
+                            margin: 0;
+                            padding: 0;
+                            height: 65%;
+                            border-radius: .05rem;
+                        }
+
                         button {
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+
                             height: 100%;
                             width: 100%;
                             cursor: pointer;
 
-                            padding: 0 .5rem;
+                            padding: 0 .375rem;
 
                             svg {
                                 max-height: 1.3rem;
                             }
                         }
 
-                        button:nth-child(2) {
-                            border: .15rem solid var(--theme-border-button);
-                            border-top-color: transparent;
-                            border-bottom-color: transparent;
+                        button:first-child {
+                            padding-right: .45rem;
+                            padding-left: .70rem;
+                        }
 
-                            padding: 0 .4rem;
+                        button:last-child {
+                            padding-left: .45rem;
+                            padding-right: .6rem;
                         }
 
                         button.selected {

@@ -55,7 +55,7 @@ class Toast {
                        </div>
                       </div>`;
 
-        this.toasts.push(toast);
+        this.toasts.push(toast)
     }
 
     removeToast(): void {
