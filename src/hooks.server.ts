@@ -9,8 +9,8 @@ import utilities from "$lib/server/internal/utilities";
 import cron from "$lib/server/internal/cron";
 import {Logger, LogLevel} from "$lib/server/internal/logger";
 import {type ApplicationSettings, getSettings} from "$lib/server/internal/settings";
-import {SQL} from "bun";
 
+export const APPLICATION_VERSION: string = await Bun.file('./package.json').json().then(pkg => pkg.version);
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
 

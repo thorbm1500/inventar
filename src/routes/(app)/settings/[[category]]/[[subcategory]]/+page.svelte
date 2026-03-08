@@ -227,6 +227,26 @@
                     </div>
                 </div>
             </div>
+            <div class="setting-item">
+                <div class="option text">
+                    <div class="top-section">
+                        <h1>Log Level</h1>
+                        <select id="log_level" name="log_level" size="1" bind:value={applicationSettings.general.basics.log_level}>
+                            <option value="debug">
+                                <div class="custom-option">
+                                    <span>Debug</span>
+                                </div>
+                            </option>
+                            <option value="info">Info</option>
+                            <option value="warn">Warning</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+                    <div class="bottom-section">
+                        <!--todo <h3>SUBTITLE</h3>-->
+                    </div>
+                </div>
+            </div>
         {/if}
         {#if currentView.category === 'general' && currentView.subcategory === 'mail' }
             <div class="settings-category-header">
@@ -564,6 +584,7 @@
             </div>
         {/if}
         {#if currentView.category === 'security' && currentView.subcategory === 'privacy' }
+            <!--todo - Implement logic-->
             <div class="setting-extra">
                 <h4>Request Removal</h4>
                 <div class="description">
@@ -816,11 +837,11 @@
                             user-select: none;
                         }
 
-                        .readonly-container, input, textarea {
+                        .readonly-container {
                             width: 100%;
                         }
 
-                        input, textarea {
+                        input, textarea, select {
                             width: 100%;
 
                             background: var(--theme-background-input);
@@ -843,12 +864,28 @@
                             resize: none;
                         }
 
-                        input::selection {
+                        input::selection,select::selection {
                             color: #0D0D0D;
                             background: var(--theme-text-accent);
                         }
 
-                        input:focus, textarea:focus {
+                        select {
+                            user-select: none !important;
+
+                            option:checked {
+                                color: #0D0D0D;
+                                background: var(--theme-text-accent);
+                            }
+                        }
+
+                        > div {
+                            &:is(:focus, :hover) {
+                                background: oklch(from var(--theme-text-accent) l c h / 25%);
+                                color: inherit;
+                            }
+                        }
+
+                        input:focus, textarea:focus, select:focus {
                             border-color: var(--theme-border-input-focus);
                             user-select: text;
                             transition: border-color var(--theme-transition-in);
@@ -1080,8 +1117,8 @@
                 }
 
                 .theme-button {
-                    border-color: oklch(63.7% 0.237 25.331);
-                    background: oklch(0.224 0.078 26.284);
+                    border-color: oklch(0.648 0.238 25.371);
+                    background: oklch(0.195 0.068 26.273);
                     color: oklch(97.1% 0.013 17.38);
 
                     margin: 1.25rem 0;

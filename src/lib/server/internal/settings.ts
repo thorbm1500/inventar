@@ -1,7 +1,7 @@
 import {randomUUIDv7, JSON5, file, write, type BunFile} from "bun";
 import {promises as fs} from "node:fs";
 import {generateRegistrationToken} from "$lib/server/internal/auth";
-import {LOGGER} from "../../../hooks.server.ts";
+import {APPLICATION_VERSION, LOGGER} from "../../../hooks.server.ts";
 
 const settingsFile: BunFile = file('/etc/inventar/settings.json5');
 
@@ -34,7 +34,8 @@ export interface ApplicationSettings {
     version: string,
     general: {
         basics: {
-            application_id: string
+            application_id: string,
+            log_level: string
         },
         mail: {
             host: string,
@@ -75,10 +76,11 @@ export interface ApplicationSettings {
 }
 
 const defaultSettings: ApplicationSettings = {
-    version: '',
+    version: APPLICATION_VERSION,
     general: {
         basics: {
-            application_id: randomUUIDv7()
+            application_id: randomUUIDv7(),
+            log_level: 'info'
         },
         mail: {
             host: '',

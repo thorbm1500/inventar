@@ -29,8 +29,17 @@
                 Browse
             </div>
             <div class="create-inventory-button">
-                <button class="theme-button" onclick="{() => window.location.href='/inventory/new'}" title="Create New Inventory">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-database-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 6c0 1.657 3.582 3 8 3s8 -1.343 8 -3s-3.582 -3 -8 -3s-8 1.343 -8 3" /><path d="M4 6v6c0 1.657 3.582 3 8 3c1.075 0 2.1 -.08 3.037 -.224" /><path d="M20 12v-6" /><path d="M4 12v6c0 1.657 3.582 3 8 3c.166 0 .331 -.002 .495 -.006" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>
+                <button class="theme-button" onclick="{() => window.location.href='/inventory/new'}" title="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         class="icon icon-tabler icons-tabler-outline icon-tabler-database-plus">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M4 6c0 1.657 3.582 3 8 3s8 -1.343 8 -3s-3.582 -3 -8 -3s-8 1.343 -8 3"/>
+                        <path d="M4 6v6c0 1.657 3.582 3 8 3c1.075 0 2.1 -.08 3.037 -.224"/>
+                        <path d="M20 12v-6"/>
+                        <path d="M4 12v6c0 1.657 3.582 3 8 3c.166 0 .331 -.002 .495 -.006"/>
+                        <path d="M16 19h6"/>
+                        <path d="M19 16v6"/>
+                    </svg>
                     Add Inventory
                 </button>
             </div>
@@ -95,36 +104,49 @@
                     </button>
                 </div>
             </div>
-            <div class="inventory-list {viewType}">
-                {#if inventories.length > 0 }
+            {#if inventories.length === 0}
+                <div class="empty-inventory-list">
+                    {#if navigator.onLine }
+                        <span class="text-theme-text-third">No inventories found.</span>
+                        <a href="/inventory/new">Create your first inventory now!</a>
+                    {:else}
+                        <span class="text-theme-text-third">No internet found. Reconnect to browse inventories.</span>
+                    {/if}
+                </div>
+            {:else if viewType === 'list'}
+                <div class="inventory-list list">
                     {#each inventories as {uuid, name, description, item_amount, last_update}}
-                        {#if viewType === 'list'}
-                            <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="list-entry">
-                                <div class="entry-item inventory-meta">
-                                    <div class="inventory-image">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
-                                        </svg>
-                                    </div>
-                                    <div class="inventory-name-and-description">
-                                        <h1 class="inventory-name">{name}</h1>
-                                        <span class="line-clamp-2">
+                        <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="list-entry">
+                            <div class="entry-item inventory-meta">
+                                <div class="inventory-image">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
+                                    </svg>
+                                </div>
+                                <div class="inventory-name-and-description">
+                                    <h1 class="inventory-name">{name}</h1>
+                                    <span class="line-clamp-2">
                                     {#if description}
                                         {description}
                                     {:else}
                                         No description has been set.
                                     {/if}
                                 </span>
-                                    </div>
                                 </div>
-                                <div class="entry-item inventory-item-last_change">
-                                    {parseTimestamp(String(last_update))}
-                                </div>
-                                <div class="entry-item inventory-item-amount">
-                                    {item_amount}
-                                </div>
-                            </a>
-                        {:else}
+                            </div>
+                            <div class="entry-item inventory-item-last_change">
+                                {parseTimestamp(String(last_update))}
+                            </div>
+                            <div class="entry-item inventory-item-amount">
+                                {item_amount}
+                            </div>
+                        </a>
+                    {/each}
+                </div>
+            {:else}
+                <div class="inventory-list card">
+                    <div class="cards">
+                        {#each inventories as {uuid, name, description, item_amount, last_update}}
                             <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="card-entry">
                                 <div class="inventory-image">
                                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
@@ -171,19 +193,10 @@
                                     </div>
                                 </div>
                             </a>
-                        {/if}
-                    {/each}
-                {:else}
-                    <div class="empty-inventory-list">
-                        {#if navigator.onLine }
-                            <span class="text-theme-text-third">No inventories found.</span>
-                            <a href="/inventory/new">Create your first inventory now!</a>
-                        {:else}
-                            <span class="text-theme-text-third">No internet found. Reconnect to browse inventories.</span>
-                        {/if}
+                        {/each}
                     </div>
-                {/if}
-            </div>
+                </div>
+            {/if}
         </div>
     </section>
 </section>
@@ -313,37 +326,37 @@
                 }
             }
 
+            .empty-inventory-list {
+                display: flex;
+                align-content: center;
+                align-items: center;
+                justify-content: center;
+                height: 36rem;
+                gap: .35em;
+
+                span, a {
+                    font-size: 1.05rem;
+                }
+
+                span {
+                    color: var(--theme-text-third);
+                }
+
+                a {
+                    color: var(--theme-text-secondary);
+                }
+
+                a:hover {
+                    color: var(--theme-text);
+                }
+            }
+
             .inventory-list.list {
                 display: flex;
                 flex-flow: column nowrap;
                 justify-content: flex-start;
 
                 height: fit-content;
-
-                .empty-inventory-list {
-                    display: flex;
-                    align-content: center;
-                    align-items: center;
-                    justify-content: center;
-                    height: 36rem;
-                    gap: .35em;
-
-                    span, a {
-                        font-size: 1.05rem;
-                    }
-
-                    span {
-                        color: var(--theme-text-third);
-                    }
-
-                    a {
-                        color: var(--theme-text-secondary);
-                    }
-
-                    a:hover {
-                        color: var(--theme-text);
-                    }
-                }
 
                 .list-entry {
                     width: 100%;
@@ -437,104 +450,119 @@
 
             .inventory-list.card {
                 display: flex;
-                flex-flow: row wrap;
-                justify-content: flex-start;
-                gap: .75rem 1.5rem;
+                flex-flow: row nowrap;
+                justify-content: center;
+                min-width: 20rem;
+                width: 72.5vw;
+                max-width: 90rem;
 
-                height: fit-content;
-
-                .card-entry {
-                    width: 21.25rem;
-                    height: 26rem !important;
-
+                .cards {
                     display: flex;
-                    flex-flow: column nowrap;
-                    justify-content: center;
-                    align-items: center;
-                    align-content: center;
+                    flex-flow: row wrap;
+                    justify-content: flex-start;
+                    gap: 1.5rem;
 
-                    background: var(--theme-background-container);
-                    border: var(--theme-border-width) solid var(--theme-border-container);
-                    border-radius: var(--theme-border-radius);
+                    height: fit-content;
+                    width: 100%;
 
                     margin: .5rem 0;
-                    padding: 2.5rem 0 1.5rem 0;
 
-                    svg {
-                        width: 6em;
-                        height: 6rem;
-                        margin: 1.5rem 0;
-                    }
+                    .card-entry {
+                        flex: 1;
 
-                    .inventory-name-and-description {
+                        min-width: 20rem;
+                        width: 20rem;
+                        max-width: 21.35rem;
+                        height: 28rem !important;
+
                         display: flex;
                         flex-flow: column nowrap;
-                        justify-content: flex-start;
-                        align-items: center;
-                        text-align: center;
-
-                        h1 {
-                            font-size: 2rem;
-                            font-weight: 800;
-                        }
-
-                        span {
-                            font-size: 0.9rem;
-                            font-weight: 450;
-                            text-wrap-style: pretty;
-                            color: var(--theme-text-third);
-
-                            width: 75%;
-                        }
-                    }
-
-                    .inventory-info {
-                        display: flex;
-                        flex-flow: row nowrap;
                         justify-content: center;
-                        align-items: flex-end;
+                        align-items: center;
+                        align-content: center;
 
-                        height: 100%;
-                        width: 65%;
+                        background: var(--theme-background-container);
+                        border: var(--theme-border-width) solid var(--theme-border-container);
+                        border-radius: var(--theme-border-radius);
 
-                        .entry-item {
-                            flex: 50%;
+                        padding: 2.5rem 0 1.5rem 0;
 
+                        svg {
+                            width: 6em;
+                            height: 6rem;
+                            margin: 1.5rem 0;
+                        }
+
+                        .inventory-name-and-description {
                             display: flex;
                             flex-flow: column nowrap;
+                            justify-content: flex-start;
                             align-items: center;
-                            justify-content: center;
+                            text-align: center;
 
-                            svg {
-                                width: 1.5rem;
-                                height: 1.5rem;
-                                padding: 0;
-                                margin: 0;
-
-                                color: var(--theme-text-third);
+                            h1 {
+                                font-size: 2rem;
+                                font-weight: 800;
                             }
 
-                            p {
+                            span {
+                                font-size: 0.9rem;
+                                font-weight: 450;
+                                text-wrap-style: pretty;
                                 color: var(--theme-text-third);
-                                text-align: center;
-                                text-wrap: nowrap;
+
+                                width: 75%;
+                            }
+                        }
+
+                        .inventory-info {
+                            display: flex;
+                            flex-flow: row nowrap;
+                            justify-content: center;
+                            align-items: flex-end;
+
+                            height: 100%;
+                            width: 65%;
+
+                            .entry-item {
+                                flex: 50%;
+
+                                display: flex;
+                                flex-flow: column nowrap;
+                                align-items: center;
+                                justify-content: center;
+
+                                svg {
+                                    width: 1.5rem;
+                                    height: 1.5rem;
+                                    padding: 0;
+                                    margin: 0;
+
+                                    color: var(--theme-text-third);
+                                }
+
+                                p {
+                                    color: var(--theme-text-third);
+                                    text-align: center;
+                                    text-wrap: nowrap;
+                                }
                             }
                         }
                     }
-                }
 
-                .card-entry:hover {
-                    background: var(--theme-background-button-hover);
+                    .card-entry:hover {
+                        background: var(--theme-background-button-hover);
 
-                    svg {
-                        stroke: var(--theme-text-accent);
-                        transition: 50ms ease-in-out;
-                    }
-
-                    .inventory-meta {
-                        span {
-                            color: var(--theme-text-accent);
+                        svg {
+                            stroke: var(--theme-text-accent);
                             transition: 50ms ease-in-out;
+                        }
+
+                        .inventory-meta {
+                            span {
+                                color: var(--theme-text-accent);
+                                transition: 50ms ease-in-out;
+                            }
                         }
                     }
                 }
