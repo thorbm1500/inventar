@@ -7,7 +7,7 @@
     import 'tippy.js/dist/backdrop.css';
     import 'tippy.js/animations/shift-away.css';
     import Toast from "$lib/components/toast.svelte";
-    import {ignorePasswordManagers} from "$lib/utilities";
+    import {ignorePasswordManagers} from "$lib/util/utilities";
 
     let user: User = $state(getContext('user'));
     let toast: Toast = getContext('toasts') as Toast

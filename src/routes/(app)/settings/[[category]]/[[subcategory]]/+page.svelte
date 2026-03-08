@@ -4,7 +4,7 @@
     import {onMount} from "svelte";
     import {page} from "$app/state";
     import type {ApplicationSettings} from "$lib/server/internal/settings";
-    import {ignorePasswordManagers} from "$lib/utilities";
+    import {ignorePasswordManagers} from "$lib/util/utilities";
 
     let {data} = $props();
 
@@ -407,7 +407,106 @@
         {#if currentView.category === 'security' && currentView.subcategory === 'privacy' }
             <div class="settings-category-header">
                 <h1 class="header-title">Privacy</h1>
-                <h3 class="header-subtitle">Coming Soon.</h3>
+                <div class="header-subtitle">
+                    <span>Telemetry is used to observe the usage of <strong>inventar</strong>. It can be toggled on and off, as you please, and is <strong style="color: var(--theme-text-accent);">100% voluntary</strong>. Telemetry helps us get a better understanding of how <strong>inventar</strong> is used, but it is simply also fascinating, and rewarding to see the statistics of <strong>inventar</strong>.</span>
+                    <span>Got any questions regarding your privacy and/or the use of your telemetry?</span>
+                    <button onclick="{() => updateView('other','faq')}">See Other#faq</button>
+                    <span><br>This instance has shared its telemetry a total of <strong style="color: var(--theme-text);">0</strong> times. Telemetry is collected and sent every midnight.</span>
+                    <!--todo Get stats from database-->
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="option toggle">
+                    <div class="top-section">
+                        <h1>Enable Telemetry</h1>
+                        <label class="toggle-container {applicationSettings.security.privacy.telemetry_enable ? 'on' : ''}">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_enable} hidden>
+                        </label>
+                    </div>
+                    <div class="bottom-section">
+                        <h3>This option enables the sending of your instance's telemetry data. Turning it off will <strong style="color: var(--theme-text-accent);">completely</strong> disable the
+                            sending of any telemetry data.</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="option toggle">
+                    <div class="top-section">
+                        <h1>Instance Identifier</h1>
+                        <label class="toggle-container on disable">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" checked={true} disabled hidden>
+                        </label>
+                    </div>
+                    <div class="bottom-section">
+                        <h3><i>Required.</i> This options enables sending this instance's identifier, along with its telemetry data, and is required, when telemetry is enabled.</h3>
+                        <h3><i>Note: All instance identifiers are generated randomly, and thus makes each instance anonymous.
+                            This means, even if all telemetry options are enabled, it would be <i style="color: var(--theme-text-accent);text-decoration:underline;">impossible</i> to identify any
+                            specific instance.</i></h3>
+                    </div>
+                </div>
+            </div>
+            <h4>Telemetry Options</h4>
+            <div class="setting-item">
+                <div class="option toggle">
+                    <div class="top-section">
+                        <h1>Country</h1>
+                        <label class="toggle-container {applicationSettings.security.privacy.telemetry_country ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_country}
+                                   disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="option toggle">
+                    <div class="top-section">
+                        <h1>Region</h1>
+                        <label class="toggle-container {applicationSettings.security.privacy.telemetry_region ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_region}
+                                   disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="option toggle {{disable: !applicationSettings.security.privacy.telemetry_enable}}">
+                    <div class="top-section">
+                        <h1>Inventories</h1>
+                        <label class="toggle-container {applicationSettings.security.privacy.telemetry_inventories ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_inventories}
+                                   disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="option toggle">
+                    <div class="top-section">
+                        <h1>Unique Items</h1>
+                        <label class="toggle-container {applicationSettings.security.privacy.telemetry_unique_items ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_unique_items}
+                                   disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="option toggle">
+                    <div class="top-section">
+                        <h1>Total Items</h1>
+                        <label class="toggle-container {applicationSettings.security.privacy.telemetry_total_items ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <div id="toggle-slider"></div>
+                            <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_total_items}
+                                   disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
+                        </label>
+                    </div>
+                </div>
             </div>
         {/if}
         {#if currentView.category === 'security' && currentView.subcategory === 'api' }
@@ -452,7 +551,7 @@
                 <h3 class="header-subtitle">Coming Soon.</h3>
             </div>
         {/if}
-        {#if !['audit', 'logs', 'tasks', 'accounts', 'privacy', 'api', 'feedback', 'faq', 'about'].includes(currentView.subcategory)}
+        {#if !['audit', 'logs', 'tasks', 'accounts', 'api', 'feedback', 'faq', 'about'].includes(currentView.subcategory)}
             <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
                 <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
                 {#if false}
@@ -462,6 +561,21 @@
                 {:else if (hasUnsavedChanges) }
                     <p class="form-submission-meta unsaved">Unsaved changes.</p>
                 {/if}
+            </div>
+        {/if}
+        {#if currentView.category === 'security' && currentView.subcategory === 'privacy' }
+            <div class="setting-extra">
+                <h4>Request Removal</h4>
+                <div class="description">
+                    <span>Wish to have your data deleted? <strong>inventar</strong> believes in the right to own your own data, and thus also the right to erasure ('the right to be forgotten'), even if your data is already fully anonymous. <strong style="color: var(--theme-text-accent);">Your data, is <i>your</i> data</strong>.</span><br><br>
+                    <span>When <strong>inventar</strong> receives a new request, the request is automatically accepted, and the process of deleting your data, <strong style="color: var(--theme-text-accent);">permanently</strong>, starts right away. The entire process is 100% automatic, and no requests are denied.*</span>
+                </div>
+                <p class="footnote">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 4V20M18 6L6 18M20 12H4M18 18L6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <i>Requests are limited to one a day</i></p>
+                <button class="theme-button">Send Request</button>
             </div>
         {/if}
     </div>
@@ -484,6 +598,8 @@
 
         box-sizing: border-box;
         overflow-y: scroll;
+        overflox-x: hidden;
+        overflow: auto;
 
         padding-top: 6rem;
 
@@ -567,11 +683,33 @@
 
             width: 58rem;
 
-            height: 100%;
+            height: fit-content;
             overflow: visible;
 
             margin-left: .35rem;
             padding: 2rem 3rem;
+
+            h4 {
+                font-family: 'FunnelDisplay', sans-serif;
+                font-size: 1.5rem;
+                font-weight: 700;
+
+                color: var(--theme-text);
+
+                margin-bottom: 1rem;
+            }
+
+            .setting-item .option h3, .settings-category-header .header-subtitle {
+                button {
+                    font-weight: bold;
+
+                    cursor: pointer;
+                }
+
+                button:hover {
+                    color: var(--theme-text-accent);
+                }
+            }
 
             .settings-category-header {
                 margin-bottom: 1rem;
@@ -585,14 +723,22 @@
 
                 .header-subtitle {
                     display: flex;
-                    flex-flow: row nowrap;
+                    flex-flow: row wrap;
                     align-items: center;
+                    align-content: flex-start;
+                    justify-content: flex-start;
                     gap: .3rem;
 
-                    font-family: 'FunnelDisplay', sans-serif;
-                    font-size: 1.1rem;
-                    font-weight: 450;
+                    font-family: 'FunnelSans', sans-serif;
+                    font-size: 1.05rem;
+                    font-weight: 550;
+
+                    text-wrap-style: pretty;
+                    white-space: preserve-breaks;
+
                     color: var(--theme-text-secondary);
+
+                    user-select: none;
 
                     a {
                         display: flex;
@@ -620,7 +766,7 @@
             }
 
             .save-settings-div {
-                margin-top: .5rem;
+                margin: 1.25rem 0;
 
                 .form-submission-meta {
                     margin-left: .75rem;
@@ -718,16 +864,6 @@
                         font-size: .9rem;
                         text-wrap-style: pretty;
                         color: var(--theme-text-secondary);
-
-                        button {
-                            font-weight: bold;
-
-                            cursor: pointer;
-                        }
-
-                        button:hover {
-                            color: var(--theme-text-accent);
-                        }
                     }
                 }
 
@@ -859,6 +995,10 @@
                                 filter: drop-shadow(0 0 .6rem rgba(0, 0, 0, 0.4));
                             }
                         }
+
+                        .toggle-container.disable {
+                            filter: grayscale(1) brightness(.9);
+                        }
                     }
                 }
 
@@ -896,6 +1036,61 @@
                             resize: none;
                         }
                     }
+                }
+            }
+
+            .setting-extra {
+                h4 {
+                    font-family: 'FunnelDisplay', sans-serif;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+
+                    color: var(--theme-text);
+
+                    margin-bottom: .5rem;
+                }
+
+                span {
+                    font-family: 'FunnelSans', sans-serif;
+                    font-size: 1.05rem;
+                    font-weight: 500;
+                    text-wrap-style: pretty;
+                    white-space: preserve-breaks;
+
+                    color: var(--theme-text-secondary);
+                }
+
+                .footnote {
+                    display: flex;
+                    flex-flow: row nowrap;
+                    font-family: 'FunnelSans', sans-serif;
+                    font-size: .95rem;
+                    font-weight: 500;
+                    text-wrap-style: pretty;
+                    white-space: preserve-breaks;
+
+                    margin: .5rem 0;
+
+                    color: var(--theme-text-third);
+
+                    svg {
+                        width: .875rem;
+                        height: .875rem;
+                    }
+                }
+
+                .theme-button {
+                    border-color: oklch(63.7% 0.237 25.331);
+                    background: oklch(0.224 0.078 26.284);
+                    color: oklch(97.1% 0.013 17.38);
+
+                    margin: 1.25rem 0;
+                }
+
+                .theme-button:hover {
+                    border-color: oklch(0.648 0.238 25.371);
+                    background: oklch(25.8% 0.092 26.042);
+                    color: #FFFFF2;
                 }
             }
         }

@@ -24,19 +24,19 @@
     import {getContext, onMount} from "svelte";
     import {page} from "$app/state";
     import type {Inventory, Item, User} from "$lib/server/db/interfaces";
-    import {parseTimestamp} from '$lib/utilities'
+    import {parseTimestamp} from '$lib/util/utilities'
     import {getInventory, getItems, getTotalItemCount, quickAdd} from './data.remote.ts';
     import {createItem} from './data.remote.ts';
     import {deleteItem, updatePrimaryInventory} from "./data.remote";
     import {Filters} from "./FilterHandler.svelte";
-    import {ignorePasswordManagers} from "$lib/utilities";
+    import {ignorePasswordManagers} from "$lib/util/utilities";
     import {blur} from "svelte/transition";
 
     const latestIcons: number[] = [99, 99, 99];
 
     const user: User = $state(getContext('user'));
 
-    type TableItemSize = 'small' | 'medium' | 'large';
+    type TableItemSize = 'small' | 'large';
 
     /* Variable declarations */
     //todo: Add option to save filters, and make them persistent for the user.
@@ -51,8 +51,10 @@
     let offset = $derived(filters.rowAmount * (currentPage - 1));
     let inventory: Inventory | undefined = $state();
     let isLoaded: boolean = $derived(inventory !== undefined);
+
     getInventory(String(page.params.id)).then(async (res) => {
         inventory = res;
+        itemCount = await getTotalItemCount(inventory.uuid);
         await refresh();
     });
     //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
@@ -87,20 +89,20 @@
      */
     async function updatePage(difference: number) {
         const newPage = currentPage + difference;
+        if (newPage === currentPage) return;
 
         // Ensure the new page is legal.
         if (newPage < 1) goToFirstPage();
         else if (newPage > totalPages) goToLastPage();
         else currentPage += difference;
+
+        refresh();
     }
 
     async function refresh() {
         if (!inventory) return;
-        await getTotalItemCount(inventory.uuid).refresh();
-        getTotalItemCount(inventory.uuid).then((res) => itemCount = res);
-
         await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
-        getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).then((res) => items = res);
+        items = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset});
     }
 
     function getRandomIcon(): string {
@@ -160,17 +162,6 @@
                                         <path d="M15 9l6 -6"/>
                                         <path d="M19 15l-4 0l0 4"/>
                                         <path d="M15 15l6 6"/>
-                                    </svg>
-                                </button>
-                                <div class="size-switcher-button-seperator"></div>
-                                <button class="{tableSize==='medium'?'selected':''}" title="medium" onclick="{() => tableSize = 'medium'}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                         stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M4 8v-2a2 2 0 0 1 2 -2h2"/>
-                                        <path d="M4 16v2a2 2 0 0 0 2 2h2"/>
-                                        <path d="M16 4h2a2 2 0 0 1 2 2v2"/>
-                                        <path d="M16 20h2a2 2 0 0 0 2 -2v-2"/>
                                     </svg>
                                 </button>
                                 <div class="size-switcher-button-seperator"></div>
@@ -394,7 +385,7 @@
                                     </div>
                                 </form>
                                 <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;gap:.4rem;margin:.5rem 0;">
-                                    <button form="item-creator-form" type="submit" class="theme-button" onclick="{() => window.location.href = window.location.href.concat('/add')}">
+                                    <button form="item-creator-form" type="submit" class="theme-button" onclick="{() => window.location.href = window.location.href.concat('/item/new')}">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                              stroke-linejoin="round">
                                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -442,7 +433,7 @@
                             {#if isLoaded }
                                 {#if items.length > 0 }
                                     {#each items as item}
-                                        <a data-sveltekit-preload-data="tap" href='/' target='_parent' class="inventory-list-entry">
+                                        <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-list-entry">
                                             <div class="entry-item image">
                                                 {#if item.image }
                                                     <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
@@ -1007,7 +998,6 @@
 
             .inventory-list-container,
             .inventory-list-container.small,
-            .inventory-list-container.medium,
             .inventory-list-container.large {
                 transition: var(--theme-transition-in),
                 transform var(--theme-transition-out);
@@ -1024,7 +1014,8 @@
                 color: var(--theme-text);
 
                 width: 90vw;
-                min-width: 80rem;
+                min-width: 60rem;
+                max-width: 125rem;
 
                 .inventory-header {
                     border-width: var(--theme-border-width);
@@ -1040,6 +1031,8 @@
                         width: 100%;
 
                         padding: 0 1.5rem;
+
+                        transition: padding 75ms ease;
 
                         .header-item {
                             flex: 1;
@@ -1278,6 +1271,11 @@
 
             .inventory-list-container.small {
                 .inventory-header {
+                    .header-items {
+                        padding-left: 1rem;
+                        transition: padding 75ms ease;
+                    }
+
                     .header-item:first-child {
                         flex: 1 35%;
                         justify-content: flex-start;
@@ -1295,7 +1293,8 @@
                 }
 
                 .inventory-list-entry {
-                    height: 2.5rem;
+                    padding-left: 1rem;
+                    height: 2.475rem;
 
                     .quick-delete {
                         margin-top: .425rem;
@@ -1326,6 +1325,7 @@
                         .name {
                             margin: 0;
                             padding: 0;
+                            font-weight: 450;
                         }
 
                         .description {
@@ -1342,7 +1342,7 @@
                 }
             }
 
-            .inventory-list-container.medium {
+            .inventory-list-container.large {
                 .inventory-header {
                     .header-item:first-child {
                         flex: 1 35%;
@@ -1438,126 +1438,6 @@
                     }
                 }
             }
-
-            .inventory-list-container.large {
-                .inventory-header {
-                    padding-left: 5.25rem;
-
-                    .header-item:first-child {
-                        flex: 1 35%;
-                        justify-content: flex-start;
-                        margin-right: 2rem;
-                    }
-
-                    .header-item {
-                        flex: 1;
-                    }
-
-                    .header-item:last-child {
-                        margin-right: 2.75rem;
-                    }
-                }
-
-                .inventory-list {
-                    .inventory-list-entry:first-child {
-                        border-top-color: transparent;
-                    }
-
-                    .inventory-list-entry {
-                        height: 12rem;
-                        font-family: 'FunnelSans', sans-serif;
-
-                        z-index: 20;
-
-                        .quick-delete {
-                            padding: 0 1rem;
-
-                            button {
-                                width: 2.5rem;
-                                height: 2.5rem;
-                            }
-                        }
-
-                        .entry-item.image {
-                            flex: 0;
-                            visibility: visible;
-
-                            margin-right: 1.25rem;
-                            padding: 0;
-
-                            width: 4rem;
-
-                            svg {
-                                width: 4rem;
-                                height: 4rem;
-                                padding: 0;
-                                margin: 0;
-                            }
-
-                            img {
-                                width: 4rem;
-                                height: 4rem;
-                                padding: 0;
-                                margin: 0;
-                            }
-                        }
-
-                        .entry-item {
-                            flex: 1;
-                        }
-
-                        .meta {
-                            flex: 1 35%;
-
-                            display: flex;
-                            flex-flow: column nowrap;
-                            align-items: flex-start;
-                            justify-content: flex-start;
-
-                            .name {
-                                font-weight: 700;
-                                font-size: 1.75rem;
-                                max-width: 50rem;
-                                line-clamp: 1 !important;
-                                text-overflow: ellipsis;
-                                overflow: hidden;
-                                text-wrap: nowrap;
-                            }
-
-                            .description {
-                                font-size: .9rem;
-                                color: var(--theme-text-third);
-                                line-clamp: 2 !important;
-                                text-overflow: ellipsis;
-                                max-width: 50rem;
-                                overflow: hidden;
-
-                                transition: color 300ms 100ms ease;
-                            }
-                        }
-
-                        .price, .amount, .updated {
-                            text-align: center;
-                        }
-                    }
-
-                    .name {
-                        flex: 1 0 70%;
-                        justify-content: center;
-                    }
-
-                    .price {
-                        flex: 1 0 10%;
-                        justify-content: center;
-                    }
-
-                    .amount {
-                        flex: 1 0 10%;
-                        justify-content: center;
-                    }
-                }
-            }
-
         }
     }
 </style>

@@ -1,7 +1,7 @@
 <script lang="ts">
     import {getInventories} from './data.remote.ts';
     import type {Inventory} from "$lib/server/db/interfaces";
-    import {parseTimestamp} from "$lib/utilities";
+    import {parseTimestamp} from "$lib/util/utilities";
 
     /* todo Make inventory fetch async, to allow page loading from cache if there's no connection to the database. */
 

@@ -3,7 +3,7 @@ import type {Cookies, RequestEvent} from '@sveltejs/kit';
 import {sha256} from '@oslojs/crypto/sha2';
 import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
 import type {Session} from "$lib/server/db/interfaces";
-import {DAY_IN_MS} from '$lib/utilities';
+import {DAY_IN_MS} from '$lib/util/utilities';
 import {EMAIL_REGEX} from "valibot";
 import utilities from "$lib/server/internal/utilities";
 import {Auth} from "$lib/server/db/database";

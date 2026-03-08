@@ -520,6 +520,18 @@ export class Items {
         return result[0].amount ?? 0;
     }
 
+    static async getItem(uuid: string): Promise<Item|undefined> {
+        const result: Item[] = await sql`SELECT *
+                                         FROM items
+                                         WHERE uuid = ${uuid}`
+            .catch((err: any): Item[] => {
+                LOGGER.error(`Items#fetchTotalItemCount[0]: Database request failed. `, err)
+                return [];
+            });
+
+        return result[0] ?? undefined;
+    }
+
     /**
      * todo
      * @param uuid

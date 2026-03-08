@@ -4,7 +4,7 @@
     import {getContext} from "svelte";
     import type {UserSettings} from "$lib/components/settings/UserSettings";
     import Sessions from "$lib/components/Sessions.svelte";
-    import { ignorePasswordManagers } from "$lib/utilities";
+    import { ignorePasswordManagers } from "$lib/util/utilities";
 
     const user: User = $derived(getContext('user'));
 

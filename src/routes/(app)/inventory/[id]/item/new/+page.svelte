@@ -1,6 +1,6 @@
 <script lang="ts">
     import {createItem} from "./data.remote"
-    import { ignorePasswordManagers } from "$lib/utilities";
+    import { ignorePasswordManagers } from "$lib/util/utilities";
 </script>
 
 <section class="item-creator-section">

@@ -53,7 +53,12 @@ export interface ApplicationSettings {
         },
         accounts: undefined,
         privacy: {
-            daily_usage_ping: boolean
+            telemetry_enable: boolean,
+            telemetry_country: boolean,
+            telemetry_region: boolean,
+            telemetry_inventories: boolean,
+            telemetry_unique_items: boolean,
+            telemetry_total_items: boolean
         },
         api: undefined
     },
@@ -92,7 +97,12 @@ const defaultSettings: ApplicationSettings = {
         },
         accounts: undefined,
         privacy: {
-            daily_usage_ping: true
+            telemetry_enable: true,
+            telemetry_country: true,
+            telemetry_region: true,
+            telemetry_inventories: true,
+            telemetry_unique_items: true,
+            telemetry_total_items: true
         },
         api: undefined
     },
