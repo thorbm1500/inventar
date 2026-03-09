@@ -9,8 +9,6 @@ export const APPLICATION: string = await Bun.file('./package.json').json().then(
 const DEFAULT_LOG_DIRECTORY = 'logs'; //todo: Inherit from Application Settings.
 const ERROR_LOG_DIRECTORY = 'logs/error'; //todo: Inherit from Application Settings.
 
-const AsyncFunction = async function () {}.constructor;
-
 export const enum LogLevel {
     DEBUG = 0,
     WAIT = 0,
@@ -204,12 +202,12 @@ export class Logger {
                         }
                     }
 
-                    return `[${Math.round(time * multiplier) / multiplier}${suffix}]`;
+                    return ` [${Math.round(time * multiplier) / multiplier}${suffix}]`;
                 }
             }
         }
 
-        return `[${Math.trunc(time)}${suffix}]`;
+        return ` [${Math.trunc(time)}${suffix}]`;
     }
 
     async timed(startLog: string, endLog: string, callback: Function): Promise<void> {
@@ -218,7 +216,7 @@ export class Logger {
         const startTime: number = Bun.nanoseconds();
         await this.executeCallback(callback);
 
-        this.done(endLog.concat(` `, this.parseTimeResult(startTime, Bun.nanoseconds())))
+        this.done(endLog.concat(this.parseTimeResult(startTime, Bun.nanoseconds())))
     }
 
     timedSync(startLog: string, endLog: string, callback: Function): void {
@@ -227,7 +225,7 @@ export class Logger {
         const startTime: number = Bun.nanoseconds();
         callback();
 
-        this.done(endLog.concat(` `, this.parseTimeResult(startTime, Bun.nanoseconds())))
+        this.done(endLog.concat(this.parseTimeResult(startTime, Bun.nanoseconds())))
     }
 
     /**

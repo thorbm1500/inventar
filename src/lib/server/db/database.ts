@@ -5,6 +5,7 @@ import currencies from "$lib/server/db/components/currencies";
 import colors from "$lib/server/db/components/colors";
 import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
+import {units} from "$lib/server/db/components/units";
 
 const sql: SQL = new SQL({
     adapter: 'mysql',
@@ -50,6 +51,14 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'currencies'. `, err));
 
+    await sql`CREATE TABLE IF NOT EXISTS units
+              (
+                  unit VARCHAR(24) NOT NULL,
+                  type VARCHAR(12) NOT NULL,
+                  PRIMARY KEY (unit)
+              )`
+        .catch((err: any): void => LOGGER.error(`Failed to create table 'units'. `, err));
+
     /*
    todo: If account of owner is attempted deleted;
     Check for other members with access, prompt if inventory should be deleted, or transferred. If not other accounts has access, delete inventory.
@@ -89,9 +98,9 @@ async function ensureTables(): Promise<void> {
               (
                   uuid              CHAR(36)                             NOT NULL,
                   email             VARCHAR(254)                         NOT NULL,
-                  password_hash     VARCHAR(100)                         NOT NULL,
+                  password_hash     VARCHAR(255)                         NOT NULL,
                   username          VARCHAR(64)                          NOT NULL,
-                  profile_picture   VARCHAR(2000)                        NULL,
+                  profile_picture   TEXT                                 NULL,
                   reset_token       CHAR(36)                             NULL,
                   primary_inventory CHAR(36)                             NULL,
                   preferred_theme   VARCHAR(5) DEFAULT 'dark'            NOT NULL,
@@ -150,35 +159,6 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'inventory_access'. `, err));
 
-    //todo: Expand to allow for custom colors in the future.
-    await sql`CREATE TABLE IF NOT EXISTS labels
-              (
-                  inventory CHAR(36)                         NOT NULL,
-                  uuid      CHAR(36)                         NOT NULL,
-                  name      VARCHAR(32)                      NOT NULL,
-                  color     TINYINT(24) UNSIGNED DEFAULT '1' NOT NULL,
-                  PRIMARY KEY (inventory, uuid),
-                  CONSTRAINT labels_uuid_u
-                      UNIQUE (uuid),
-                  CONSTRAINT labels_inventory_fk
-                      FOREIGN KEY (inventory) REFERENCES inventories (uuid)
-                          ON DELETE CASCADE
-              )`
-        .catch((err: any): void => LOGGER.error(`Failed to create table 'labels'. `, err));
-
-    await sql`CREATE TABLE IF NOT EXISTS default_label_colors
-              (
-                  id              TINYINT(24) NOT NULL,
-                  border          CHAR(9)     NOT NULL,
-                  background      CHAR(9)     NOT NULL,
-                  dark_border     CHAR(9)     NOT NULL,
-                  dark_background CHAR(9)     NOT NULL,
-                  PRIMARY KEY (id),
-                  CONSTRAINT default_label_colors_id_u
-                      UNIQUE (id)
-              )`
-        .catch((err: any): void => LOGGER.error(`Failed to create table 'default_label_colors'. `, err));
-
     await sql`CREATE TABLE IF NOT EXISTS items
               (
                   inventory           CHAR(36)                                 NOT NULL,
@@ -187,14 +167,16 @@ async function ensureTables(): Promise<void> {
                   description         TEXT(255)                                NULL,
                   amount              INT(255)       DEFAULT 0                 NOT NULL,
                   reserved_amount     INT(255)       DEFAULT 0                 NOT NULL,
-                  pending_amount      INT(255)       DEFAULT 0                 NOT NULL,
                   reserved_expiration TIMESTAMP                                NULL,
+                  pending_amount      INT(255)       DEFAULT 0                 NOT NULL,
                   pending_expiration  TIMESTAMP                                NULL,
-                  image               VARCHAR(2000)                            NULL,
-                  url                 VARCHAR(2000)                            NULL,
+                  part_number         VARCHAR(32)                              NULL,
+                  unit_type           VARCHAR(42)                              NOT NULL,
+                  unit                VARCHAR(42)                              NOT NULL,
+                  image               TEXT                                     NULL,
+                  url                 TEXT                                     NULL,
                   price               DECIMAL(50, 2) DEFAULT 0.00              NOT NULL,
                   currency            CHAR(3)        DEFAULT 'N/A'             NOT NULL,
-                  part_number         VARCHAR(32)                              NULL,
                   created_by          CHAR(36)                                 NOT NULL,
                   last_update         TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP,
                   created_at          TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -204,30 +186,14 @@ async function ensureTables(): Promise<void> {
                   CONSTRAINT items_inventory_fk
                       FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                           ON DELETE CASCADE,
+                  CONSTRAINT items_unit_fk
+                      FOREIGN KEY (unit) REFERENCES units (unit),
                   CONSTRAINT items_currency_fk
                       FOREIGN KEY (currency) REFERENCES currencies (code),
                   CONSTRAINT items_created_by_fk
                       FOREIGN KEY (created_by) REFERENCES users (uuid)
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'items'. `, err));
-
-    await sql`CREATE TABLE IF NOT EXISTS item_labels
-              (
-                  inventory CHAR(36) NOT NULL,
-                  item      CHAR(36) NOT NULL,
-                  label     CHAR(36) NOT NULL,
-                  PRIMARY KEY (inventory, item, label),
-                  CONSTRAINT item_labels_inventory_fk
-                      FOREIGN KEY (inventory) REFERENCES inventories (uuid)
-                          ON DELETE CASCADE,
-                  CONSTRAINT item_labels_item_fk
-                      FOREIGN KEY (item) REFERENCES items (uuid)
-                          ON DELETE CASCADE,
-                  CONSTRAINT item_labels_label_fk
-                      FOREIGN KEY (label) REFERENCES labels (uuid)
-                          ON DELETE CASCADE
-              )`
-        .catch((err: any): void => LOGGER.error(`Failed to create table 'item_labels'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS sessions
               (
@@ -282,7 +248,7 @@ async function ensureConstraints(): Promise<void> {
             return [];
         });
 
-    if (constraint[0].name !== 'inventories_owner_fk') {
+    if (constraint[0]?.name !== 'inventories_owner_fk') {
         await sql`ALTER TABLE inventories
             ADD CONSTRAINT inventories_owner_fk
                 FOREIGN KEY (owner) REFERENCES users (uuid)`
@@ -307,14 +273,10 @@ async function ensureDefaultValues(): Promise<void> {
             .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'currencies'. `, err))
     }
 
-    for (const row of colors) {
-        await sql`INSERT INTO default_label_colors (id, border, background, dark_border, dark_background)
-                  VALUES (${row.id}, ${row.border}, ${row.background}, ${row.dark_border}, ${row.dark_background})
-                  ON DUPLICATE KEY UPDATE border=${row.border},
-                                          background=${row.background},
-                                          dark_border=${row.dark_border},
-                                          dark_background=${row.dark_background}`
-            .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'default_label_colors'. `, err))
+    for (const row of units) {
+        await sql`INSERT IGNORE INTO units (unit, type)
+                  VALUES (${row.unit}, ${row.type})`
+            .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'units'. `, err))
     }
 }
 
