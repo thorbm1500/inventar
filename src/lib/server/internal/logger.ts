@@ -9,6 +9,8 @@ export const APPLICATION: string = await Bun.file('./package.json').json().then(
 const DEFAULT_LOG_DIRECTORY = 'logs'; //todo: Inherit from Application Settings.
 const ERROR_LOG_DIRECTORY = 'logs/error'; //todo: Inherit from Application Settings.
 
+const AsyncFunction = async function () {}.constructor;
+
 export const enum LogLevel {
     DEBUG = 0,
     WAIT = 0,
@@ -159,6 +161,73 @@ export class Logger {
     fatal(...data: any[]): void {
         // Will be logged regardless of current level, due to being the highest possible level.
         this.log(LogLevel.FATAL, LogPrefix.FATAL, ...data);
+    }
+
+    private async executeCallback(callback: Function): Promise<void> {
+        try {
+            await callback();
+        } catch (err: any) {
+            this.error(`Failed to execute timed log. `, err);
+        }
+    }
+
+    private parseTimeResult(start: number, end: number): string {
+        const multiplier = Math.pow(10, 1);
+
+        let time = end - start;
+        let suffix = 'ns';
+
+        if (time > 999) {
+            time = time / 1000;
+            suffix = 'µs'
+
+            if (time > 999) {
+                time = time / 1000;
+                suffix = 'ms';
+
+                if (time > 9999) {
+                    time = time / 1000;
+                    suffix = 's';
+
+                    if (time > 59) {
+                        time = time / 60;
+                        suffix = 'm';
+
+                        if (time > 59) {
+                            time = time / 60;
+                            suffix = 'h';
+
+                            if (time > 23) {
+                                time = time / 24;
+                                suffix = 'd';
+                            }
+                        }
+                    }
+
+                    return `[${Math.round(time * multiplier) / multiplier}${suffix}]`;
+                }
+            }
+        }
+
+        return `[${Math.trunc(time)}${suffix}]`;
+    }
+
+    async timed(startLog: string, endLog: string, callback: Function): Promise<void> {
+        this.wait(startLog);
+
+        const startTime: number = Bun.nanoseconds();
+        await this.executeCallback(callback);
+
+        this.done(endLog.concat(` `, this.parseTimeResult(startTime, Bun.nanoseconds())))
+    }
+
+    timedSync(startLog: string, endLog: string, callback: Function): void {
+        this.wait(startLog);
+
+        const startTime: number = Bun.nanoseconds();
+        callback();
+
+        this.done(endLog.concat(` `, this.parseTimeResult(startTime, Bun.nanoseconds())))
     }
 
     /**

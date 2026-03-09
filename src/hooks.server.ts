@@ -29,21 +29,18 @@ async function shutdown(reason?: any): Promise<void> {
  * Initializes the database, and ensures all tables, and default values are present.
  */
 export const init: ServerInit = async (): Promise<void> => {
-    LOGGER.wait('Initializing server...');
-    const startTime: number = Bun.nanoseconds();
+    await LOGGER.timed('Initializing server...','Server initialized.', async () => {
+        // Skip database initialization if project is building.
+        if (!building) {
+            process.once('SIGINT', shutdown);
+            process.once('sveltekit:shutdown', shutdown);
 
-    // Skip database initialization if project is building.
-    if (!building) {
-        process.once('SIGINT', shutdown);
-        process.once('sveltekit:shutdown', shutdown);
+            LOGGER.debug('Shutdown hooks registered.');
 
-        LOGGER.debug('Shutdown hooks registered.');
-
-        if (env.INIT_DB !== 'false') await initializeDatabase();
-        cron.initializeJobs();
-    }
-
-    LOGGER.done(`Server initialized. [`, Math.round((Bun.nanoseconds() - startTime) / 1000000), 'ms]')
+            if (env.INIT_DB !== 'false') await initializeDatabase();
+            cron.initializeJobs();
+        }
+    });
 }
 
 export const handleError: HandleServerError = async ({ error, event, status, message }) => {

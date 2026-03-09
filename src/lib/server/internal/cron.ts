@@ -10,7 +10,8 @@ async function databaseGarbageCollection(): Promise<void> {
     const startTime: number = Date.now();
     let collected: number = 0;
 
-    const results = await getConnection()`SELECT * FROM sessions`
+    const results = await getConnection()`SELECT *
+                                          FROM sessions`
 
     const currentTime: number = Date.now();
     const tmp: string[] = [];
@@ -23,12 +24,17 @@ async function databaseGarbageCollection(): Promise<void> {
         }
     }
 
-    for(const session_id in tmp) {
-        await getConnection()`DELETE FROM sessions WHERE session_id = ${session_id}`
-        collected++;
-    }
+    await getConnection().begin(tx => {
+        for (const session_id in tmp) {
+            tx`DELETE
+               FROM sessions
+               WHERE session_id = ${session_id}`
+            collected++;
+        }
+    })
+        .catch((err: any): void => LOGGER.error(`Failed to delete expired sessions. `, err));
 
-    LOGGER.info(`Database Garbage Collection finished. ${collected} expired session${collected===1?'':'s'} removed. [${Date.now() - startTime}ms]`);
+    LOGGER.info(`Database Garbage Collection finished. ${collected} expired session${collected === 1 ? '' : 's'} removed. [${Date.now() - startTime}ms]`);
 }
 
 function initializeJobs(): void {
