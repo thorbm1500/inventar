@@ -77,23 +77,6 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'inventories'. `, err));
 
-    await sql`CREATE TABLE IF NOT EXISTS inventory_settings
-              (
-                  uuid        CHAR(36)                   NOT NULL,
-                  category    VARCHAR(24)                NOT NULL,
-                  subcategory VARCHAR(24)                NOT NULL,
-                  type        VARCHAR(24)                NOT NULL,
-                  title       VARCHAR(32)                NOT NULL,
-                  subtitle    TINYTEXT                   NULL,
-                  value       VARCHAR(255)               NOT NULL,
-                  readonly    TINYINT(1)       DEFAULT 0 NOT NULL,
-                  \`order\`   TINYINT UNSIGNED DEFAULT 0 NOT NULL,
-                  PRIMARY KEY (uuid, category, subcategory, title),
-                  CONSTRAINT inventory_settings_uuid_fk
-                      FOREIGN KEY (uuid) REFERENCES inventories (uuid) ON DELETE CASCADE
-              )`
-        .catch((err: any): void => LOGGER.error(`Failed to create table 'inventory_settings'. `, err));
-
     await sql`CREATE TABLE IF NOT EXISTS users
               (
                   uuid              CHAR(36)                             NOT NULL,
@@ -114,50 +97,6 @@ async function ensureTables(): Promise<void> {
                       FOREIGN KEY (primary_inventory) REFERENCES inventories (uuid)
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'users'. `, err));
-
-    await sql`CREATE TABLE IF NOT EXISTS user_settings
-              (
-                  uuid              CHAR(36)                   NOT NULL,
-                  category          VARCHAR(24)                NOT NULL,
-                  subcategory       VARCHAR(24)                NOT NULL,
-                  type              VARCHAR(24)                NOT NULL,
-                  title             VARCHAR(32)                NOT NULL,
-                  subtitle          TINYTEXT                   NULL,
-                  value             VARCHAR(255)               NOT NULL,
-                  readonly          TINYINT(1)       DEFAULT 0 NOT NULL,
-                  category_order    TINYINT UNSIGNED DEFAULT 0 NOT NULL,
-                  subcategory_order TINYINT UNSIGNED DEFAULT 0 NOT NULL,
-                  setting_order     TINYINT UNSIGNED DEFAULT 0 NOT NULL,
-                  PRIMARY KEY (uuid, category, subcategory, title),
-                  CONSTRAINT user_settings_uuid_fk
-                      FOREIGN KEY (uuid) REFERENCES users (uuid) ON DELETE CASCADE
-              )`
-        .catch((err: any): void => LOGGER.error(`Failed to create table 'user_settings'. `, err));
-
-    await sql`CREATE TABLE IF NOT EXISTS inventory_access
-              (
-                  inventory        CHAR(36)             NOT NULL,
-                  user             CHAR(36)             NOT NULL,
-                  edit_inventory   TINYINT(1) DEFAULT 0 NOT NULL,
-                  delete_inventory TINYINT(1) DEFAULT 0 NOT NULL,
-                  view_items       TINYINT(1) DEFAULT 0 NOT NULL,
-                  create_items     TINYINT(1) DEFAULT 0 NOT NULL,
-                  edit_items       TINYINT(1) DEFAULT 0 NOT NULL,
-                  delete_items     TINYINT(1) DEFAULT 0 NOT NULL,
-                  view_users       TINYINT(1) DEFAULT 0 NOT NULL,
-                  add_users        TINYINT(1) DEFAULT 0 NOT NULL,
-                  edit_users       TINYINT(1) DEFAULT 0 NOT NULL,
-                  remove_users     TINYINT(1) DEFAULT 0 NOT NULL,
-                  view_audit       TINYINT(1) DEFAULT 0 NOT NULL,
-                  PRIMARY KEY (inventory, user),
-                  CONSTRAINT inventory_access_inventory_fk
-                      FOREIGN KEY (inventory) REFERENCES inventories (uuid)
-                          ON DELETE CASCADE,
-                  CONSTRAINT inventory_access_user_fk
-                      FOREIGN KEY (user) REFERENCES users (uuid)
-                          ON DELETE CASCADE
-              )`
-        .catch((err: any): void => LOGGER.error(`Failed to create table 'inventory_access'. `, err));
 
     await sql`CREATE TABLE IF NOT EXISTS items
               (
