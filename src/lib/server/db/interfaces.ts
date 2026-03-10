@@ -77,7 +77,6 @@ export interface User {
     profile_picture?: string,
     primary_inventory?: string,
     preferred_theme: PageTheme,
-    last_login: number,
     created_at: number,
     superuser: boolean
 }

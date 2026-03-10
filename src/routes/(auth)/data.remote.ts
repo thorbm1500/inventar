@@ -102,8 +102,6 @@ export const login = form(
             return {success: false, message: 'Incorrect username or password'};
         }
 
-        await db.Users.updateLastLogin(user.uuid);
-
         const sessionToken: string = auth.generateSessionToken();
         const session: Session = await auth.createSession(sessionToken, user.uuid);
         auth.setSessionTokenCookie(sessionToken, session.expires);

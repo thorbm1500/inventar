@@ -2,16 +2,20 @@ import {LOGGER} from "../../../hooks.server";
 import {randomUUIDv7, SQL} from "bun";
 import type {Currency, Inventory, Item, PageTheme, ResetRequest, Session, User} from "$lib/server/db/interfaces";
 import currencies from "$lib/server/db/components/currencies";
-import colors from "$lib/server/db/components/colors";
 import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
 import {units} from "$lib/server/db/components/units";
+
+/**
+ * This database uses the native Bun SQL bindings. <br>
+ * Read more about it here: https://bun.com/docs/runtime/sql
+ */
 
 const sql: SQL = new SQL({
     adapter: 'mysql',
     max: 4,
     bigint: true,
-    onconnect: (err) => {
+    onconnect: (err): void => {
         if (err) {
             LOGGER.error(`Failed to connect to database. `, err);
         } else {
@@ -20,12 +24,18 @@ const sql: SQL = new SQL({
     }
 });
 
+/**
+ * Returns the {@link sql} connection variable. This method is only
+ * for convenience, and should not be used for permanent actions.
+ */
 export function getConnection(): SQL {
     return sql;
 }
 
 /**
- * todo
+ * This method initializes the database, ensuring all tables,
+ * and their default values are present, as well as all constraints for each table.
+ * This method is called one, during the server load, at startup.
  */
 export async function init(): Promise<void> {
     await ensureTables();
@@ -68,7 +78,7 @@ async function ensureTables(): Promise<void> {
                   uuid        CHAR(36)                            NOT NULL,
                   owner       CHAR(36)                            NOT NULL,
                   name        VARCHAR(64)                         NOT NULL,
-                  description TEXT(255)                           NULL,
+                  description TEXT                                NULL,
                   last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                   PRIMARY KEY (uuid),
@@ -84,15 +94,19 @@ async function ensureTables(): Promise<void> {
                   password_hash     VARCHAR(255)                         NOT NULL,
                   username          VARCHAR(64)                          NOT NULL,
                   profile_picture   TEXT                                 NULL,
-                  reset_token       CHAR(36)                             NULL,
                   primary_inventory CHAR(36)                             NULL,
                   preferred_theme   VARCHAR(5) DEFAULT 'dark'            NOT NULL,
-                  last_login        TIMESTAMP  DEFAULT CURRENT_TIMESTAMP NOT NULL,
                   created_at        TIMESTAMP  DEFAULT CURRENT_TIMESTAMP NOT NULL,
                   superuser         TINYINT(1) DEFAULT 0                 NOT NULL,
                   PRIMARY KEY (uuid),
                   CONSTRAINT users_uuid_u
                       UNIQUE (uuid),
+                  CONSTRAINT users_email_u
+                      UNIQUE (email),
+                  CONSTRAINT users_username_u
+                      UNIQUE (username),
+                  CONSTRAINT users_profile_picture_u
+                      UNIQUE (profile_picture),
                   CONSTRAINT users_primary_inventory_fk
                       FOREIGN KEY (primary_inventory) REFERENCES inventories (uuid)
               )`
@@ -103,13 +117,13 @@ async function ensureTables(): Promise<void> {
                   inventory           CHAR(36)                                 NOT NULL,
                   uuid                CHAR(36)                                 NOT NULL,
                   name                VARCHAR(120)                             NOT NULL,
-                  description         TEXT(255)                                NULL,
+                  description         TEXT                                     NULL,
                   amount              INT(255)       DEFAULT 0                 NOT NULL,
                   reserved_amount     INT(255)       DEFAULT 0                 NOT NULL,
                   reserved_expiration TIMESTAMP                                NULL,
                   pending_amount      INT(255)       DEFAULT 0                 NOT NULL,
                   pending_expiration  TIMESTAMP                                NULL,
-                  part_number         VARCHAR(32)                              NULL,
+                  part_number         VARCHAR(64)                              NULL,
                   unit_type           VARCHAR(42)                              NOT NULL,
                   unit                VARCHAR(42)                              NOT NULL,
                   image               TEXT                                     NULL,
@@ -187,14 +201,11 @@ async function ensureConstraints(): Promise<void> {
             return [];
         });
 
-    if (constraint[0]?.name !== 'inventories_owner_fk') {
+    if (constraint.length === 0 || constraint[0]?.name !== 'inventories_owner_fk') {
         await sql`ALTER TABLE inventories
             ADD CONSTRAINT inventories_owner_fk
                 FOREIGN KEY (owner) REFERENCES users (uuid)`
-            .catch((err: any): [] => {
-                LOGGER.error(`Failed to add constraint 'fk_owner' to table 'inventories'. `, err);
-                return [];
-            });
+            .catch((err: any): void => LOGGER.error(`Failed to add constraint 'fk_owner' to table 'inventories'. `, err));
     }
 }
 
@@ -204,6 +215,12 @@ async function ensureConstraints(): Promise<void> {
 async function ensureDefaultValues(): Promise<void> {
     LOGGER.debug(`Ensuring default values...`);
 
+    /**
+     * Adds all the currencies to the currency table.
+     * ID should theoretically never change, hence why it's the primary key.
+     * If any of the currencies' values changes, they'll be updated as well,
+     * to allow for adding more formats at any time.
+     */
     for (const row of currencies) {
         await sql`INSERT INTO currencies (id, code, format)
                   VALUES (${row.id}, ${row.code}, ${row.format ?? '%value%'})
@@ -212,6 +229,12 @@ async function ensureDefaultValues(): Promise<void> {
             .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'currencies'. `, err))
     }
 
+    /**
+     * Adds all the units for the units table.
+     * Unlike currencies, this table doesn't have any value we can rely on,
+     * to not change, so any changes in the future will have to be done
+     * manually.
+     */
     for (const row of units) {
         await sql`INSERT IGNORE INTO units (unit, type)
                   VALUES (${row.unit}, ${row.type})`
@@ -220,7 +243,8 @@ async function ensureDefaultValues(): Promise<void> {
 }
 
 /**
- * todo
+ * This method returns all the currencies from the database.
+ * @return List of currencies as {@link Currency} object.
  */
 export async function getCurrencies(): Promise<Currency[]> {
     return await sql`SELECT *
@@ -233,7 +257,7 @@ export async function getCurrencies(): Promise<Currency[]> {
 }
 
 /**
- * todo
+ * A Helper class for dealing with Inventories in the database.
  */
 export class Inventories {
     /**
@@ -339,6 +363,9 @@ export class Inventories {
     }
 }
 
+/**
+ * A Helper class for dealing with Items in the database.
+ */
 export class Items {
     /**
      * todo
@@ -421,7 +448,7 @@ export class Items {
         return result[0].amount ?? 0;
     }
 
-    static async getItem(uuid: string): Promise<Item|undefined> {
+    static async getItem(uuid: string): Promise<Item | undefined> {
         const result: Item[] = await sql`SELECT *
                                          FROM items
                                          WHERE uuid = ${uuid}`
@@ -446,7 +473,7 @@ export class Items {
 }
 
 /**
- * todo
+ * A Helper class for dealing with Users in the database.
  */
 export class Users {
     /**
@@ -533,17 +560,6 @@ export class Users {
                   SET password_hash = ${passwordHash}
                   WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#setPasswordHash[0]: Database request failed. `, err));
-    }
-
-    /**
-     * todo
-     * @param uuid
-     */
-    static async updateLastLogin(uuid: string): Promise<void> {
-        await sql`UPDATE users
-                  SET last_login = CURRENT_TIMESTAMP
-                  WHERE uuid = ${uuid}`
-            .catch((err: any): void => LOGGER.error(`Users#updateLastLogin[0]: Database request failed. `, err));
     }
 
     /**
@@ -645,7 +661,7 @@ export class Users {
 }
 
 /**
- * todo
+ * A Helper class for dealing with Auth in the database.
  */
 export class Auth {
     /**
