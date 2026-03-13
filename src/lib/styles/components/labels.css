@@ -1,0 +1,75 @@
+.label {
+    border: var(--theme-border-width) solid var(--theme-border-input-focus);
+    border-radius: .65rem;
+    background: var(--theme-border-button);
+    padding: .125rem .325rem;
+
+    color: #F3F3EE;
+    font-family: 'FunnelDisplay', sans-serif;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+.label.green {
+    border-color: oklch(84.1% 0.238 128.85);
+    background: oklch(0.478 0.125 133.092);
+}
+
+.dark .label.green {
+    background: oklch(27.4% 0.072 132.109);
+}
+
+.label.blue {
+    border-color: oklch(68.5% 0.169 237.323);
+    background: oklch(0.391 0.087 244.156);
+}
+
+.dark .label.blue {
+    background: oklch(29.3% 0.066 243.157);
+}
+
+.label.purple {
+    border-color: oklch(67.3% 0.182 276.935);
+    background: oklch(0.395 0.138 281.176);
+}
+
+.dark .label.purple {
+    background: oklch(25.7% 0.09 281.288);
+}
+
+
+.label.pink {
+    border-color: oklch(71.8% 0.202 349.761);
+    background: oklch(0.416 0.189 325.813);
+}
+
+.dark .label.pink {
+    background: oklch(29.3% 0.136 325.661);
+}
+
+.label.yellow {
+    border-color: oklch(90.5% 0.182 98.111);
+    background: oklch(0.433 0.085 75.735);
+}
+
+.dark .label.yellow {
+    background: oklch(28.6% 0.066 53.813);
+}
+
+.label.orange {
+    border-color: oklch(75% 0.183 55.934);
+    background: oklch(0.4 0.098 50.547);
+}
+
+.dark .label.orange {
+    background: oklch(27.9% 0.077 45.635);
+}
+
+.label.red {
+    border-color: oklch(63.7% 0.237 25.331);
+    background: oklch(0.327 0.121 26.821);
+}
+
+.dark .label.red {
+    background: oklch(25.8% 0.092 26.042);
+}

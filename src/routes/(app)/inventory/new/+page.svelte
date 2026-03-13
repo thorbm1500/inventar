@@ -102,8 +102,8 @@
             height: fit-content;
 
             input::selection, textarea::selection {
-                color: #FFFFF2;
-                background: var(--theme-text-accent);
+                color: var(--theme-color-white);
+                background: var(--theme-color-accent);
             }
 
             input, textarea {
@@ -196,7 +196,7 @@
                     scrollbar-width: thin;
                     scrollbar-gutter: stable;
                     scroll-behavior: smooth;
-                    scrollbar-color: var(--theme-text-accent) transparent;
+                    scrollbar-color: var(--theme-color-accent) transparent;
                     resize: none;
                 }
             }

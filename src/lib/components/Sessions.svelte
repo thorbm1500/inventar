@@ -232,8 +232,8 @@
                         }
 
                         .last_active.active::before {
-                            background: var(--theme-text-accent);
-                            filter: drop-shadow(0 0 .25rem rgba(from var(--theme-text-accent) r g b / .35));
+                            background: var(--theme-color-accent);
+                            filter: drop-shadow(0 0 .25rem rgba(from var(--theme-color-accent) r g b / .35));
                         }
 
                         .last_active.inactive::before {

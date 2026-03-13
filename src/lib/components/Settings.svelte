@@ -162,8 +162,8 @@
                 }
 
                 .nav-link.selected {
-                    color: #0D0D0D;
-                    background: var(--theme-text-accent);
+                    color: var(--theme-color-black);
+                    background: var(--theme-color-accent);
                     border-radius: .4em;
 
                     transition: 50ms ease-in-out;
@@ -185,7 +185,7 @@
                 overflow: auto;
                 scrollbar-gutter: stable;
                 scrollbar-width: thin;
-                scrollbar-color: var(--theme-text-accent) transparent;
+                scrollbar-color: var(--theme-color-accent) transparent;
                 min-height: 18rem;
                 border: var(--theme-border-width) solid var(--theme-border-container);
                 border-radius: var(--theme-border-radius);
@@ -278,8 +278,8 @@
                         }
 
                         input::selection {
-                            color: #0D0D0D;
-                            background: var(--theme-text-accent);
+                            color: var(--theme-color-black);
+                            background: var(--theme-color-accent);
                         }
 
                         input:focus, textarea:focus {
@@ -327,7 +327,7 @@
 
                         .readonly-container::selection {
                             color: #141514;
-                            background: var(--theme-text-accent);
+                            background: var(--theme-color-accent);
                         }
                     }
 
@@ -371,7 +371,7 @@
 
                                     transform: translateX(-.925rem);
 
-                                    background: #FFFFF2;
+                                    background: var(--theme-color-white);
                                     border-radius: 100%;
 
                                     transition: 100ms;
@@ -380,9 +380,9 @@
                             }
 
                             .toggle-container.on {
-                                background: var(--theme-text-accent) !important;
+                                background: var(--theme-color-accent) !important;
                                 border-color: oklch(0.676 0.173 130.222) !important;
-                                filter: drop-shadow(0 0 .4rem rgba(from var(--theme-text-accent) r g b / 15%));
+                                filter: drop-shadow(0 0 .4rem rgba(from var(--theme-color-accent) r g b / 15%));
 
                                 #toggle-slider {
                                     transform: translateX(.925rem);
@@ -422,7 +422,7 @@
                                 scrollbar-width: thin;
                                 scrollbar-gutter: stable;
                                 scroll-behavior: smooth;
-                                scrollbar-color: var(--theme-text-accent) transparent;
+                                scrollbar-color: var(--theme-color-accent) transparent;
                                 resize: none;
                             }
                         }

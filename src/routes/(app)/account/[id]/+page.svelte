@@ -38,15 +38,13 @@
             border: var(--theme-border-width) solid var(--theme-border-container);
             border-radius: var(--theme-border-radius);
 
-            color: var(--theme-text);
-
             width: 72rem;
             height: 48rem;
 
             margin: calc(50vh - (24rem + (var(--theme-height-header) / 2))) auto;
 
             p {
-                color: #FFFFF2;
+                color: var(--theme-text);
             }
 
             .profile-picture {
@@ -79,6 +77,7 @@
                     align-items: baseline;
 
                     svg {
+                        color: var(--theme-color-base);
                         margin-right: .5rem;
                         height: 1.751rem;
                         width: 1.75rem;

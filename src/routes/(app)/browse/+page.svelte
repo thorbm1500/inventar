@@ -249,7 +249,7 @@
 
             .create-inventory-button {
                 .theme-button:hover svg {
-                    fill: var(--theme-text-accent) !important;
+                    fill: var(--theme-color-accent) !important;
                 }
             }
         }
@@ -435,7 +435,7 @@
                     background: var(--theme-background-button-hover);
 
                     svg {
-                        stroke: var(--theme-text-accent);
+                        stroke: var(--theme-color-accent);
                         transition: 50ms ease-in-out;
                     }
 
@@ -554,7 +554,7 @@
                         background: var(--theme-background-button-hover);
 
                         svg {
-                            stroke: var(--theme-text-accent);
+                            stroke: var(--theme-color-accent);
                             transition: 50ms ease-in-out;
                         }
 

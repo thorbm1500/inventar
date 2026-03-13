@@ -194,12 +194,12 @@
 
         left: calc(50vw - 5.5rem);
 
-        background: var(--theme-text-danger);
+        background: var(--theme-color-danger);
         border-radius: .75rem;
 
         font-family: 'FunnelSans', sans-serif;
         font-weight: 500;
-        color: #FFFFF2;
+        color: var(--theme-color-white);
 
         svg {
             animation: offline-shake 1.5s infinite ease;
@@ -253,7 +253,7 @@
             flex-flow: row nowrap;
             align-items: center;
             gap: .5rem;
-            color: var(--theme-text);
+            color: var(--theme-color-base);
 
             a {
                 display: flex;
@@ -419,7 +419,7 @@
         }
 
         .action.logout:hover {
-            color: var(--theme-text-danger);
+            color: var(--theme-color-danger);
         }
     }
 
@@ -457,7 +457,7 @@
             gap: .5em;
 
             font-family: 'ArchivoBold', sans-serif;
-            color: #FFFFF2;
+            color: var(--theme-color-white);
 
             background: var(--theme-background-offline);
 
@@ -548,13 +548,6 @@
                             stroke: var(--theme-icon);
 
                             transition-duration: 125ms;
-                        }
-
-                        .blue-hover:hover {
-                            stroke: var(--theme-text-accent);
-                            stroke-width: 2;
-
-                            transition-duration: 75ms;
                         }
                     }
                 }

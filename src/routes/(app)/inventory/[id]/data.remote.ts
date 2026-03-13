@@ -57,8 +57,8 @@ export const quickAdd = form(v.object({
     inventoryUuid: v.pipe(v.string(), v.nonEmpty('Error: No UUID found. The UUID of the inventory must be given, when new items are created!')),
     name: v.pipe(v.string(), v.nonEmpty('Error: No name found. A name must be provided when creating new items.')),
     amount: v.number()
-}), async ({user,inventoryUuid,name,amount}) => {
-    const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, undefined, amount);
+}), async ({user, inventoryUuid, name, amount}) => {
+    const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, amount);
 
     if (!item) {
         LOGGER.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);
@@ -74,14 +74,14 @@ export const createItem = form(
         inventoryUuid: v.pipe(v.string(), v.nonEmpty('Error: No UUID found. The UUID of the inventory must be given, when new items are created!')),
         name: v.pipe(v.string(), v.nonEmpty('Error: No name found. A name must be provided when creating new items.')),
         description: v.optional(v.string(), undefined),
-        amount: v.number(),
+        amount: v.optional(v.number(), 0),
         price: v.optional(v.number(), 0),
         currency: v.optional(v.string(), 'DKK'),
         external: v.optional(v.string(), undefined),
         image: v.optional(v.file(), undefined)
     }),
     async ({user, inventoryUuid, name, description, amount, price, currency, external, image}) => {
-        const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, description, amount, (image as File)?.name ?? undefined, external, price, currency);
+        const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, amount, {description, image: (image as File)?.name ?? undefined, url: external, price, currency});
 
         if (!item) {
             LOGGER.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);

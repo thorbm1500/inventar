@@ -105,13 +105,13 @@
                 min-height: 10rem;
                 max-height: 16rem;
 
-                scrollbar-color: var(--theme-text-accent) transparent;
+                scrollbar-color: var(--theme-color-accent) transparent;
                 scrollbar-width: thin;
             }
 
             input:focus, textarea:focus {
                 box-shadow: none;
-                border-bottom-color: var(--theme-text-accent);
+                border-bottom-color: var(--theme-color-accent);
 
                 transition: border-bottom-color 75ms ease;
             }

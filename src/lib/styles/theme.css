@@ -1,6 +1,14 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+    /* Theme independent values */
+    --theme-color-base: #0D0D0DFF;
+    --theme-color-accent: oklch(0.836 0.215 127.081);
+    --theme-color-danger: oklch(0.641 0.228 19.02);
+    --theme-color-white: #FFFFF2FF;
+    --theme-color-black: #0D0D0DFF;
+    /* - - - - - - - - - - - - */
+
     --theme-text: #0D0D0D;
     --theme-text-secondary: #363636;
     --theme-text-third: #6a7282;
@@ -44,6 +52,8 @@
 }
 
 .dark {
+    --theme-color-base: #FFFFF2FF;
+
     --theme-text: #FFFFF2;
     --theme-text-secondary: #c0c4cc;
     --theme-text-third: #6a7282;

@@ -79,7 +79,7 @@
                 }
 
                 .sign-in:hover {
-                    color: #FFFFF2;
+                    color: var(--theme-color-white);
 
                     transition: 50ms ease;
                 }
@@ -104,8 +104,8 @@
                     font-weight: 400;
                     background: #1f2023;
                     border: .122em solid #464b65;
-                    color: #FFFFF2;
-                    accent-color: var(--theme-text-accent);
+                    color: var(--theme-color-white);
+                    accent-color: var(--theme-color-accent);
                 }
 
                 input:focus {
@@ -129,7 +129,7 @@
                     background: oklch(0.233 0.015 279.523);
                     border: .12em solid oklch(0.302 0.011 271.028);
                     border-radius: .6em;
-                    color: #FFFFF2;
+                    color: var(--theme-color-white);
                     cursor: pointer;
                 }
 

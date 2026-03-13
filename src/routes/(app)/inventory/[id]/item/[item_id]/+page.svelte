@@ -322,12 +322,12 @@
 
                 polyline {
                     fill: none;
-                    stroke: var(--theme-text-accent);
+                    stroke: var(--theme-color-accent);
                     stroke-width: 2;
                     stroke-linejoin: round;
                     stroke-linecap: round;
 
-                    filter: drop-shadow(0 0 .15rem rgba(from var(--theme-text-accent) r g b / .1));
+                    filter: drop-shadow(0 0 .15rem rgba(from var(--theme-color-accent) r g b / .1));
                 }
 
                 line {

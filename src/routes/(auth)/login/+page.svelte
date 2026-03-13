@@ -43,10 +43,10 @@
 
         .inventar-logo {
             margin: 0 0 1.5rem 0;
-            fill: #FFFFF2 !important;
+            fill: var(--theme-color-white) !important;
 
             img {
-                fill: #FFFFF2 !important;
+                fill: var(--theme-color-white) !important;
                 justify-self: center;
                 max-width: clamp(22rem, 26rem, 75vw);
                 height: auto;
@@ -83,8 +83,8 @@
                     border-width: .122em;
                     border-style: solid;
                     border-color: #505779;
-                    color: #FFFFF2;
-                    accent-color: var(--theme-text-accent);
+                    color: var(--theme-color-white);
+                    accent-color: var(--theme-color-accent);
                 }
 
                 input:invalid {
@@ -109,7 +109,7 @@
                     background: #14161c;
                     border: var(--theme-border-width) solid #505779;
                     border-radius: var(--theme-border-radius);
-                    color: #FFFFF2;
+                    color: var(--theme-color-white);
                     pointer-events: all;
                 }
 
@@ -131,7 +131,7 @@
         }
 
         .forgot-password:hover {
-            color: #FFFFF2;
+            color: var(--theme-color-white);
 
             transition: 50ms ease;
         }

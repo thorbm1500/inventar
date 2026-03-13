@@ -148,6 +148,16 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'items'. `, err));
 
+    await sql`CREATE TABLE IF NOT EXISTS labels
+              (
+                  inventory CHAR(36)    NOT NULL,
+                  name      VARCHAR(24) NOT NULL,
+                  color     VARCHAR(24) NOT NULL,
+                  PRIMARY KEY (inventory, name),
+                  CONSTRAINT labels_inventory_fk
+                      FOREIGN KEY (inventory) REFERENCES inventories (uuid)
+              )`
+
     await sql`CREATE TABLE IF NOT EXISTS sessions
               (
                   uuid          CHAR(36)                                                  NOT NULL,
@@ -372,19 +382,23 @@ export class Items {
      * @param created_by
      * @param inventory
      * @param name
-     * @param description
      * @param amount
-     * @param image
-     * @param url
-     * @param price
-     * @param currency
+     * @param options
      */
-    static async create(created_by: string, inventory: string, name: string, description?: string, amount: number = 0, image?: string,
-                        url?: string, price: number = 0, currency: string = 'DKK'): Promise<Item | undefined> {
+    static async create(created_by: string, inventory: string, name: string, amount: number = 0, options?: {
+        description?: string,
+        image?: string,
+        unit_type?: string,
+        unit?: string,
+        url?: string,
+        price?: number,
+        currency?: string
+    }): Promise<Item | undefined> {
         const uuid: string = randomUUIDv7();
 
-        await sql`INSERT INTO items (uuid, created_by, inventory, name, description, amount, image, url, price, currency)
-                  VALUES (${uuid}, ${created_by}, ${inventory}, ${name}, ${description ?? null}, ${amount}, ${image ?? null}, ${url ?? null}, ${price}, ${currency})`
+        await sql`INSERT INTO items (uuid, created_by, inventory, name, amount, unit_type, unit, description, image, url, price, currency)
+                  VALUES (${uuid}, ${created_by}, ${inventory}, ${name}, ${amount}, ${options?.unit_type ?? 'count'}, ${options?.unit ?? 'piece'}, ${options?.description ?? null}, ${options?.image ?? null}, ${options?.url ?? null}, ${options?.price ?? 0.00},
+                          ${options?.currency ?? 'EUR'})`
             .catch((err: any): void => LOGGER.error(`Items#create[0]: Database request failed. ${err.name}`, err));
 
         const result: Item[] = await sql`SELECT *

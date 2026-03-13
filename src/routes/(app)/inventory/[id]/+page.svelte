@@ -132,7 +132,7 @@
                                 updatePrimaryInventory({user: user.uuid, inventory_uuid: user.primary_inventory});
                             }}>
                                     {#if user.primary_inventory === inventory?.uuid }
-                                        <svg style="color:var(--theme-text-accent);" width="24" height="24" viewBox="0 0 24 24">
+                                        <svg style="color:var(--theme-color-accent);" width="24" height="24" viewBox="0 0 24 24">
                                             <path fill="currentColor" fill-rule="evenodd"
                                                   d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6"
                                                   clip-rule="evenodd"/>
@@ -445,7 +445,15 @@
                                                 {/if}
                                             </div>
                                             <div class="entry-item meta">
-                                                <h1 class="name">{item.name}</h1>
+                                                <div class="name-label">
+                                                    <h1 class="name">{item.name}</h1>
+                                                    <div class="label blue">
+                                                        Refurbished
+                                                    </div>
+                                                    <div class="label green">
+                                                        Category
+                                                    </div>
+                                                </div>
                                                 <span class="description">
                                                         {#if item.description}
                                                                 {item.description}
@@ -570,7 +578,7 @@
     }
 
     .page-content {
-        color: #FFFFF2;
+        color: var(--theme-color-white);
     }
 
     .inventory-list * {
@@ -751,7 +759,7 @@
 
                     .filters-button.open, .create-item-button.open {
                         color: var(--theme-text-accent);
-                        fill: var(--theme-text-accent);
+                        fill: var(--theme-color-accent);
 
                         transition: var(--theme-transition-in);
                     }
@@ -1221,7 +1229,7 @@
                         .inventory-meta {
                             .inventory-image {
                                 svg {
-                                    stroke: var(--theme-text-accent);
+                                    stroke: var(--theme-color-accent);
                                     transition: stroke 75ms ease;
                                 }
                             }
@@ -1322,12 +1330,6 @@
                         height: fit-content;
                         max-height: 2rem !important;
 
-                        .name {
-                            margin: 0;
-                            padding: 0;
-                            font-weight: 450;
-                        }
-
                         .description {
                             visibility: hidden;
                             position: absolute;
@@ -1335,8 +1337,23 @@
                     }
 
                     .entry-item.meta {
-                        .description {
-                            visibility: hidden;
+                        .name-label {
+                            display: flex;
+                            flex-flow: row nowrap;
+                            align-items: center;
+                            justify-content: flex-start;
+                            gap: .3rem;
+
+                            .name {
+                                margin: 0;
+                                padding-right: .4rem;
+                                font-size: 1.05rem;
+                                font-weight: 550;
+                            }
+
+                            .label {
+
+                            }
                         }
                     }
                 }
