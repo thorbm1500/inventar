@@ -10,16 +10,27 @@ import {Auth} from "$lib/server/db/database";
 
 export const sessionCookieName = 'auth-session';
 
+/**
+ * todo
+ */
 export function generateSessionToken(): string {
-    const bytes = crypto.getRandomValues(new Uint8Array(18));
+    const bytes: Uint8Array<ArrayBuffer> = crypto.getRandomValues(new Uint8Array(18));
     return encodeBase64url(bytes);
 }
 
+/**
+ * todo
+ */
 export function generateResetToken(): string {
-    const bytes = crypto.getRandomValues(new Uint8Array(18));
+    const bytes: Uint8Array<ArrayBuffer> = crypto.getRandomValues(new Uint8Array(18));
     return encodeBase64url(bytes).toLowerCase();
 }
 
+/**
+ * todo
+ * @param token
+ * @param uuid
+ */
 export async function createResetRequest(token: string, uuid: string): Promise<void> {
     const resetToken: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
     await Auth.setResetToken(uuid, resetToken);
@@ -43,10 +54,20 @@ export async function createSession(token: string, uuid: string): Promise<Sessio
     return session;
 }
 
+/**
+ * todo
+ * @param session_id
+ * @param event
+ */
 async function ensureSessionInformation(session_id: string, event: RequestEvent): Promise<void> {
     await utilities.handleSessionInformation(session_id, event);
 }
 
+/**
+ * todo
+ * @param token
+ * @param event
+ */
 export async function validateSessionToken(token: string, event: RequestEvent): Promise<Session | null> {
     const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
     const session: Session | undefined = await Auth.getSession(session_id);
@@ -75,6 +96,12 @@ export async function validateSessionToken(token: string, event: RequestEvent): 
 
 export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionToken>>;
 
+/**
+ * todo
+ * @param token
+ * @param expires
+ * @param event
+ */
 export function setSessionTokenCookie(token: string, expires: number, event: RequestEvent | undefined = undefined): void {
     const cookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
     const expiration = new Date();
@@ -86,6 +113,10 @@ export function setSessionTokenCookie(token: string, expires: number, event: Req
     });
 }
 
+/**
+ * todo
+ * @param event
+ */
 export function deleteSessionTokenCookie(event: RequestEvent | undefined = undefined): void {
     const cookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
     cookies.delete(sessionCookieName, {
@@ -94,23 +125,38 @@ export function deleteSessionTokenCookie(event: RequestEvent | undefined = undef
     });
 }
 
+/**
+ * todo
+ * @param username
+ */
 export function validateUsername(username: unknown): username is string {
     return (
-        typeof username === 'string' &&
-        username.length >= 3 &&
-        username.length <= 31 &&
-        /^[a-z0-9_-]+$/.test(username)
+        typeof username === 'string' && // Ensure username is of type string
+        (username.length >= 3 && username.length <= 31) && // Ensure username length
+        /^[a-zA-Z0-9_-]+$/.test(username) && // Ensure only allowed characters are present
+        /^[a-zA-Z][0-9_-]*[a-zA-Z][0-9_-]*[a-zA-Z]/.test(username) // Ensure username contains at least 3 letters
     );
 }
 
+/**
+ * todo
+ * @param email
+ */
 export function validateEmail(email: unknown): email is string {
     return typeof email === 'string' && email.length <= 64 && EMAIL_REGEX.test(email);
 }
 
+/**
+ * todo
+ * @param password
+ */
 export function validatePassword(password: unknown): password is string {
     return typeof password === 'string' && password.length >= 32 && password.length <= 255;
 }
 
+/**
+ * todo
+ */
 export function generateRegistrationToken(): string {
     return encodeHexLowerCase(sha256(new TextEncoder().encode(encodeBase64url(crypto.getRandomValues(new Uint8Array(128))))));
 }

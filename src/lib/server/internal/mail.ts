@@ -11,6 +11,11 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+/**
+ * todo
+ * @param email
+ * @param token
+ */
 export async function sendPasswordResetLink(email: string, token: string): Promise<void> {
     const url: string = String(env.PUBLIC_URL ? env.PUBLIC_URL : 'http://localhost:5731/reset-password/');
     const PUBLIC_URL: string = url.endsWith('/') ? url.concat('reset-password/') : url.concat('reset-password/');

@@ -5,6 +5,9 @@ import {APPLICATION_VERSION, LOGGER} from "../../../hooks.server.ts";
 
 const settingsFile: BunFile = file('/etc/inventar/settings.json5');
 
+/**
+ * todo
+ */
 export async function getSettings(): Promise<ApplicationSettings> {
     await ensureDirectories();
     await ensureSettingsFile();
@@ -12,19 +15,25 @@ export async function getSettings(): Promise<ApplicationSettings> {
     return JSON5.parse(await settingsFile.text()) as ApplicationSettings;
 }
 
+/**
+ * todo
+ */
 async function ensureDirectories(): Promise<void> {
-    const first = await fs.mkdir('/etc/inventar', {recursive: true});
+    const first: string | undefined = await fs.mkdir('/etc/inventar', {recursive: true});
     if (first) LOGGER.debug(`Created directory /etc/inventar`);
 
-    const second = await fs.mkdir('/etc/inventar/logs', {recursive: true});
+    const second: string | undefined = await fs.mkdir('/etc/inventar/logs', {recursive: true});
     if (second) LOGGER.debug(`Created directory /etc/inventar/logs`);
 
-    const third = await fs.mkdir('/etc/inventar/data', {recursive: true});
+    const third: string | undefined = await fs.mkdir('/etc/inventar/data', {recursive: true});
     if (third) LOGGER.debug(`Created directory /etc/inventar/data`);
 
     if (first || second || third) LOGGER.debug(`All missing directories, have been created.`);
 }
 
+/**
+ * todo
+ */
 async function ensureSettingsFile(): Promise<void> {
     const existing: boolean = await fs.exists('/etc/inventar/settings.json5');
     if (!existing) await write('/etc/inventar/settings.json5', JSON5.stringify(defaultSettings,null,2) ?? 'Failed to write settings to file.');

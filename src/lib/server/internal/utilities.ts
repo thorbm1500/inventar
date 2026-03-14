@@ -21,6 +21,10 @@ const IPHONE_REGEX = new RegExp(/(iPhone)/, 'i');
 const IPAD_REGEX = new RegExp(/(iPad)/, 'i');
 const MAC_REGEX = new RegExp(/(Macintosh|Mac OS)/, 'i');
 
+/**
+ * todo
+ * @param logOnFailure
+ */
 function isOffline(logOnFailure: boolean = false): boolean {
     const browserConnectionState = navigator.onLine;
 
@@ -31,6 +35,10 @@ function isOffline(logOnFailure: boolean = false): boolean {
     return browserConnectionState;
 }
 
+/**
+ * todo
+ * @param userAgentHeader
+ */
 function isCrawler(userAgentHeader: string | null): boolean {
     return userAgentHeader ? CRAWLER_REGEX.test(userAgentHeader) : true;
 }
@@ -45,6 +53,11 @@ declare interface HeaderExtractionResponse {
     platform?: string,
 }
 
+/**
+ * todo
+ * @param header
+ * @param options
+ */
 function extractHeaderData(header: string | null, options?: HeaderExtractionOptions): HeaderExtractionResponse {
     let device;
     let platform;
@@ -69,6 +82,11 @@ function extractHeaderData(header: string | null, options?: HeaderExtractionOpti
     return {device, platform};
 }
 
+/**
+ * todo
+ * @param session_id
+ * @param event
+ */
 async function handleSessionInformation(session_id: string, event: RequestEvent): Promise<void> {
     if (!(await Auth.isSessionInformationMissing(session_id))) return;
 
@@ -92,4 +110,4 @@ async function handleSessionInformation(session_id: string, event: RequestEvent)
     });
 }
 
-export default {isOffline, isCrawler, extractHeaderData, handleSessionInformation, BROWSER_OFFLINE_RESPONSE, EMAIL_REGEX};
+export default {isOffline, isCrawler, handleSessionInformation, BROWSER_OFFLINE_RESPONSE, EMAIL_REGEX};

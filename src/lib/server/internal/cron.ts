@@ -5,12 +5,15 @@ import {getConnection} from "$lib/server/db/database";
 
 const DATABASE_CLEANUP = new Cron("0 0 */24 * * *");
 
+/**
+ * todo
+ */
 async function databaseGarbageCollection(): Promise<void> {
     LOGGER.debug(`Database Garbage Collection running...`);
     const startTime: number = Date.now();
     let collected: number = 0;
 
-    const results = await getConnection()`SELECT *
+    const results: any = await getConnection()`SELECT *
                                           FROM sessions`
 
     const currentTime: number = Date.now();
@@ -37,6 +40,9 @@ async function databaseGarbageCollection(): Promise<void> {
     LOGGER.info(`Database Garbage Collection finished. ${collected} expired session${collected === 1 ? '' : 's'} removed. [${Date.now() - startTime}ms]`);
 }
 
+/**
+ * todo
+ */
 function initializeJobs(): void {
     LOGGER.wait('Scheduling cron jobs...');
     if (!DATABASE_CLEANUP.isRunning()) {
