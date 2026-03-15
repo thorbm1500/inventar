@@ -8,7 +8,9 @@
 
     let {data} = $props();
 
+    // svelte-ignore state_referenced_locally
     let applicationSettings: ApplicationSettings = $state(data.settings);
+    // svelte-ignore state_referenced_locally
     let savedSettings: ApplicationSettings = data.settings;
 
     const currentView = $state({
