@@ -1,29 +1,30 @@
 import {getRequestEvent} from '$app/server';
 import type {Cookies, RequestEvent} from '@sveltejs/kit';
-import {sha256} from '@oslojs/crypto/sha2';
-import {encodeBase64url, encodeHexLowerCase} from '@oslojs/encoding';
-import type {Session} from "$lib/server/db/interfaces";
+import type {ResetRequest, Session} from '$lib/server/db/interfaces';
 import {DAY_IN_MS} from '$lib/util/utilities';
-import {EMAIL_REGEX} from "valibot";
-import utilities from "$lib/server/internal/utilities";
-import {Auth} from "$lib/server/db/database";
+import {EMAIL_REGEX} from 'valibot';
+import utilities from '$lib/server/internal/utilities';
+import {Auth} from '$lib/server/db/database';
+import cookies from '$lib/server/internal/components/Cookies';
 
-export const sessionCookieName = 'auth-session';
-
-/**
- * todo
- */
-export function generateSessionToken(): string {
-    const bytes: Uint8Array<ArrayBuffer> = crypto.getRandomValues(new Uint8Array(18));
-    return encodeBase64url(bytes);
+declare interface CryptoOptions {
+    encoding?: Bun.DigestEncoding,
+    key?: string,
+    seed?: Bun.BlobOrStringOrBuffer
 }
 
 /**
  * todo
+ * @param options
  */
-export function generateResetToken(): string {
-    const bytes: Uint8Array<ArrayBuffer> = crypto.getRandomValues(new Uint8Array(18));
-    return encodeBase64url(bytes).toLowerCase();
+function getSha512(options?: CryptoOptions): string {
+    const sha: Bun.SHA512 = options?.key ? new Bun.CryptoHasher('sha512', options.key) : new Bun.SHA512();
+
+    if (options?.seed) {
+        sha.update(options.seed);
+    }
+
+    return sha.digest(options?.encoding ?? 'hex');
 }
 
 /**
@@ -31,9 +32,25 @@ export function generateResetToken(): string {
  * @param token
  * @param uuid
  */
-export async function createResetRequest(token: string, uuid: string): Promise<void> {
-    const resetToken: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    await Auth.setResetToken(uuid, resetToken);
+export async function createResetRequest(uuid: string): Promise<string> {
+    const token: string = getSha512();
+    await Auth.setResetToken(uuid, getSha512({key: token, seed: uuid}));
+    return token;
+}
+
+/**
+ * todo
+ * @param uuid
+ * @param session_id
+ */
+export async function validateResetRequestToken(uuid: string, session_id: string): Promise<string | null> {
+    const resetRequest: ResetRequest | undefined = await Auth.getResetRequest(uuid);
+    if (!resetRequest) return null;
+
+    const token: string = getSha512({key: session_id, seed: uuid});
+    await Auth.deleteResetToken(uuid);
+
+    return token === resetRequest.token ? token : null;
 }
 
 /**
@@ -41,17 +58,17 @@ export async function createResetRequest(token: string, uuid: string): Promise<v
  * @param token Token for the session id.
  * @param uuid The user's uuid.
  */
-export async function createSession(token: string, uuid: string): Promise<Session> {
-    const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
+export async function createSession(uuid: string): Promise<Session> {
+    const session_id: string = getSha512();
+    const token: string = getSha512({encoding: 'base64url', key: session_id, seed: cookies.Session});
 
-    const session: Session = {
+    await Auth.newSession(uuid, token);
+
+    return {
         uuid,
         session_id,
-        expires: 0
+        expires: await Auth.getSessionExpiration(token)
     };
-    await Auth.newSession(session);
-
-    return session;
 }
 
 /**
@@ -59,18 +76,9 @@ export async function createSession(token: string, uuid: string): Promise<Sessio
  * @param session_id
  * @param event
  */
-async function ensureSessionInformation(session_id: string, event: RequestEvent): Promise<void> {
-    await utilities.handleSessionInformation(session_id, event);
-}
-
-/**
- * todo
- * @param token
- * @param event
- */
-export async function validateSessionToken(token: string, event: RequestEvent): Promise<Session | null> {
-    const session_id: string = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
-    const session: Session | undefined = await Auth.getSession(session_id);
+export async function validateSessionToken(session_id: string, event: RequestEvent): Promise<Session | null> {
+    const token: string = getSha512({encoding: 'base64url', key: session_id, seed: cookies.Session});
+    const session: Session | undefined = await Auth.getSession(token);
 
     if (!session) {
         deleteSessionTokenCookie();
@@ -79,17 +87,17 @@ export async function validateSessionToken(token: string, event: RequestEvent): 
 
     const isSessionExpired: boolean = Date.now() >= session.expires;
     if (isSessionExpired) {
-        await Auth.invalidateSession(session_id);
+        await Auth.invalidateSession(token);
         return null;
     }
 
     const renewSession: boolean = Date.now() >= (session.expires - DAY_IN_MS * 3);
     if (renewSession) {
-        await Auth.renewSession(session);
+        await Auth.renewSession(token);
     }
 
-    await Auth.updateLastAccess(session_id);
-    await ensureSessionInformation(session_id, event);
+    await Auth.updateLastAccess(token);
+    await utilities.handleSessionInformation(token, event);
 
     return session;
 }
@@ -98,15 +106,14 @@ export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionT
 
 /**
  * todo
- * @param token
- * @param expires
+ * @param session
  * @param event
  */
-export function setSessionTokenCookie(token: string, expires: number, event: RequestEvent | undefined = undefined): void {
-    const cookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
+export function setSessionCookie(session: Session, event?: RequestEvent): void {
+    const eventCookies: Cookies = event?.cookies ?? getRequestEvent().cookies;
     const expiration = new Date();
-    expiration.setTime(expires);
-    cookies.set(sessionCookieName, token, {
+    expiration.setTime(session.expires);
+    eventCookies.set(cookies.Session, session.session_id, {
         expires: expiration,
         path: '/',
         secure: false
@@ -118,8 +125,8 @@ export function setSessionTokenCookie(token: string, expires: number, event: Req
  * @param event
  */
 export function deleteSessionTokenCookie(event: RequestEvent | undefined = undefined): void {
-    const cookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
-    cookies.delete(sessionCookieName, {
+    const eventCookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
+    eventCookies.delete(cookies.Session, {
         path: '/',
         secure: false
     });
@@ -132,9 +139,9 @@ export function deleteSessionTokenCookie(event: RequestEvent | undefined = undef
 export function validateUsername(username: unknown): username is string {
     return (
         typeof username === 'string' && // Ensure username is of type string
-        (username.length >= 3 && username.length <= 31) && // Ensure username length
-        /^[a-zA-Z0-9_-]+$/.test(username) && // Ensure only allowed characters are present
-        /^[a-zA-Z][0-9_-]*[a-zA-Z][0-9_-]*[a-zA-Z]/.test(username) // Ensure username contains at least 3 letters
+        (username.length >= 3 && username.length <= 32) && // Ensure username length
+        /^[a-zA-Z0-9_-]{3,32}$/.test(username) && // Ensure only allowed characters are present
+        /[0-9_-]*[a-zA-Z][0-9_-]*[a-zA-Z][0-9_-]*[a-zA-Z]/.test(username) // Ensure username contains at least 3 letters
     );
 }
 
@@ -143,7 +150,7 @@ export function validateUsername(username: unknown): username is string {
  * @param email
  */
 export function validateEmail(email: unknown): email is string {
-    return typeof email === 'string' && email.length <= 64 && EMAIL_REGEX.test(email);
+    return typeof email === 'string' && email.length <= 254 && EMAIL_REGEX.test(email);
 }
 
 /**
@@ -151,12 +158,17 @@ export function validateEmail(email: unknown): email is string {
  * @param password
  */
 export function validatePassword(password: unknown): password is string {
-    return typeof password === 'string' && password.length >= 32 && password.length <= 255;
+    return typeof password === 'string' && // Ensure password is of type string
+        (password.length >= 32 && password.length <= 255) && // Ensure password length
+        /(?=[A-Z][^A-Z]*[A-Z][^A-Z]*[A-Z][^A-Z]*[A-Z][^A-Z]*)/.test(password) && // Ensure at least 4 uppercase letters are present
+        /(?=[a-z][^a-z]*[a-z][^a-z]*[a-z][^a-z]*[a-z][^a-z]*)/.test(password) && // Ensure at least 4 lowercase letters are present
+        /(?=\W\w*\W\w*\W\w*\W)/.test(password) && // Ensure at least 4 symbols are present
+        /(?=\d\D*\d\D*\d\D*\d\D*)/.test(password); // Ensure at least 4 numbers are present
 }
 
 /**
  * todo
  */
 export function generateRegistrationToken(): string {
-    return encodeHexLowerCase(sha256(new TextEncoder().encode(encodeBase64url(crypto.getRandomValues(new Uint8Array(128))))));
+    return getSha512();
 }

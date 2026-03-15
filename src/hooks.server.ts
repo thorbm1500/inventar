@@ -1,4 +1,3 @@
-import * as db from '$lib/server/db/database';
 import initializeDatabase from '$lib/server/db/index';
 import type {Session, User} from "$lib/server/db/interfaces";
 import * as auth from '$lib/server/internal/auth';
@@ -9,15 +8,37 @@ import utilities from "$lib/server/internal/utilities";
 import cron from "$lib/server/internal/cron";
 import {Logger, LogLevel} from "$lib/server/internal/logger";
 import {type ApplicationSettings, getSettings} from "$lib/server/internal/settings";
+import cookies from "$lib/server/internal/components/Cookies";
+import {Auth, Users} from "$lib/server/db/database";
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
 
 /**
+ * This database uses the native Bun SQL bindings. <br>
+ * Read more about it here: https://bun.com/docs/runtime/sql
+ */
+export const SQL: Bun.SQL = new Bun.SQL({
+    adapter: 'mysql',
+    max: 10,
+    idleTimeout: 0,
+    maxLifetime: 0,
+    connectionTimeout: 60,
+    bigint: true,
+    onconnect: (err): void => {
+        if (err) {
+            LOGGER.error(`Failed to connect to database. `, err);
+        } else {
+            LOGGER.debug('New database connection established.');
+        }
+    }
+});
+
+/**
  * Initializes the database, and ensures all tables, and default values are present.
  */
 export const init: ServerInit = async (): Promise<void> => {
-    await LOGGER.timed('Initializing server...','Server initialized.', async () => {
+    await LOGGER.timed('Initializing server...', 'Server initialized.', async (): Promise<void> => {
 
         // Skip database initialization if project is building.
         if (!building) {
@@ -36,14 +57,13 @@ async function shutdown(reason?: any): Promise<void> {
     LOGGER.debug(`Shutdown request received. Reason: `, reason);
     LOGGER.info(`Shutting down...`);
 
-    await db.getConnection()?.end();
-    LOGGER.debug(`Database connection closed.`);
+    await LOGGER.timed(`Closing database connection.`,`Connection closed.`,SQL.close);
     LOGGER.destroy();
 
     process.exit();
 }
 
-export const handleError: HandleServerError = async ({ error, event, status, message }) => {
+export const handleError: HandleServerError = async ({error}) => {
     const errorMessage: string = (error as Error)?.message ?? 'Internal Error';
 
     LOGGER.error(errorMessage);
@@ -53,7 +73,7 @@ export const handleError: HandleServerError = async ({ error, event, status, mes
     };
 };
 
-const public_paths = [
+const public_paths: string[] = [
     '/register',
     '/login',
     '/reset-password'
@@ -64,7 +84,7 @@ function isPublicPath(path: string): boolean {
 }
 
 const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
-    const sessionToken: string | undefined = event.cookies.get(auth.sessionCookieName);
+    const sessionToken: string | undefined = event.cookies.get(cookies.Session);
 
     if (!sessionToken) {
         if (utilities.isCrawler(event.request.headers.get('User-Agent'))) {
@@ -81,7 +101,7 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
         }
     }
 
-    const session: Session | null = await auth.validateSessionToken(sessionToken,event);
+    const session: Session | null = await auth.validateSessionToken(sessionToken, event);
 
     if (!session) {
         auth.deleteSessionTokenCookie(event);
@@ -89,27 +109,25 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
     }
 
     if (event.url.pathname === '/logout') {
-        await db.Auth.invalidateSession(session.session_id);
+        await Auth.invalidateSession(session.session_id);
         auth.deleteSessionTokenCookie(event);
         return redirect(302, '/login');
-    } else {
-        auth.setSessionTokenCookie(sessionToken, session.expires);
     }
 
     if (isPublicPath(event.url.pathname)) {
         return redirect(302, '/');
     }
 
-    const user: User | undefined = await db.Users.getFromUuid(session.uuid);
+    const user: User | undefined = await Users.getFromUuid(session.uuid);
 
     if (!user) {
-        await db.Auth.invalidateSession(session.session_id);
+        await Auth.invalidateSession(session.session_id);
         auth.deleteSessionTokenCookie(event);
         return redirect(302, '/login');
     }
 
-    if (!event.locals.user) event.locals.user = user;
-    if (!event.locals.uuid) event.locals.uuid = user.uuid;
+    event.locals.user = user;
+    event.locals.uuid = user.uuid;
     event.locals.session_id = session.session_id;
 
     return resolve(event);

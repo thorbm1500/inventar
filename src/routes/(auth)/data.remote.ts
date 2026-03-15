@@ -8,6 +8,8 @@ import {sendPasswordResetLink} from '$lib/server/internal/mail';
 import {sha256} from '@oslojs/crypto/sha2';
 import {encodeHexLowerCase} from '@oslojs/encoding';
 import {redirect} from '@sveltejs/kit';
+import {validateResetRequestToken} from "$lib/server/internal/auth";
+import {Auth} from "$lib/server/db/database";
 
 export const requestReset = form(
     v.object({email: v.pipe(v.string(), v.nonEmpty())}),
@@ -23,49 +25,53 @@ export const requestReset = form(
             return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
         }
 
-        const resetRequest: ResetRequest | undefined = await db.Auth.getResetRequestFromUuid(user.uuid);
+        const resetRequest: number = await db.Auth.getResetRequestExpiration(user.uuid);
 
-        if (!resetRequest) {
+        if (resetRequest === -1) {
             return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
-        } else if (resetRequest.expires > new Date(Date.now()).getTime()) {
+        } else if (resetRequest > new Date(Date.now()).getTime()) {
             return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
         }
 
-        const resetToken: string = auth.generateResetToken();
-        await auth.createResetRequest(resetToken, user.uuid);
+        const token: string = await auth.createResetRequest(user.uuid);
 
-        await sendPasswordResetLink(user.email, resetToken);
+        await sendPasswordResetLink(user.email, token);
 
         return {success: true, message: 'A reset link has been sent, if an account with that email exists.'};
     });
 
 export const resetPassword = form(
     v.object({
+        _username: v.pipe(v.string(), v.nonEmpty()),
         _token: v.pipe(v.string(), v.nonEmpty()),
         _password: v.pipe(v.string(), v.nonEmpty())
     }),
-    async ({_token, _password}) => {
-        const resetToken: string = encodeHexLowerCase(sha256(new TextEncoder().encode(_token)));
-        const resetRequest: ResetRequest | undefined = await db.Auth.getResetRequest(resetToken);
+    async ({_username, _token, _password}) => {
+        const uuid: string | null = await db.Users.getUuidFromUsername(_username);
+        if (uuid === null) return {success: false, message: 'Invalid request'};
 
-        if (!resetRequest) {
-            return {success: false, message: 'Failed to reset password. If this problem persists, please contact the system administrator'};
-        } else if (resetRequest.expires > new Date(Date.now()).getTime()) {
-            if (!auth.validatePassword(_password)) {
-                return {success: false, message: 'Failed to reset password. New password does not fit requirements.'}
-            }
-
-            if (resetRequest.uuid) {
-                const passwordHash: string = await Bun.password.hash(_password);
-
-                await db.Users.setPasswordHash(resetRequest.uuid, passwordHash);
-                await db.Auth.deleteResetToken(resetToken);
-
-                return redirect(302, '/login')
-            }
+        const resetRequest: number = await db.Auth.getResetRequestExpiration(uuid);
+        if (resetRequest === -1) {
+            return {success: false, message: 'Invalid request'};
+        } else if (resetRequest < new Date(Date.now()).getTime()) {
+            await Auth.deleteResetToken(uuid);
+            return {success: false, message: 'Invalid request: Expired.'};
         }
 
-        return {success: false, message: 'This password reset link has expired.'}
+        const resetToken: string | null = await validateResetRequestToken(uuid, _token);
+        if (resetToken === null) {
+            LOGGER.warn(`Password reset attempt denied, for user '${uuid}': Token mismatch.`);
+            return {success: false, message: 'Invalid request'};
+        }
+
+        if (!auth.validatePassword(_password)) {
+            return {success: false, message: 'Failed to reset password. New password does not fit requirements.'}
+        }
+
+        const passwordHash: string = await Bun.password.hash(_password);
+        await db.Users.setPasswordHash(uuid, passwordHash);
+
+        return redirect(302, '/login')
     });
 
 export const login = form(
@@ -102,9 +108,8 @@ export const login = form(
             return {success: false, message: 'Incorrect username or password'};
         }
 
-        const sessionToken: string = auth.generateSessionToken();
-        const session: Session = await auth.createSession(sessionToken, user.uuid);
-        auth.setSessionTokenCookie(sessionToken, session.expires);
+        const session: Session = await auth.createSession(user.uuid);
+        auth.setSessionCookie(session);
 
         return redirect(302, '/');
     });

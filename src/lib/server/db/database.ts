@@ -1,34 +1,16 @@
-import {LOGGER} from "../../../hooks.server";
-import type {Currency, Inventory, Item, Label, PageTheme, ResetRequest, Session, Unit, User} from "$lib/server/db/interfaces";
-import currencies from "$lib/server/db/components/currencies";
-import {UserSettings} from "$lib/components/settings/UserSettings";
-import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
-import {units} from "$lib/server/db/components/units";
+import {LOGGER, SQL} from '../../../hooks.server';
+import type {Currency, Inventory, Item, Label, PageTheme, ResetRequest, Session, Unit, User} from '$lib/server/db/interfaces';
+import currencies from '$lib/server/db/components/currencies';
+import {UserSettings} from '$lib/components/settings/UserSettings';
+import type {Setting} from '$lib/components/settings/GenericSettings.svelte';
+import {units} from '$lib/server/db/components/units';
 
 /**
- * This database uses the native Bun SQL bindings. <br>
- * Read more about it here: https://bun.com/docs/runtime/sql
- */
-
-const sql: Bun.SQL = new Bun.SQL({
-    adapter: 'mysql',
-    max: 4,
-    bigint: true,
-    onconnect: (err): void => {
-        if (err) {
-            LOGGER.error(`Failed to connect to database. `, err);
-        } else {
-            LOGGER.debug('New database connection established.');
-        }
-    }
-});
-
-/**
- * Returns the {@link sql} connection variable. This method is only
+ * Returns the {@link SQL} connection variable. This method is only
  * for convenience, and should not be used for permanent actions.
  */
 export function getConnection(): Bun.SQL {
-    return sql;
+    return SQL;
 }
 
 /**
@@ -47,7 +29,7 @@ export async function init(): Promise<void> {
  */
 async function ensureTables(): Promise<void> {
     LOGGER.debug(`Creating tables...`);
-    await sql`CREATE TABLE IF NOT EXISTS currencies
+    await SQL`CREATE TABLE IF NOT EXISTS currencies
               (
                   id     CHAR(3)     NOT NULL,
                   code   CHAR(3)     NOT NULL,
@@ -60,7 +42,7 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'currencies'. `, err));
 
-    await sql`CREATE TABLE IF NOT EXISTS units
+    await SQL`CREATE TABLE IF NOT EXISTS units
               (
                   unit VARCHAR(24) NOT NULL,
                   type VARCHAR(12) NOT NULL,
@@ -72,7 +54,7 @@ async function ensureTables(): Promise<void> {
    todo: If account of owner is attempted deleted;
     Check for other members with access, prompt if inventory should be deleted, or transferred. If not other accounts has access, delete inventory.
     */
-    await sql`CREATE TABLE IF NOT EXISTS inventories
+    await SQL`CREATE TABLE IF NOT EXISTS inventories
               (
                   uuid        CHAR(36)                            NOT NULL,
                   owner       CHAR(36)                            NOT NULL,
@@ -86,12 +68,12 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'inventories'. `, err));
 
-    await sql`CREATE TABLE IF NOT EXISTS users
+    await SQL`CREATE TABLE IF NOT EXISTS users
               (
                   uuid              CHAR(36)                             NOT NULL,
                   email             VARCHAR(254)                         NOT NULL,
                   password_hash     VARCHAR(255)                         NOT NULL,
-                  username          VARCHAR(64)                          NOT NULL,
+                  username          VARCHAR(32)                          NOT NULL,
                   profile_picture   TEXT                                 NULL,
                   primary_inventory CHAR(36)                             NULL,
                   preferred_theme   VARCHAR(5) DEFAULT 'dark'            NOT NULL,
@@ -111,7 +93,7 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'users'. `, err));
 
-    await sql`CREATE TABLE IF NOT EXISTS items
+    await SQL`CREATE TABLE IF NOT EXISTS items
               (
                   inventory           CHAR(36)                                 NOT NULL,
                   uuid                CHAR(36)                                 NOT NULL,
@@ -147,7 +129,7 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'items'. `, err));
 
-    await sql`CREATE TABLE IF NOT EXISTS labels
+    await SQL`CREATE TABLE IF NOT EXISTS labels
               (
                   inventory CHAR(36)    NOT NULL,
                   name      VARCHAR(24) NOT NULL,
@@ -157,7 +139,7 @@ async function ensureTables(): Promise<void> {
                       FOREIGN KEY (inventory) REFERENCES inventories (uuid)
               )`
 
-    await sql`CREATE TABLE IF NOT EXISTS sessions
+    await SQL`CREATE TABLE IF NOT EXISTS sessions
               (
                   uuid          CHAR(36)                                                  NOT NULL,
                   session_id    VARCHAR(255)                                              NOT NULL,
@@ -178,7 +160,7 @@ async function ensureTables(): Promise<void> {
               )`
         .catch((err: any): void => LOGGER.error(`Failed to create table 'sessions'. `, err));
 
-    await sql`CREATE TABLE IF NOT EXISTS reset_tokens
+    await SQL`CREATE TABLE IF NOT EXISTS reset_tokens
               (
                   uuid    CHAR(36)                                               NOT NULL,
                   token   VARCHAR(255)                                           NOT NULL,
@@ -199,7 +181,7 @@ async function ensureTables(): Promise<void> {
 async function ensureConstraints(): Promise<void> {
     LOGGER.debug(`Creating table constraints...`);
 
-    const constraint = await sql`SELECT CONSTRAINT_NAME as name,
+    const constraint = await SQL`SELECT CONSTRAINT_NAME as name,
                                         CONSTRAINT_TYPE as type
                                  FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
                                  WHERE TABLE_SCHEMA = 'inventar'
@@ -211,7 +193,7 @@ async function ensureConstraints(): Promise<void> {
         });
 
     if (constraint.length === 0 || constraint[0]?.name !== 'inventories_owner_fk') {
-        await sql`ALTER TABLE inventories
+        await SQL`ALTER TABLE inventories
             ADD CONSTRAINT inventories_owner_fk
                 FOREIGN KEY (owner) REFERENCES users (uuid)`
             .catch((err: any): void => LOGGER.error(`Failed to add constraint 'fk_owner' to table 'inventories'. `, err));
@@ -231,7 +213,7 @@ async function ensureDefaultValues(): Promise<void> {
      * to allow for adding more formats at any time.
      */
     for (const row of currencies) {
-        await sql`INSERT INTO currencies (id, code, format)
+        await SQL`INSERT INTO currencies (id, code, format)
                   VALUES (${row.id}, ${row.code}, ${row.format ?? '%value%'})
                   ON DUPLICATE KEY UPDATE code=${row.code},
                                           format=${row.format ?? '%value%'}`
@@ -245,7 +227,7 @@ async function ensureDefaultValues(): Promise<void> {
      * manually.
      */
     for (const row of units) {
-        await sql`INSERT IGNORE INTO units (unit, type)
+        await SQL`INSERT IGNORE INTO units (unit, type)
                   VALUES (${row.unit}, ${row.type})`
             .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'units'. `, err))
     }
@@ -256,7 +238,7 @@ async function ensureDefaultValues(): Promise<void> {
  * @return List of currencies as {@link Currency} object.
  */
 export async function getCurrencies(): Promise<Currency[]> {
-    return await sql`SELECT *
+    return await SQL`SELECT *
                      FROM currencies
                      ORDER BY code ASC`
         .catch((err: any): Currency[] => {
@@ -266,7 +248,7 @@ export async function getCurrencies(): Promise<Currency[]> {
 }
 
 export async function getUnits(): Promise<Unit[]> {
-    return await sql`SELECT *
+    return await SQL`SELECT *
                      FROM units
                      ORDER BY type`
         .catch((err: any): Unit[] => {
@@ -289,11 +271,11 @@ export class Inventories {
     static async create(owner: string, name: string, description?: string): Promise<Inventory | undefined> {
         const uuid: string = Bun.randomUUIDv7();
 
-        await sql`INSERT INTO inventories(uuid, owner, name, description)
+        await SQL`INSERT INTO inventories(uuid, owner, name, description)
                   VALUES (${uuid}, ${owner}, ${name}, ${description ?? null})`
             .catch((err: any): void => LOGGER.error(`Inventories#create[0]: Database request failed. `, err));
 
-        const result: Inventory[] = await sql`SELECT *
+        const result: Inventory[] = await SQL`SELECT *
                                               FROM inventories
                                               WHERE uuid = ${uuid}
                                               LIMIT 1`
@@ -313,14 +295,14 @@ export class Inventories {
      * @param offset
      */
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<Inventory[]> {
-        const inventories: Inventory[] = await sql`SELECT uuid,
+        const inventories: Inventory[] = await SQL`SELECT uuid,
                                                           owner,
                                                           name,
                                                           description,
                                                           last_update,
                                                           created_at
                                                    FROM inventories
-                                                   ORDER BY ${sql(order_by === '' ? 'created_at' : order_by) + ' ' + order}
+                                                   ORDER BY ${SQL(order_by === '' ? 'created_at' : order_by) + ' ' + order}
                                                    LIMIT ${amount} OFFSET ${offset}`
             .catch((err: any): [] => {
                 LOGGER.error(`Inventories#fetch[0]: Database request failed. `, err)
@@ -328,7 +310,7 @@ export class Inventories {
             });
 
         if (inventories.length !== 0) {
-            const itemAmounts = await sql`SELECT COUNT(amount) as item_amount, inventory
+            const itemAmounts = await SQL`SELECT COUNT(amount) as item_amount, inventory
                                           FROM items
                                           GROUP BY inventory`
                 .catch((err: any): [] => {
@@ -354,7 +336,7 @@ export class Inventories {
      * todo
      */
     static async fetchTotalInventoryCount(): Promise<number> {
-        const inventoryCount = await sql`SELECT COUNT(uuid) AS amount
+        const inventoryCount = await SQL`SELECT COUNT(uuid) AS amount
                                          FROM inventories`
             .catch((err: any): [] => {
                 LOGGER.error(`Inventories#fetchTotalInventoryCount[0]: Database request failed. `, err)
@@ -369,7 +351,7 @@ export class Inventories {
      * @param uuid
      */
     static async fetchInventoryByUuid(uuid: string): Promise<Inventory | undefined> {
-        const result: Inventory[] = await sql`SELECT *
+        const result: Inventory[] = await SQL`SELECT *
                                               FROM inventories
                                               WHERE uuid = ${uuid}
                                               LIMIT 1`
@@ -382,10 +364,10 @@ export class Inventories {
     }
 
     static async fetchLabels(uuid: string): Promise<Label[]> {
-        const result: Label[] = await sql`SELECT *
-                                              FROM labels
-                                              WHERE inventory = ${uuid}
-                                              ORDER BY name DESC`
+        const result: Label[] = await SQL`SELECT *
+                                          FROM labels
+                                          WHERE inventory = ${uuid}
+                                          ORDER BY name DESC`
             .catch((err: any): Label[] => {
                 LOGGER.error(`Inventories#fetchLabels[0]: Database request failed. `, err)
                 return [];
@@ -418,12 +400,13 @@ export class Items {
     }): Promise<Item | undefined> {
         const uuid: string = Bun.randomUUIDv7();
 
-        await sql`INSERT INTO items (uuid, created_by, inventory, name, amount, unit_type, unit, description, image, url, price, currency)
-                  VALUES (${uuid}, ${created_by}, ${inventory}, ${name}, ${amount}, ${options?.unit_type ?? 'count'}, ${options?.unit ?? 'piece'}, ${options?.description ?? null}, ${options?.image ?? null}, ${options?.url ?? null}, ${options?.price ?? 0.00},
+        await SQL`INSERT INTO items (uuid, created_by, inventory, name, amount, unit_type, unit, description, image, url, price, currency)
+                  VALUES (${uuid}, ${created_by}, ${inventory}, ${name}, ${amount}, ${options?.unit_type ?? 'count'}, ${options?.unit ?? 'piece'}, ${options?.description ?? null},
+                          ${options?.image ?? null}, ${options?.url ?? null}, ${options?.price ?? 0.00},
                           ${options?.currency ?? 'EUR'})`
             .catch((err: any): void => LOGGER.error(`Items#create[0]: Database request failed. ${err.name}`, err));
 
-        const result: Item[] = await sql`SELECT *
+        const result: Item[] = await SQL`SELECT *
                                          FROM items
                                          WHERE uuid = ${uuid}
                                          LIMIT 1`
@@ -444,7 +427,7 @@ export class Items {
      * @param offset
      */
     static async fetch(inventory: string, amount: number = 15, offset: number = 0, order_by?: string): Promise<Item[]> {
-        const result: Item[] = await sql`SELECT items.uuid        as uuid,
+        const result: Item[] = await SQL`SELECT items.uuid        as uuid,
                                                 items.inventory   as inventory,
                                                 items.name        as name,
                                                 items.description as description,
@@ -458,7 +441,7 @@ export class Items {
                                          FROM items
                                                   LEFT JOIN currencies ON items.currency = currencies.code
                                          WHERE items.inventory = ${inventory}
-                                         ORDER BY ${sql(order_by ?? 'last_update')}
+                                         ORDER BY ${SQL(order_by ?? 'last_update')}
                                          LIMIT ${amount} OFFSET ${offset}`
             .catch((err: any): Item[] => {
                 LOGGER.error(`Items#fetch[0]: Database request failed. `, err)
@@ -473,7 +456,7 @@ export class Items {
      * @param inventory
      */
     static async fetchTotalItemCount(inventory: string): Promise<number> {
-        const result: Item[] = await sql`SELECT COUNT(uuid) AS amount
+        const result: Item[] = await SQL`SELECT COUNT(uuid) AS amount
                                          FROM items
                                          WHERE inventory = ${inventory}`
             .catch((err: any): Item[] => {
@@ -485,7 +468,7 @@ export class Items {
     }
 
     static async getItem(uuid: string): Promise<Item | undefined> {
-        const result: Item[] = await sql`SELECT *
+        const result: Item[] = await SQL`SELECT *
                                          FROM items
                                          WHERE uuid = ${uuid}`
             .catch((err: any): Item[] => {
@@ -501,7 +484,7 @@ export class Items {
      * @param uuid
      */
     static async deleteItem(uuid: string): Promise<void> {
-        await sql`DELETE
+        await SQL`DELETE
                   FROM items
                   WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Items#deleteItem[0]: Database request failed. `, err));
@@ -522,11 +505,11 @@ export class Users {
     static async create(email: string, username: string, password_hash: string, superuser: boolean = false): Promise<User | undefined> {
         const uuid: string = Bun.randomUUIDv7();
 
-        await sql`INSERT INTO users (uuid, email, username, password_hash, superuser)
+        await SQL`INSERT INTO users (uuid, email, username, password_hash, superuser)
                   VALUES (${uuid}, ${email}, ${username}, ${password_hash}, ${superuser})`
             .catch((err: any): void => LOGGER.error(`Users#create[0]: Database request failed. `, err));
 
-        const result: User[] = await sql`SELECT *
+        const result: User[] = await SQL`SELECT *
                                          FROM users
                                          WHERE uuid = ${uuid}
                                          LIMIT 1`
@@ -543,7 +526,7 @@ export class Users {
      * @param uuid
      */
     static async getFromUuid(uuid: string): Promise<User | undefined> {
-        const result: User[] = await sql`SELECT *
+        const result: User[] = await SQL`SELECT *
                                          FROM users
                                          WHERE uuid = ${uuid}`
             .catch((err: any): User[] => {
@@ -559,7 +542,7 @@ export class Users {
      * @param email
      */
     static async getFromEmail(email: string): Promise<User | undefined> {
-        const result: User[] = await sql`SELECT *
+        const result: User[] = await SQL`SELECT *
                                          FROM users
                                          WHERE email = ${email}`
             .catch((err: any): User[] => {
@@ -570,12 +553,24 @@ export class Users {
         return result[0] ?? undefined;
     }
 
+    static async getUuidFromUsername(username: string): Promise<string | null> {
+        const [result] = await SQL`SELECT uuid
+                                   FROM users
+                                   WHERE username = ${username}`
+            .catch((err: any): User[] => {
+                LOGGER.error(`Users#getUuidFromUsername[0]: Database request failed. `, err)
+                return [];
+            });
+
+        return result[0].uuid ?? null;
+    }
+
     /**
      * todo
      * @param uuid
      */
     static async getPasswordHash(uuid: string): Promise<string> {
-        const result = await sql`SELECT password_hash
+        const result = await SQL`SELECT password_hash
                                  FROM users
                                  WHERE uuid = ${uuid}`
             .catch((err: any): [] => {
@@ -592,7 +587,7 @@ export class Users {
      * @param passwordHash
      */
     static async setPasswordHash(uuid: string, passwordHash: string): Promise<void> {
-        await sql`UPDATE users
+        await SQL`UPDATE users
                   SET password_hash = ${passwordHash}
                   WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#setPasswordHash[0]: Database request failed. `, err));
@@ -602,7 +597,7 @@ export class Users {
      * todo
      */
     static async getUserAmount(): Promise<number> {
-        const result = await sql`SELECT count(uuid) as amount
+        const result = await SQL`SELECT count(uuid) as amount
                                  FROM users`
             .catch((err: any): [] => {
                 LOGGER.error(`Users#getUserAmount[0]: Database request failed. `, err)
@@ -618,7 +613,7 @@ export class Users {
      * @param inventory
      */
     static async updatePrimaryInventory(uuid: string, inventory: string | null): Promise<void> {
-        await sql`UPDATE users
+        await SQL`UPDATE users
                   SET primary_inventory = ${inventory}
                   WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#setPrimaryInventory[0]: Database request failed. `, err));
@@ -630,7 +625,7 @@ export class Users {
      * @param theme
      */
     static async updatePreferredTheme(uuid: string, theme: PageTheme): Promise<void> {
-        await sql`UPDATE users
+        await SQL`UPDATE users
                   SET preferred_theme = ${theme}
                   WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#updatePreferredTheme[0]: Database request failed. `, err));
@@ -643,7 +638,7 @@ export class Users {
     static async getSettings(uuid: string): Promise<UserSettings> {
         const settings: UserSettings = new UserSettings(uuid);
 
-        const categories: { category: string, category_order: string | number }[] = await sql`SELECT DISTINCTROW category, category_order
+        const categories: { category: string, category_order: string | number }[] = await SQL`SELECT DISTINCTROW category, category_order
                                                                                               FROM user_settings
                                                                                               WHERE uuid = ${uuid}
                                                                                               ORDER BY category_order`
@@ -657,7 +652,7 @@ export class Users {
             category_order: string | number,
             subcategory: string,
             subcategory_order: string | number
-        }[] = await sql`SELECT DISTINCTROW category, category_order, subcategory, subcategory_order
+        }[] = await SQL`SELECT DISTINCTROW category, category_order, subcategory, subcategory_order
                         FROM user_settings
                         WHERE uuid = ${uuid}
                         ORDER BY category_order, subcategory_order`
@@ -666,7 +661,7 @@ export class Users {
                 return [];
             });
 
-        const setting: Setting[] = await sql`SELECT *
+        const setting: Setting[] = await SQL`SELECT *
                                              FROM user_settings
                                              WHERE uuid = ${uuid}
                                              ORDER BY category_order, subcategory_order, setting_order`
@@ -684,7 +679,7 @@ export class Users {
      * todo
      */
     static async isSuperuser(uuid: string): Promise<boolean> {
-        const result = await sql`SELECT superuser
+        const result = await SQL`SELECT superuser
                                  FROM users
                                  WHERE uuid = ${uuid}`
             .catch((err: any): [] => {
@@ -702,16 +697,15 @@ export class Users {
 export class Auth {
     /**
      * Creates a new session in the database.
-     * @param session Session to cache.
+     * @param uuid todo
+     * @param session_id todo
      */
-    static async newSession(session: Session): Promise<void> {
-        await sql`INSERT INTO sessions (uuid, session_id)
-                  VALUES (${session.uuid}, ${session.session_id})
-                  ON DUPLICATE KEY UPDATE session_id = ${session.session_id},
+    static async newSession(uuid: string, session_id: string): Promise<void> {
+        await SQL`INSERT INTO sessions (uuid, session_id)
+                  VALUES (${uuid}, ${session_id})
+                  ON DUPLICATE KEY UPDATE session_id = ${session_id},
                                           expires=(ADDTIME(CURRENT_TIMESTAMP, "7 0:0"))`
             .catch((err: any): void => LOGGER.error(`Auth#newSession[0]: Database request failed. `, err));
-
-        session.expires = await this.getSessionExpiration(session.session_id);
     }
 
     /**
@@ -719,7 +713,7 @@ export class Auth {
      * @param session_id Id of session to retrieve.
      */
     static async getSession(session_id: string): Promise<Session | undefined> {
-        const result: Session[] = await sql`SELECT *
+        const result: Session[] = await SQL`SELECT *
                                             FROM sessions
                                             WHERE session_id = ${session_id}`
             .catch((err: any): Session[] => {
@@ -735,7 +729,7 @@ export class Auth {
      * @param uuid UUID of the user.
      */
     static async getSessions(uuid: string): Promise<Session[]> {
-        const results = await sql`SELECT *
+        const results = await SQL`SELECT *
                                   FROM sessions
                                   WHERE uuid = ${uuid}
                                   ORDER BY last_accessed`
@@ -757,15 +751,13 @@ export class Auth {
 
     /**
      * Renews an existing session, preventing the user from having to log in again too fast.
-     * @param session The session to renew.
+     * @param session_id ID of the session to renew.
      */
-    static async renewSession(session: Session): Promise<void> {
-        await sql`UPDATE sessions
+    static async renewSession(session_id: string): Promise<void> {
+        await SQL`UPDATE sessions
                   SET expires = (ADDTIME(CURRENT_TIMESTAMP, "7 0:0"))
-                  WHERE session_id = ${session.session_id}`
+                  WHERE session_id = ${session_id}`
             .catch((err: any): void => LOGGER.error(`Auth#renewSession[0]: Database request failed. `, err));
-
-        session.expires = await this.getSessionExpiration(session.session_id);
     }
 
     /**
@@ -773,7 +765,7 @@ export class Auth {
      * @param session_id Id of session to invalidate.
      */
     static async invalidateSession(session_id: string): Promise<void> {
-        await sql`DELETE
+        await SQL`DELETE
                   FROM sessions
                   WHERE session_id = ${session_id}`
             .catch((err: any): void => LOGGER.error(`Auth#invalidateSession[0]: Database request failed. `, err));
@@ -784,7 +776,7 @@ export class Auth {
      * @param session_id
      */
     static async getSessionExpiration(session_id: string): Promise<number> {
-        const results = await sql`SELECT expires
+        const results = await SQL`SELECT expires
                                   FROM sessions
                                   WHERE session_id = ${session_id}`
             .catch((err: any): [] => {
@@ -800,7 +792,7 @@ export class Auth {
      * @param session_id
      */
     static async updateLastAccess(session_id: string): Promise<void> {
-        await sql`UPDATE sessions
+        await SQL`UPDATE sessions
                   SET last_accessed = CURRENT_TIMESTAMP
                   WHERE session_id = ${session_id}`
             .catch((err: any): void => LOGGER.error(`Auth#updateLastAccess[0]: Database request failed. `, err));
@@ -820,7 +812,7 @@ export class Auth {
         device?: string,
         platform?: string
     }): Promise<void> {
-        await sql`UPDATE sessions
+        await SQL`UPDATE sessions
                   SET ip        = ${data.query ?? null},
                       continent = ${data.continent ?? null},
                       country   = ${data.country ?? null},
@@ -837,7 +829,7 @@ export class Auth {
      * @param session_id
      */
     static async isSessionInformationMissing(session_id: string): Promise<boolean> {
-        const [result] = await sql`SELECT ip, continent, country, region, city, device, platform
+        const [result] = await SQL`SELECT ip, continent, country, region, city, device, platform
                                    FROM sessions
                                    WHERE session_id = ${session_id}`
             .catch((err: any): [] => {
@@ -853,9 +845,9 @@ export class Auth {
      * @param token
      */
     static async getResetRequest(token: string): Promise<ResetRequest | undefined> {
-        const result = await sql`SELECT *
-                                 FROM reset_tokens
-                                 WHERE token = ${token}`
+        const [result] = await SQL`SELECT *
+                                   FROM reset_tokens
+                                   WHERE token = ${token}`
             .catch((err: any): [] => {
                 LOGGER.error(`Auth#getResetRequest[0]: Database request failed. `, err)
                 return [];
@@ -868,16 +860,16 @@ export class Auth {
      * todo
      * @param uuid
      */
-    static async getResetRequestFromUuid(uuid: string): Promise<ResetRequest | undefined> {
-        const result: ResetRequest[] = await sql`SELECT *
-                                                 FROM reset_tokens
-                                                 WHERE uuid = ${uuid}`
-            .catch((err: any): ResetRequest[] => {
+    static async getResetRequestExpiration(uuid: string): Promise<number> {
+        const [result] = await SQL`SELECT expires
+                                   FROM reset_tokens
+                                   WHERE uuid = ${uuid}`
+            .catch((err: any): [] => {
                 LOGGER.error(`Auth#getResetRequestFromUuid[0]: Database request failed. `, err)
                 return [];
             });
 
-        return result[0] ?? undefined;
+        return result[0].expires ?? -1;
     }
 
     /**
@@ -886,7 +878,7 @@ export class Auth {
      * @param token
      */
     static async setResetToken(uuid: string, token: string): Promise<void> {
-        await sql`INSERT INTO reset_tokens(uuid, token)
+        await SQL`INSERT INTO reset_tokens(uuid, token)
                   VALUES (${uuid}, ${token})
                   ON DUPLICATE KEY UPDATE token   = ${token},
                                           expires = (ADDTIME(CURRENT_TIMESTAMP, "30:0"))`
@@ -895,12 +887,12 @@ export class Auth {
 
     /**
      * todo
-     * @param token
+     * @param uuid
      */
-    static async deleteResetToken(token: string): Promise<void> {
-        await sql`DELETE
+    static async deleteResetToken(uuid: string): Promise<void> {
+        await SQL`DELETE
                   FROM reset_tokens
-                  WHERE token = ${token}`
+                  WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Auth#deleteResetToken[0]: Database request failed. `, err));
     }
 }
