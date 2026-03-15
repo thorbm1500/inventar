@@ -4,7 +4,7 @@
     import {onMount, setContext} from "svelte";
     import type {User} from "$lib/server/db/interfaces";
     import Toast from "$lib/components/toast.svelte";
-    import { blur, slide } from 'svelte/transition';
+    import {blur, slide} from 'svelte/transition';
 
     let {children, data} = $props();
 

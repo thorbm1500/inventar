@@ -1,4 +1,4 @@
-import {randomUUIDv7, JSON5, file, write, type BunFile} from "bun";
+import {type BunFile, file, JSON5, randomUUIDv7, write} from "bun";
 import {promises as fs} from "node:fs";
 import {generateRegistrationToken} from "$lib/server/internal/auth";
 import {APPLICATION_VERSION, LOGGER} from "../../../hooks.server.ts";

@@ -1,6 +1,6 @@
 import {LOGGER} from "../../../hooks.server";
 import {randomUUIDv7, SQL} from "bun";
-import type {Currency, Inventory, Item, PageTheme, ResetRequest, Session, User} from "$lib/server/db/interfaces";
+import type {Currency, Inventory, Item, Label, PageTheme, ResetRequest, Session, Unit, User} from "$lib/server/db/interfaces";
 import currencies from "$lib/server/db/components/currencies";
 import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
@@ -266,6 +266,16 @@ export async function getCurrencies(): Promise<Currency[]> {
         }) as Currency[];
 }
 
+export async function getUnits(): Promise<Unit[]> {
+    return await sql`SELECT *
+                     FROM units
+                     ORDER BY type`
+        .catch((err: any): Unit[] => {
+            LOGGER.error(`getUnits[0]: Database request failed. `, err)
+            return [];
+        }) as Unit[];
+}
+
 /**
  * A Helper class for dealing with Inventories in the database.
  */
@@ -370,6 +380,19 @@ export class Inventories {
             });
 
         return result[0] ?? undefined;
+    }
+
+    static async fetchLabels(uuid: string): Promise<Label[]> {
+        const result: Label[] = await sql`SELECT *
+                                              FROM labels
+                                              WHERE inventory = ${uuid}
+                                              ORDER BY name DESC`
+            .catch((err: any): Label[] => {
+                LOGGER.error(`Inventories#fetchLabels[0]: Database request failed. `, err)
+                return [];
+            });
+
+        return result ?? undefined;
     }
 }
 

@@ -385,7 +385,7 @@
                                     </div>
                                 </form>
                                 <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;gap:.4rem;margin:.5rem 0;">
-                                    <button form="item-creator-form" type="submit" class="theme-button" onclick="{() => window.location.href = window.location.href.concat('/item/new')}">
+                                    <button form="item-creator-form" type="button" class="theme-button" onclick="{() => window.location.href = window.location.href.concat('/item/new')}">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                              stroke-linejoin="round">
                                             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>

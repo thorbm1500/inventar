@@ -1,4 +1,4 @@
-import type { PageServerLoad } from './$types';
+import type {PageServerLoad} from './$types';
 import type {Inventory} from "$lib/server/db/interfaces";
 import {error} from "@sveltejs/kit";
 import {getInventory} from "../data.remote";

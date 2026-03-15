@@ -4,6 +4,11 @@ export interface Currency {
     symbol?: string | null
 }
 
+export interface Unit {
+    type: string,
+    unit: string
+}
+
 export interface Inventory {
     uuid: string,
     owner: string,
@@ -15,36 +20,10 @@ export interface Inventory {
     created_at: number
 }
 
-export interface userInventoryPermissions {
-    inventory: string,
-    user_uuid: string,
-    edit_inventory: boolean,
-    delete_inventory: boolean,
-    view_items: boolean,
-    create_items: boolean,
-    edit_items: boolean,
-    delete_items: boolean,
-    view_users: boolean,
-    add_users: boolean,
-    edit_users: boolean,
-    remove_users: boolean,
-    view_audit: boolean
-}
-
 export interface Label {
     inventory: string,
-    uuid: string,
     name: string,
-    color_id: 1,
-    colors: LabelColors | undefined
-}
-
-export interface LabelColors {
-    id: number,
-    border: string,
-    background: string,
-    dark_border: string,
-    dark_background: string
+    color: string
 }
 
 export interface Item {

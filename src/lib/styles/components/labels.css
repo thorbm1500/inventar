@@ -2,7 +2,8 @@
     border: var(--theme-border-width) solid var(--theme-border-input-focus);
     border-radius: .65rem;
     background: var(--theme-border-button);
-    padding: .125rem .325rem;
+    padding: .125rem .4rem;
+    width: fit-content;
 
     color: #F3F3EE;
     font-family: 'FunnelDisplay', sans-serif;
