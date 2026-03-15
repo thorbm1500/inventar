@@ -1,4 +1,5 @@
 import {promises as fs} from 'node:fs';
+import {building} from '$app/environment';
 
 /**
  * A TypeScript logger for applications using the Bun Runtime.
@@ -66,8 +67,10 @@ export class Logger {
         this.buffer.start({stream: true, asUint8Array: true})
         this.level = level;
 
-        // noinspection JSIgnoredPromiseFromCall
-        ensureDirectories();
+        if (!building) {
+            // noinspection JSIgnoredPromiseFromCall
+            ensureDirectories();
+        }
 
         this.debug(` » New Logger instance created.`);
     }
@@ -104,6 +107,8 @@ export class Logger {
     }
 
     private log(level: LogLevel, prefix: string, ...data: any[]): void {
+        if (building) return;
+
         const timestamp: string = ' '.concat(getTimestamp(), ' ');
 
         let i = 0;
