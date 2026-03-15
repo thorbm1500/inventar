@@ -1,9 +1,9 @@
-import {type BunFile, file, JSON5, randomUUIDv7, write} from "bun";
 import {promises as fs} from "node:fs";
 import {generateRegistrationToken} from "$lib/server/internal/auth";
-import {APPLICATION_VERSION, LOGGER} from "../../../hooks.server.ts";
+import {LOGGER} from "../../../hooks.server";
+import {applicationVersion} from "./utilities";
 
-const settingsFile: BunFile = file('/etc/inventar/settings.json5');
+const settingsFile = Bun.file('/etc/inventar/settings.json5');
 
 /**
  * todo
@@ -12,7 +12,7 @@ export async function getSettings(): Promise<ApplicationSettings> {
     await ensureDirectories();
     await ensureSettingsFile();
 
-    return JSON5.parse(await settingsFile.text()) as ApplicationSettings;
+    return Bun.JSON5.parse(await settingsFile.text()) as ApplicationSettings;
 }
 
 /**
@@ -36,7 +36,7 @@ async function ensureDirectories(): Promise<void> {
  */
 async function ensureSettingsFile(): Promise<void> {
     const existing: boolean = await fs.exists('/etc/inventar/settings.json5');
-    if (!existing) await write('/etc/inventar/settings.json5', JSON5.stringify(defaultSettings,null,2) ?? 'Failed to write settings to file.');
+    if (!existing) await Bun.write('/etc/inventar/settings.json5', Bun.JSON5.stringify(defaultSettings,null,2) ?? 'Failed to write settings to file.');
 }
 
 export interface ApplicationSettings {
@@ -85,10 +85,10 @@ export interface ApplicationSettings {
 }
 
 const defaultSettings: ApplicationSettings = {
-    version: APPLICATION_VERSION,
+    version: await applicationVersion(),
     general: {
         basics: {
-            application_id: randomUUIDv7(),
+            application_id: Bun.randomUUIDv7(),
             log_level: 'info'
         },
         mail: {

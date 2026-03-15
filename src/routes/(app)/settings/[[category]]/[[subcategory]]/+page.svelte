@@ -619,7 +619,7 @@
 
         box-sizing: border-box;
         overflow-y: scroll;
-        overflox-x: hidden;
+        overflow-x: hidden;
         overflow: auto;
 
         padding-top: 6rem;

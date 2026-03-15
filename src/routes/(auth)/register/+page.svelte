@@ -1,11 +1,11 @@
 <script lang='ts'>
     import InventarLogo from '$lib/assets/logos/inventar/inventar-logo-full-width-light.svg';
-    import {register} from "../data.remote";
+    import {register} from '../data.remote';
 </script>
 
 <section>
     <div class="inventar-logo">
-        <img src="{InventarLogo}" alt="inventar logo" />
+        <img src="{InventarLogo}" alt="inventar logo"/>
     </div>
     <div class="login-form">
         <form {...register}>

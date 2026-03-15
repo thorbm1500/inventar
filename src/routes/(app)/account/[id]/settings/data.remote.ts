@@ -1,7 +1,7 @@
 import {form, query} from "$app/server";
 import * as v from 'valibot';
-import {Auth, Users} from "$lib/server/db/database.ts";
-import type {Session} from "$lib/server/db/interfaces.ts";
+import {Auth, Users} from "$lib/server/db/database";
+import type {Session} from "$lib/server/db/interfaces";
 
 export const getSettings = query(v.string(), async (id: string): Promise<Object> => {
     return structuredClone(await Users.getSettings(id));

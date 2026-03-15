@@ -1,5 +1,4 @@
 import {LOGGER} from "../../../hooks.server";
-import {randomUUIDv7, SQL} from "bun";
 import type {Currency, Inventory, Item, Label, PageTheme, ResetRequest, Session, Unit, User} from "$lib/server/db/interfaces";
 import currencies from "$lib/server/db/components/currencies";
 import {UserSettings} from "$lib/components/settings/UserSettings";
@@ -11,7 +10,7 @@ import {units} from "$lib/server/db/components/units";
  * Read more about it here: https://bun.com/docs/runtime/sql
  */
 
-const sql: SQL = new SQL({
+const sql: Bun.SQL = new Bun.SQL({
     adapter: 'mysql',
     max: 4,
     bigint: true,
@@ -28,7 +27,7 @@ const sql: SQL = new SQL({
  * Returns the {@link sql} connection variable. This method is only
  * for convenience, and should not be used for permanent actions.
  */
-export function getConnection(): SQL {
+export function getConnection(): Bun.SQL {
     return sql;
 }
 
@@ -288,7 +287,7 @@ export class Inventories {
      * @return The UUID of the new inventory, or undefined if any errors occurred.
      */
     static async create(owner: string, name: string, description?: string): Promise<Inventory | undefined> {
-        const uuid: string = randomUUIDv7();
+        const uuid: string = Bun.randomUUIDv7();
 
         await sql`INSERT INTO inventories(uuid, owner, name, description)
                   VALUES (${uuid}, ${owner}, ${name}, ${description ?? null})`
@@ -417,7 +416,7 @@ export class Items {
         price?: number,
         currency?: string
     }): Promise<Item | undefined> {
-        const uuid: string = randomUUIDv7();
+        const uuid: string = Bun.randomUUIDv7();
 
         await sql`INSERT INTO items (uuid, created_by, inventory, name, amount, unit_type, unit, description, image, url, price, currency)
                   VALUES (${uuid}, ${created_by}, ${inventory}, ${name}, ${amount}, ${options?.unit_type ?? 'count'}, ${options?.unit ?? 'piece'}, ${options?.description ?? null}, ${options?.image ?? null}, ${options?.url ?? null}, ${options?.price ?? 0.00},
@@ -521,7 +520,7 @@ export class Users {
      * @param superuser If the user should have administrator rights.
      */
     static async create(email: string, username: string, password_hash: string, superuser: boolean = false): Promise<User | undefined> {
-        const uuid: string = randomUUIDv7();
+        const uuid: string = Bun.randomUUIDv7();
 
         await sql`INSERT INTO users (uuid, email, username, password_hash, superuser)
                   VALUES (${uuid}, ${email}, ${username}, ${password_hash}, ${superuser})`

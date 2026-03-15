@@ -23,6 +23,13 @@ const MAC_REGEX = new RegExp(/(Macintosh|Mac OS)/, 'i');
 
 /**
  * todo
+ */
+export async function applicationVersion(): Promise<string> {
+    return await Bun.file('./package.json').json().then(pkg => pkg.version);
+}
+
+/**
+ * todo
  * @param logOnFailure
  */
 function isOffline(logOnFailure: boolean = false): boolean {

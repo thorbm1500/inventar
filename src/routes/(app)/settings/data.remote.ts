@@ -1,18 +1,18 @@
-import {LOGGER} from "../../../hooks.server";
-import {command, query} from "$app/server";
-import {generateRegistrationToken} from "$lib/server/internal/auth";
-import {getConnection} from "$lib/server/db/database";
+import {LOGGER} from '../../../hooks.server';
+import {command, query} from '$app/server';
+import {generateRegistrationToken} from '$lib/server/internal/auth';
+import {getConnection} from '$lib/server/db/database';
 import {promises as fs} from 'fs';
 import * as v from 'valibot';
-import {formatLogs} from "$lib/util/utilities";
+import {formatLogs} from '$lib/util/utilities';
 
 export const generateNewRegistrationToken = command(async (): Promise<string> => {
     const newToken: string = generateRegistrationToken();
     await getConnection()`UPDATE application_settings
-              SET text_value=${newToken}
-              WHERE category = 'security'
-                AND subcategory = 'general'
-                AND setting = 'registration_token'`
+                          SET text_value=${newToken}
+                          WHERE category = 'security'
+                            AND subcategory = 'general'
+                            AND setting = 'registration_token'`
     return newToken;
 })
 

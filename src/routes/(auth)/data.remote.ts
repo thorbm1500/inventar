@@ -1,13 +1,13 @@
-import {LOGGER} from "../../hooks.server";
+import {LOGGER} from '../../hooks.server';
 import * as v from 'valibot';
-import * as auth from "$lib/server/internal/auth";
-import * as db from "$lib/server/db/database";
+import * as auth from '$lib/server/internal/auth';
+import * as db from '$lib/server/db/database';
 import {form} from '$app/server';
-import type {ResetRequest, Session, User} from "$lib/server/db/interfaces";
-import {sendPasswordResetLink} from "$lib/server/internal/mail";
-import {sha256} from "@oslojs/crypto/sha2";
-import {encodeHexLowerCase} from "@oslojs/encoding";
-import {redirect} from "@sveltejs/kit";
+import type {ResetRequest, Session, User} from '$lib/server/db/interfaces';
+import {sendPasswordResetLink} from '$lib/server/internal/mail';
+import {sha256} from '@oslojs/crypto/sha2';
+import {encodeHexLowerCase} from '@oslojs/encoding';
+import {redirect} from '@sveltejs/kit';
 
 export const requestReset = form(
     v.object({email: v.pipe(v.string(), v.nonEmpty())}),
@@ -139,7 +139,7 @@ export const register = form(
             // Give administrator rights if no users have been created yet.
             const userAmount: number = await db.Users.getUserAmount();
             if (userAmount === -1) {
-                return {success:false, message: 'Unable to connect to the database!'};
+                return {success: false, message: 'Unable to connect to the database!'};
             }
             const user: User | undefined = await db.Users.create(email, username, passwordHash, userAmount === 0);
 
@@ -147,8 +147,8 @@ export const register = form(
                 return {success: false, message: 'Failed to register new user. If this problem persists, please contact an administrator'};
             }
         } catch (error) {
-            LOGGER.error(`Failed to register new user.`,error as Error);
+            LOGGER.error(`Failed to register new user.`, error as Error);
             return {success: false, message: 'Internal Error. If this problem persists, please contact an administrator'};
         }
-        return {success:true, message: 'Successfully registered!'};
+        return {success: true, message: 'Successfully registered!'};
     });

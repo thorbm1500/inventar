@@ -8,7 +8,6 @@ declare global {
 			session_id: import('$lib/server/internal/auth').SessionValidationResult['session_id'],
 			user: import('$lib/server/db/database').User;
 		}
-
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}

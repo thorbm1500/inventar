@@ -1,6 +1,6 @@
 <script lang="ts">
-    import {page} from "$app/state";
-    import {resetPassword} from "../../data.remote";
+    import {page} from '$app/state';
+    import {resetPassword} from '../../data.remote';
 
     resetPassword.fields._token.set(page.params.token ?? '');
 </script>

@@ -36,14 +36,3 @@ export const getInventories = query(inventoriesObj, async (data): Promise<Invent
 
     return [];
 });
-
-export const getTotalInventoryCount = query(async (): Promise<number> => {
-    if (!util.isOffline()) {
-        const inventoryCount: number = await db.Inventories.fetchTotalInventoryCount();
-        return inventoryCount;
-    } else {
-        LOGGER.warn(`Unable to fetch inventory count from database. Browser is offline.`);
-    }
-
-    return 0;
-});

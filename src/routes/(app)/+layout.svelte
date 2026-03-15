@@ -1,9 +1,9 @@
 <script lang="ts">
     import '$lib/styles/index.css';
     import Header from './Header.svelte';
-    import {onMount, setContext} from "svelte";
-    import type {User} from "$lib/server/db/interfaces";
-    import Toast from "$lib/components/toast.svelte";
+    import {onMount, setContext} from 'svelte';
+    import type {User} from '$lib/server/db/interfaces';
+    import Toast from '$lib/components/toast.svelte';
     import {blur, slide} from 'svelte/transition';
 
     let {children, data} = $props();
