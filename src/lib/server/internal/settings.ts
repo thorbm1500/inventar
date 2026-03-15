@@ -2,6 +2,7 @@ import {promises as fs} from "node:fs";
 import {generateRegistrationToken} from "$lib/server/internal/auth";
 import {LOGGER} from "../../../hooks.server";
 import {applicationVersion} from "./utilities";
+import {building} from "$app/environment";
 
 const settingsFile = Bun.file('/etc/inventar/settings.json5');
 
@@ -9,6 +10,8 @@ const settingsFile = Bun.file('/etc/inventar/settings.json5');
  * todo
  */
 export async function getSettings(): Promise<ApplicationSettings> {
+    if (building) return defaultSettings;
+
     await ensureDirectories();
     await ensureSettingsFile();
 
@@ -19,6 +22,8 @@ export async function getSettings(): Promise<ApplicationSettings> {
  * todo
  */
 async function ensureDirectories(): Promise<void> {
+    if (building) return;
+
     const first: string | undefined = await fs.mkdir('/etc/inventar', {recursive: true});
     if (first) LOGGER.debug(`Created directory /etc/inventar`);
 
@@ -35,6 +40,8 @@ async function ensureDirectories(): Promise<void> {
  * todo
  */
 async function ensureSettingsFile(): Promise<void> {
+    if (building) return;
+
     const existing: boolean = await fs.exists('/etc/inventar/settings.json5');
     if (!existing) await Bun.write('/etc/inventar/settings.json5', Bun.JSON5.stringify(defaultSettings,null,2) ?? 'Failed to write settings to file.');
 }
