@@ -7,32 +7,18 @@ import utilities from '$lib/server/internal/utilities';
 import cron from '$lib/server/internal/cron';
 import {Logger, LogLevel} from '$lib/server/internal/logger';
 import {type ApplicationSettings, getSettings} from '$lib/server/internal/settings';
-import {Auth, initializeDatabase, Users} from '$lib/server/db/database';
+import {Auth, Database, initializeDatabase, Users} from '$lib/server/db/database';
 import inventar from '$lib/server/internal/inventar';
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
 
-// noinspection JSUnusedGlobalSymbols
+
 /**
  * This database uses the native Bun SQL bindings. <br>
  * Read more about it here: https://bun.com/docs/runtime/sql
  */
-export const SQL: Bun.SQL = new Bun.SQL({
-    adapter: 'mysql',
-    max: 10,
-    idleTimeout: 0,
-    maxLifetime: 0,
-    connectionTimeout: 60,
-    bigint: true,
-    onconnect: (err): void => {
-        if (err) {
-            LOGGER.error(`Failed to connect to database. `, err);
-        } else {
-            LOGGER.debug('New database connection established.');
-        }
-    }
-});
+export const DATABASE = new Database();
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.

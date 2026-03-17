@@ -1,7 +1,7 @@
-import * as v from 'valibot';
-import {command} from '$app/server';
-import {Users} from '$lib/server/db/database';
-import type {PageTheme} from '$lib/server/db/interfaces';
+import * as v from "valibot";
+import {command} from "$app/server";
+import {Users} from "$lib/server/db/database";
+import type {PageTheme} from "$lib/server/db/interfaces";
 
 /**
  * todo: Reimplement

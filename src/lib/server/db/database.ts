@@ -5,25 +5,49 @@ import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
 import {units} from "$lib/server/db/components/units";
 
+export class Database {
+    // noinspection JSUnusedGlobalSymbols
+    private static readonly SQL: Bun.SQL = new Bun.SQL({
+        adapter: 'mysql',
+        max: 10,
+        idleTimeout: 0,
+        maxLifetime: 0,
+        connectionTimeout: 60,
+        bigint: true,
+        onconnect: (err): void => {
+            if (err) {
+                LOGGER.error(`Failed to connect to database. `, err);
+            } else {
+                LOGGER.debug('New database connection established.');
+            }
+        }
+    });
+
+    constructor() {
+        this.init();
+    }
+
+
+    /**
+     * This method initializes the database, ensuring all tables,
+     * and their default values are present, as well as all constraints for each table.
+     * This method is called one, during the server load, at startup.
+     */
+    private async init(): Promise<void> {
+        await LOGGER.timed('Initializing database...', 'Database initialization completed.', async () => {
+            await ensureTables();
+            await ensureConstraints();
+            await ensureDefaultValues();
+        });
+    }
+}
+
 /**
  * Returns the {@link SQL} connection variable. This method is only
  * for convenience, and should not be used for permanent actions.
  */
 export function getConnection(): Bun.SQL {
     return SQL;
-}
-
-/**
- * This method initializes the database, ensuring all tables,
- * and their default values are present, as well as all constraints for each table.
- * This method is called one, during the server load, at startup.
- */
-export async function initializeDatabase(): Promise<void> {
-    await LOGGER.timed('Initializing database...','Database initialization completed.',async () => {
-        await ensureTables();
-        await ensureConstraints();
-        await ensureDefaultValues();
-    });
 }
 
 /**
