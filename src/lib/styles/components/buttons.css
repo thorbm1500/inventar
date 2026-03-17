@@ -29,3 +29,10 @@
     color: var(--theme-text-accent);
     transition: var(--theme-transition-in);
 }
+
+.theme-button.disabled {
+    color: var(--theme-text-fourth);
+    filter: grayscale(25%);
+
+    pointer-events: none;
+}

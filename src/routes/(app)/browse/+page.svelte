@@ -1,7 +1,7 @@
 <script lang="ts">
     import {getInventories} from './data.remote.ts';
-    import type {Inventory} from "$lib/server/db/interfaces";
-    import {parseTimestamp} from "$lib/util/utilities";
+    import type {Inventory} from '$lib/server/db/interfaces';
+    import {parseTimestamp} from '$lib/util/utilities';
 
     let order_by = $state('name');
     let order = $state('');

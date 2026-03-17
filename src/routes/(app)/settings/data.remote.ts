@@ -1,10 +1,10 @@
-import {LOGGER} from '../../../hooks.server';
-import {command, query} from '$app/server';
-import {generateRegistrationToken} from '$lib/server/internal/auth';
-import {getConnection} from '$lib/server/db/database';
-import {promises as fs} from 'fs';
-import * as v from 'valibot';
-import {formatLogs} from '$lib/util/utilities';
+import {LOGGER} from "../../../hooks.server";
+import {command, query} from "$app/server";
+import {generateRegistrationToken} from "$lib/server/internal/auth";
+import {getConnection} from "$lib/server/db/database";
+import {promises as fs} from "node:fs";
+import * as v from "valibot";
+import {formatLogs} from "$lib/util/utilities";
 
 export const generateNewRegistrationToken = command(async (): Promise<string> => {
     const newToken: string = generateRegistrationToken();

@@ -1,5 +1,5 @@
-import {promises as fs} from 'node:fs';
-import {building} from '$app/environment';
+import {promises as fs} from "node:fs";
+import {building} from "$app/environment";
 
 /**
  * A TypeScript logger for applications using the Bun Runtime.
@@ -137,43 +137,87 @@ export class Logger {
         return this;
     }
 
+    /**
+     * This method prints the content as a formatted log at {@link LogLevel.DEBUG}.
+     * The log will only be printed to the console, if the current level is
+     * equal to or lower than the level of {@link LogLevel.DEBUG}
+     * @param data Content to log
+     */
     debug(...data: any[]): void {
         this.log(LogLevel.DEBUG, LogPrefix.DEBUG, ...data);
     }
 
-    wait(...data: any[]): void {
-        this.log(LogLevel.WAIT, LogPrefix.WAIT, ...data);
-    }
-
+    /**
+     * This method prints the content as a formatted log at {@link LogLevel.INFO}.
+     * The log will only be printed to the console, if the current level is
+     * equal to or lower than the level of {@link LogLevel.INFO}
+     * @param data Content to log
+     */
     info(...data: any[]): void {
         this.log(LogLevel.INFO, LogPrefix.INFO, ...data);
     }
 
+    /**
+     * This method prints the content as a formatted log at {@link LogLevel.WAIT}.
+     * The log will only be printed to the console, if the current level is
+     * equal to or lower than the level of {@link LogLevel.WAIT}.<br>
+     * Logs at this level, are used to signal that a process that <i>should</i>
+     * be awaited, has been started, or is currently ongoing.
+     * @param data Content to log
+     * @see Logger.timed
+     */
+    wait(...data: any[]): void {
+        this.log(LogLevel.WAIT, LogPrefix.WAIT, ...data);
+    }
+
+    /**
+     * This method prints the content as a formatted log at {@link LogLevel.DONE}.
+     * The log will only be printed to the console, if the current level is
+     * equal to or lower than the level of {@link LogLevel.DONE}
+     * @param data Content to log
+     */
     done(...data: any[]): void {
         this.log(LogLevel.DONE, LogPrefix.DONE, ...data);
     }
 
+    /**
+     * This method prints the content as a formatted log at {@link LogLevel.WARN}.
+     * The log will only be printed to the console, if the current level is
+     * equal to or lower than the level of {@link LogLevel.WARN}
+     * @param data Content to log
+     */
     warn(...data: any[]): void {
         this.log(LogLevel.WARN, LogPrefix.WARN, ...data);
     }
 
+    /**
+     * This method prints the content as a formatted log at {@link LogLevel.ERROR}.
+     * The log will only be printed to the console, if the current level is
+     * equal to or lower than the level of {@link LogLevel.ERROR}
+     * @param data Content to log
+     */
     error(...data: any[]): void {
         this.log(LogLevel.ERROR, LogPrefix.ERROR, ...data);
     }
 
+    /**
+     * This method prints the content as a formatted log at {@link LogLevel.FATAL}.
+     * The log will only be printed to the console, if the current level is
+     * equal to or lower than the level of {@link LogLevel.FATAL}.<br>
+     * Note: This will <i>always</i> be logged, as it is the highest possible level.
+     * @param data Content to log
+     */
     fatal(...data: any[]): void {
         // Will be logged regardless of current level, due to being the highest possible level.
         this.log(LogLevel.FATAL, LogPrefix.FATAL, ...data);
     }
 
-    private async executeCallback(callback: Function): Promise<void> {
-        try {
-            await callback();
-        } catch (err: any) {
-            this.error(`Failed to execute timed log. `, err);
-        }
-    }
-
+    /**
+     * This method formats the two given numbers to a human-readable format.
+     * @param start Nanosecond start-time
+     * @param end Nanosecond end-time
+     * @private
+     */
     private parseTimeResult(start: number, end: number): string {
         const multiplier = Math.pow(10, 1);
 
@@ -215,26 +259,40 @@ export class Logger {
         return ` [${Math.trunc(time)}${suffix}]`;
     }
 
-    async timed(startLog: string, endLog: string, callback: Function): Promise<void> {
+    /**
+     * This method is used to time the execution of asynchronized code.
+     * @param startLog
+     * @param endLog
+     * @param func
+     * @see Logger.timedSync
+     */
+    async timed(startLog: string, endLog: string, func: Function): Promise<void> {
         this.wait(startLog);
 
         const startTime: number = Bun.nanoseconds();
-        await this.executeCallback(callback);
+        await func();
 
-        this.done(endLog.concat(this.parseTimeResult(startTime, Bun.nanoseconds())))
-    }
-
-    timedSync(startLog: string, endLog: string, callback: Function): void {
-        this.wait(startLog);
-
-        const startTime: number = Bun.nanoseconds();
-        callback();
-
-        this.done(endLog.concat(this.parseTimeResult(startTime, Bun.nanoseconds())))
+        this.done(endLog.concat(this.parseTimeResult(startTime, Bun.nanoseconds())));
     }
 
     /**
-     * Dumps the buffer, and writes it to the log file, ensuring all pending logs are written.
+     * This method is used to time the execution of synchronized code.
+     * @param startLog
+     * @param endLog
+     * @param func
+     * @see Logger.timed
+     */
+    timedSync(startLog: string, endLog: string, func: Function): void {
+        this.wait(startLog);
+
+        const startTime: number = Bun.nanoseconds();
+        func();
+
+        this.done(endLog.concat(this.parseTimeResult(startTime, Bun.nanoseconds())));
+    }
+
+    /**
+     * The method dumps the buffer, and writes it to the log file, ensuring all pending logs are written.
      */
     destroy(): void {
         console.log(`Shutting down Logger. Goodbye.`);

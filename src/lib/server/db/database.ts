@@ -1,9 +1,9 @@
-import {LOGGER, SQL} from '../../../hooks.server';
-import type {Currency, Inventory, Item, Label, PageTheme, ResetRequest, Session, Unit, User} from '$lib/server/db/interfaces';
-import currencies from '$lib/server/db/components/currencies';
-import {UserSettings} from '$lib/components/settings/UserSettings';
-import type {Setting} from '$lib/components/settings/GenericSettings.svelte';
-import {units} from '$lib/server/db/components/units';
+import {LOGGER, SQL} from "../../../hooks.server";
+import type {Currency, Inventory, Item, Label, PageTheme, ResetRequest, Session, Unit, User} from "$lib/server/db/interfaces";
+import currencies from "$lib/server/db/components/currencies";
+import {UserSettings} from "$lib/components/settings/UserSettings";
+import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
+import {units} from "$lib/server/db/components/units";
 
 /**
  * Returns the {@link SQL} connection variable. This method is only
@@ -18,10 +18,12 @@ export function getConnection(): Bun.SQL {
  * and their default values are present, as well as all constraints for each table.
  * This method is called one, during the server load, at startup.
  */
-export async function init(): Promise<void> {
-    await ensureTables();
-    await ensureConstraints();
-    await ensureDefaultValues();
+export async function initializeDatabase(): Promise<void> {
+    await LOGGER.timed('Initializing database...','Database initialization completed.',async () => {
+        await ensureTables();
+        await ensureConstraints();
+        await ensureDefaultValues();
+    });
 }
 
 /**

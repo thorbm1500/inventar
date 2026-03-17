@@ -1,11 +1,11 @@
-import {getRequestEvent} from '$app/server';
-import type {Cookies, RequestEvent} from '@sveltejs/kit';
-import type {ResetRequest, Session} from '$lib/server/db/interfaces';
-import {DAY_IN_MS} from '$lib/util/utilities';
-import {EMAIL_REGEX} from 'valibot';
-import utilities from '$lib/server/internal/utilities';
-import {Auth} from '$lib/server/db/database';
-import cookies from '$lib/server/internal/components/Cookies';
+import {getRequestEvent} from "$app/server";
+import type {Cookies, RequestEvent} from "@sveltejs/kit";
+import type {ResetRequest, Session} from "$lib/server/db/interfaces";
+import {DAY_IN_MS} from "$lib/util/utilities";
+import {EMAIL_REGEX} from "valibot";
+import utilities from "$lib/server/internal/utilities";
+import {Auth} from "$lib/server/db/database";
+import inventar from "$lib/server/internal/inventar";
 
 declare interface CryptoOptions {
     encoding?: Bun.DigestEncoding,
@@ -29,7 +29,6 @@ function getSha512(options?: CryptoOptions): string {
 
 /**
  * todo
- * @param token
  * @param uuid
  */
 export async function createResetRequest(uuid: string): Promise<string> {
@@ -55,12 +54,11 @@ export async function validateResetRequestToken(uuid: string, session_id: string
 
 /**
  * Creates a temporary 7-day session, for the specified user.
- * @param token Token for the session id.
  * @param uuid The user's uuid.
  */
 export async function createSession(uuid: string): Promise<Session> {
     const session_id: string = getSha512();
-    const token: string = getSha512({encoding: 'base64url', key: session_id, seed: cookies.Session});
+    const token: string = getSha512({encoding: 'base64url', key: session_id, seed: inventar.Cookies.Session});
 
     await Auth.newSession(uuid, token);
 
@@ -77,7 +75,7 @@ export async function createSession(uuid: string): Promise<Session> {
  * @param event
  */
 export async function validateSessionToken(session_id: string, event: RequestEvent): Promise<Session | null> {
-    const token: string = getSha512({encoding: 'base64url', key: session_id, seed: cookies.Session});
+    const token: string = getSha512({encoding: 'base64url', key: session_id, seed: inventar.Cookies.Session});
     const session: Session | undefined = await Auth.getSession(token);
 
     if (!session) {
@@ -113,7 +111,7 @@ export function setSessionCookie(session: Session, event?: RequestEvent): void {
     const eventCookies: Cookies = event?.cookies ?? getRequestEvent().cookies;
     const expiration = new Date();
     expiration.setTime(session.expires);
-    eventCookies.set(cookies.Session, session.session_id, {
+    eventCookies.set(inventar.Cookies.Session, session.session_id, {
         expires: expiration,
         path: '/',
         secure: false
@@ -126,7 +124,7 @@ export function setSessionCookie(session: Session, event?: RequestEvent): void {
  */
 export function deleteSessionTokenCookie(event: RequestEvent | undefined = undefined): void {
     const eventCookies: Cookies = event ? event.cookies : getRequestEvent().cookies;
-    eventCookies.delete(cookies.Session, {
+    eventCookies.delete(inventar.Cookies.Session, {
         path: '/',
         secure: false
     });

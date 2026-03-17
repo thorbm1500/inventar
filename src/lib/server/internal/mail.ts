@@ -1,5 +1,5 @@
 import nodemailer, {type SentMessageInfo} from "nodemailer";
-import {env} from '$env/dynamic/private'
+import {env} from "$env/dynamic/private"
 
 const transporter = nodemailer.createTransport({
     host: env.MAIL_HOST,

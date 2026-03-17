@@ -1,7 +1,8 @@
 <script lang="ts">
-    import {createItem} from "./data.remote"
-    import {ignorePasswordManagers} from "$lib/util/utilities";
-    import type {Currency, Label, Unit} from "$lib/server/db/interfaces";
+    import {createItem} from './data.remote';
+    import {ignorePasswordManagers} from '$lib/util/utilities';
+    import type {Currency, Label, Unit} from '$lib/server/db/interfaces';
+    import {onMount} from "svelte";
 
     //todo: Cleanup
 
@@ -54,6 +55,36 @@
         amount: 0,
         price: 0.0
     });
+
+    let imageSource = $state('');
+    let fieldFiles = $state(0);
+
+    onMount(() => {
+        const imageField: HTMLInputElement = document.getElementById("image-field") as HTMLInputElement;
+        if (!imageField) return;
+
+        imageField.addEventListener('change', () => {
+            fieldFiles = imageField?.files?.length ?? 0;
+            const reader = new FileReader();
+
+            reader.addEventListener('load', (e) => {
+                imageSource = e.target?.result as string ?? '';
+            });
+
+            if (imageField.files === null || imageField.files[0] === null) return;
+
+            reader.readAsDataURL(imageField.files[0]);
+        })
+    });
+
+    function removeImage() {
+        const imageField: HTMLInputElement = document.getElementById("image-field") as HTMLInputElement;
+        if (!imageField) return;
+
+        imageField.value = "";
+        imageSource = '';
+        fieldFiles = 0;
+    }
 </script>
 
 <section class="item-creator-page">
@@ -68,7 +99,8 @@
         <form {...createItem} enctype="multipart/form-data">
             <div class="field">
                 <h1 class="name">Name</h1>
-                <input class="input required{(createItem.fields.name.value()?.length ?? 0) < 3 ? ' notice' : ''}" {...createItem.fields.name.as('text')} placeholder="Required" use:ignorePasswordManagers required/>
+                <input class="input required{(createItem.fields.name.value()?.length ?? 0) < 3 ? ' notice' : ''}" {...createItem.fields.name.as('text')} placeholder="Required"
+                       use:ignorePasswordManagers required/>
             </div>
             <div class="field">
                 <h1 class="name">Description</h1>
@@ -77,7 +109,8 @@
             <div class="multiple-fields">
                 <div class="field">
                     <h1 class="name">Amount</h1>
-                    <input class="input required{createItem.fields.amount.value() === undefined ? ' notice' : ''}" {...createItem.fields.amount.as('number')} min="0" value="0" placeholder="Required" required/>
+                    <input class="input required{createItem.fields.amount.value() === undefined ? ' notice' : ''}" {...createItem.fields.amount.as('number')} min="0" value="0" placeholder="Required"
+                           required/>
                 </div>
                 <div class="field">
                     <h1 class="name">Type</h1>
@@ -121,16 +154,46 @@
             <div class="field">
                 <!--todo: Add image preview, and general styling-->
                 <h1 class="name">Image</h1>
-                <div class="image-container">
-                    <label for="image-field" class="image-box">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19 21H20.0104C20.9816 21 21.4671 21 21.7348 20.7975C21.968 20.6211 22.1123 20.3515 22.1297 20.0596C22.1497 19.7246 21.8804 19.3205 21.3417 18.5125L18.3313 13.9969C17.8862 13.3292 17.6636 12.9954 17.3831 12.8791C17.1378 12.7773 16.8622 12.7773 16.6169 12.8791C16.3364 12.9954 16.1139 13.3292 15.6687 13.9969L14.9245 15.1132M19 21L11.3155 9.90018C10.8736 9.26182 10.6526 8.94264 10.3766 8.83044C10.1351 8.73228 9.8649 8.73228 9.62344 8.83044C9.34742 8.94264 9.12645 9.26182 8.68451 9.90018L2.73822 18.4893C2.17519 19.3025 1.89368 19.7092 1.90971 20.0473C1.92366 20.3419 2.06688 20.6152 2.30109 20.7943C2.57002 21 3.06459 21 4.05373 21H19ZM21 6C21 7.65685 19.6569 9 18 9C16.3432 9 15 7.65685 15 6C15 4.34315 16.3432 3 18 3C19.6569 3 21 4.34315 21 6Z"
-                                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <p>Upload Image</p>
-                    </label>
+                <div class="image-content">
+                    <div class="image-container">
+                        {#if createItem.fields.image.value() !== undefined && fieldFiles > 0}
+                            <div class="image-box">
+                                <img  src="{imageSource}" alt="User Upload"/>
+                            </div>
+                        {:else}
+                            <label for="image-field" class="image-box">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M19 21H20.0104C20.9816 21 21.4671 21 21.7348 20.7975C21.968 20.6211 22.1123 20.3515 22.1297 20.0596C22.1497 19.7246 21.8804 19.3205 21.3417 18.5125L18.3313 13.9969C17.8862 13.3292 17.6636 12.9954 17.3831 12.8791C17.1378 12.7773 16.8622 12.7773 16.6169 12.8791C16.3364 12.9954 16.1139 13.3292 15.6687 13.9969L14.9245 15.1132M19 21L11.3155 9.90018C10.8736 9.26182 10.6526 8.94264 10.3766 8.83044C10.1351 8.73228 9.8649 8.73228 9.62344 8.83044C9.34742 8.94264 9.12645 9.26182 8.68451 9.90018L2.73822 18.4893C2.17519 19.3025 1.89368 19.7092 1.90971 20.0473C1.92366 20.3419 2.06688 20.6152 2.30109 20.7943C2.57002 21 3.06459 21 4.05373 21H19ZM21 6C21 7.65685 19.6569 9 18 9C16.3432 9 15 7.65685 15 6C15 4.34315 16.3432 3 18 3C19.6569 3 21 4.34315 21 6Z"
+                                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <p>Upload Image</p>
+                            </label>
+                        {/if}
+                    </div>
+                    <div class="image-actions">
+                        <div class="action-buttons">
+                            <label class="theme-button" for="image-field">
+                                Upload
+                            </label>
+                            <button class="theme-button{fieldFiles>0?'':' disabled'} delete" type="button" onclick={removeImage} title="">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M20 6a1 1 0 0 1 .117 1.993l-.117 .007h-.081l-.919 11a3 3 0 0 1 -2.824 2.995l-.176 .005h-8c-1.598 0 -2.904 -1.249 -2.992 -2.75l-.005 -.167l-.923 -11.083h-.08a1 1 0 0 1 -.117 -1.993l.117 -.007zm-10 4a1 1 0 0 0 -1 1v6a1 1 0 0 0 2 0v-6a1 1 0 0 0 -1 -1m4 0a1 1 0 0 0 -1 1v6a1 1 0 0 0 2 0v-6a1 1 0 0 0 -1 -1"/>
+                                    <path d="M14 2a2 2 0 0 1 2 2a1 1 0 0 1 -1.993 .117l-.007 -.117h-4l-.007 .117a1 1 0 0 1 -1.993 -.117a2 2 0 0 1 1.85 -1.995l.15 -.005z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="upload-info">
+                            <h3>Accepted Extensions</h3>
+                            <p>PNG • JPEG • WEBP • AV1</p>
+                        </div>
+                        <div class="upload-info">
+                            <h3>Max File Size</h3>
+                            <p>50MB</p> <!--todo: Get from Application Settings-->
+                        </div>
+                    </div>
                 </div>
-                <input id="image-field" {...createItem.fields.image.as('file')} hidden/>
+                <input id="image-field" {...createItem.fields.image.as('file')} accept="image/*" hidden/>
             </div>
             <div class="field">
                 <!--todo: Add box for adding from existing labels-->
@@ -284,35 +347,79 @@
                     border-bottom-color: var(--theme-color-notice) !important;
                 }
 
-                .image-container {
-                    width: 100%;
-                    height: 100%;
+                .image-content {
+                    display: flex;
+                    flex-flow: row nowrap;
+                    align-items: center;
+                    justify-content: flex-start;
+                    gap: 2rem;
 
-                    padding: .5rem;
+                    .image-container {
+                        padding: .5rem;
 
-                    .image-box {
+                        .image-box {
+                            display: flex;
+                            flex-flow: column nowrap;
+                            align-items: center;
+                            justify-content: center;
+                            gap: .25rem;
+
+                            width: 16rem;
+                            height: 16rem;
+
+                            border: .15rem solid var(--theme-border-container);
+                            border-radius: var(--theme-border-radius);
+
+                            filter: drop-shadow(0 0 .5rem rgba(from var(--theme-border-container) r g b / 15%));
+
+                            font-size: .9rem;
+                            font-weight: 650;
+                            color: var(--theme-color-second);
+
+                            svg {
+                                width: 2rem;
+                                height: 2rem;
+                            }
+
+                            img {
+                                height: auto !important;
+                                width: 100% !important;
+                            }
+                        }
+                    }
+
+                    .image-actions {
                         display: flex;
                         flex-flow: column nowrap;
-                        align-items: center;
+                        align-items: flex-start;
                         justify-content: center;
-                        gap: .25rem;
 
-                        color: var(--theme-color-second);
+                        font-weight: 700;
+                        color: var(--theme-text-fourth);
 
-                        width: 16rem;
-                        height: 16rem;
+                        .action-buttons {
+                            display: flex;
+                            flex-flow: row nowrap;
+                            align-items: center;
+                            justify-content: flex-start;
+                            gap: .35rem;
 
-                        border: .15rem solid var(--theme-border-container);
-                        border-radius: var(--theme-border-radius);
+                            .theme-button.delete:hover {
+                                color: var(--theme-color-danger) !important;
+                            }
+                        }
 
-                        filter: drop-shadow(0 0 .5rem rgba(from var(--theme-border-container) r g b / 15%));
+                        .upload-info {
+                            margin-top: .5rem;
+                            padding-left: .25rem;
 
-                        font-size: .9rem;
-                        font-weight: 650;
+                            h3 {
+                                font-size: .95rem;
+                            }
 
-                        svg {
-                            width: 2rem;
-                            height: 2rem;
+                            p {
+                                font-size: .75rem;
+                            }
                         }
                     }
                 }

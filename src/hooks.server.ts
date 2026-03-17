@@ -1,19 +1,19 @@
-import initializeDatabase from '$lib/server/db/index';
-import type {Session, User} from "$lib/server/db/interfaces";
+import type {Session, User} from '$lib/server/db/interfaces';
 import * as auth from '$lib/server/internal/auth';
 import {building} from '$app/environment';
-import {env} from "$env/dynamic/private";
+import {env} from '$env/dynamic/private';
 import {type Handle, type HandleServerError, redirect, type ServerInit} from '@sveltejs/kit';
-import utilities from "$lib/server/internal/utilities";
-import cron from "$lib/server/internal/cron";
-import {Logger, LogLevel} from "$lib/server/internal/logger";
-import {type ApplicationSettings, getSettings} from "$lib/server/internal/settings";
-import cookies from "$lib/server/internal/components/Cookies";
-import {Auth, Users} from "$lib/server/db/database";
+import utilities from '$lib/server/internal/utilities';
+import cron from '$lib/server/internal/cron';
+import {Logger, LogLevel} from '$lib/server/internal/logger';
+import {type ApplicationSettings, getSettings} from '$lib/server/internal/settings';
+import {Auth, initializeDatabase, Users} from '$lib/server/db/database';
+import inventar from '$lib/server/internal/inventar';
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
 
+// noinspection JSUnusedGlobalSymbols
 /**
  * This database uses the native Bun SQL bindings. <br>
  * Read more about it here: https://bun.com/docs/runtime/sql
@@ -39,7 +39,6 @@ export const SQL: Bun.SQL = new Bun.SQL({
  */
 export const init: ServerInit = async (): Promise<void> => {
     await LOGGER.timed('Initializing server...', 'Server initialized.', async (): Promise<void> => {
-
         // Skip database initialization if project is building.
         if (!building) {
             process.once('SIGINT', shutdown);
@@ -47,7 +46,7 @@ export const init: ServerInit = async (): Promise<void> => {
 
             LOGGER.debug('Shutdown hooks registered.');
 
-            if (env.INIT_DB !== 'false') await initializeDatabase();
+            await initializeDatabase();
             cron.initializeJobs();
         }
     });
@@ -59,14 +58,14 @@ async function shutdown(reason?: any): Promise<void> {
 
     await LOGGER.timed(`Closing database connection.`,`Connection closed.`,SQL.close);
     LOGGER.destroy();
-
-    process.exit();
 }
 
 export const handleError: HandleServerError = async ({error}) => {
-    const errorMessage: string = (error as Error)?.message ?? 'Internal Error';
-
-    LOGGER.error(errorMessage);
+    if ((error as Error)?.message) {
+        LOGGER.error((error as Error)?.message);
+    } else {
+        LOGGER.error('Internal Error. ', error);
+    }
 
     return {
         message: 'Whoops.. Sorry!'
@@ -84,15 +83,17 @@ function isPublicPath(path: string): boolean {
 }
 
 const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
-    const sessionToken: string | undefined = event.cookies.get(cookies.Session);
+    const token: string | undefined = event.cookies.get(inventar.Cookies.Session);
 
-    if (!sessionToken) {
+    if (!token) {
+        /**
+         * Crawling is disallowed in `robots.txt`, but seeing as it is only a preference, and not actually
+         * enforced, along with the fact, that you can simply choose to not respect it, if you wish;
+         * Crawling is disabled and attempted blocked.
+         */
         if (utilities.isCrawler(event.request.headers.get('User-Agent'))) {
             return new Response('');
         }
-
-        event.locals.uuid = null;
-        event.locals.session_id = null;
 
         if (isPublicPath(event.url.pathname)) {
             return resolve(event);
@@ -101,7 +102,7 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
         }
     }
 
-    const session: Session | null = await auth.validateSessionToken(sessionToken, event);
+    const session: Session | null = await auth.validateSessionToken(token, event);
 
     if (!session) {
         auth.deleteSessionTokenCookie(event);
