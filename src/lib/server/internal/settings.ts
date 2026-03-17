@@ -4,7 +4,7 @@ import {LOGGER} from "../../../hooks.server";
 import {applicationVersion} from "./utilities";
 import {building} from "$app/environment";
 
-const settingsFile = Bun.file('/etc/inventar/settings.json5');
+const settingsFile: Bun.BunFile = Bun.file('/etc/inventar/settings.json5');
 
 /**
  * todo

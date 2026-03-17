@@ -3,7 +3,7 @@ import {env} from "$env/dynamic/private"
 
 const transporter = nodemailer.createTransport({
     host: env.MAIL_HOST,
-    port: Number.parseInt(env.MAIL_PORT),
+    port: Number.parseInt(env.MAIL_PORT ?? '0'),
     secure: true,
     auth: {
         user: env.MAIL_USER,

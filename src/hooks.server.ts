@@ -1,24 +1,16 @@
 import type {Session, User} from '$lib/server/db/interfaces';
 import * as auth from '$lib/server/internal/auth';
 import {building} from '$app/environment';
-import {env} from '$env/dynamic/private';
 import {type Handle, type HandleServerError, redirect, type ServerInit} from '@sveltejs/kit';
 import utilities from '$lib/server/internal/utilities';
 import cron from '$lib/server/internal/cron';
 import {Logger, LogLevel} from '$lib/server/internal/logger';
 import {type ApplicationSettings, getSettings} from '$lib/server/internal/settings';
-import {Auth, Database, initializeDatabase, Users} from '$lib/server/db/database';
+import {Auth, Database, Users} from '$lib/server/db/database';
 import inventar from '$lib/server/internal/inventar';
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
-
-
-/**
- * This database uses the native Bun SQL bindings. <br>
- * Read more about it here: https://bun.com/docs/runtime/sql
- */
-export const DATABASE = new Database();
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
@@ -32,7 +24,7 @@ export const init: ServerInit = async (): Promise<void> => {
 
             LOGGER.debug('Shutdown hooks registered.');
 
-            await initializeDatabase();
+            await Database.init();
             cron.initializeJobs();
         }
     });
@@ -42,7 +34,7 @@ async function shutdown(reason?: any): Promise<void> {
     LOGGER.debug(`Shutdown request received. Reason: `, reason);
     LOGGER.info(`Shutting down...`);
 
-    await LOGGER.timed(`Closing database connection.`,`Connection closed.`,SQL.close);
+    await LOGGER.timed(`Closing database connection.`,`Connection closed.`, Database.SQL.close);
     LOGGER.destroy();
 }
 
