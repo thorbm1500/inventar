@@ -4,7 +4,7 @@ import currencies from "$lib/server/db/components/currencies";
 import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
 import {units} from "$lib/server/db/components/units";
-import {redis} from "bun";
+import {redis, RedisClient} from "bun";
 
 export class Database {
     // noinspection JSUnusedGlobalSymbols
@@ -245,30 +245,36 @@ export class Database {
                 .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'units'. `, err))
         }
     }
+}
 
-    /**
-     * This method returns all the currencies from the database.
-     * @return List of currencies as {@link Currency} object.
-     */
-    async getCurrencies(): Promise<Currency[]> {
-        return await Database.SQL`SELECT *
-                                  FROM currencies
-                                  ORDER BY code ASC`
-            .catch((err: any): Currency[] => {
-                LOGGER.error(`getCurrencies[0]: Database request failed. `, err)
-                return [];
-            }) as Currency[];
+class Redis {
+    static async has(key: RedisClient.KeyLike): Promise<boolean> {
+        return await redis.exists(key);
     }
+}
 
-    async getUnits(): Promise<Unit[]> {
-        return await Database.SQL`SELECT *
-                                  FROM units
-                                  ORDER BY type`
-            .catch((err: any): Unit[] => {
-                LOGGER.error(`getUnits[0]: Database request failed. `, err)
-                return [];
-            }) as Unit[];
-    }
+/**
+ * This method returns all the currencies from the database.
+ * @return List of currencies as {@link Currency} object.
+ */
+export async function getCurrencies(): Promise<Currency[]> {
+    return await Database.SQL`SELECT *
+                              FROM currencies
+                              ORDER BY code ASC`
+        .catch((err: any): Currency[] => {
+            LOGGER.error(`getCurrencies[0]: Database request failed. `, err)
+            return [];
+        }) as Currency[];
+}
+
+export async function getUnits(): Promise<Unit[]> {
+    return await Database.SQL`SELECT *
+                              FROM units
+                              ORDER BY type`
+        .catch((err: any): Unit[] => {
+            LOGGER.error(`getUnits[0]: Database request failed. `, err)
+            return [];
+        }) as Unit[];
 }
 
 /**
@@ -556,14 +562,18 @@ export class Users {
      */
     static async getFromUuid(uuid: string): Promise<User | undefined> {
         const result: User[] = await Database.SQL`SELECT *
-                                                  FROM users
-                                                  WHERE uuid = ${uuid}`
+                                                      FROM users
+                                                      WHERE uuid = ${uuid}`
             .catch((err: any): User[] => {
                 LOGGER.error(`Users#getFromUuid[0]: Database request failed. `, err)
                 return [];
             });
 
-        return result[0] ?? undefined;
+        const user: User | undefined = result[0] ?? undefined;
+        if (!user) {
+            LOGGER.error(`Users#getFromUuid[0]: No user found with uuid '${uuid}'`);
+            return undefined;
+        } else return user;
     }
 
     /**
