@@ -6,6 +6,7 @@ import {EMAIL_REGEX} from "valibot";
 import utilities from "$lib/server/internal/utilities";
 import {Auth} from "$lib/server/db/database";
 import inventar from "$lib/server/internal/inventar";
+import {LOGGER} from "../../../hooks.server.ts";
 
 declare interface CryptoOptions {
     encoding?: Bun.DigestEncoding,
@@ -56,17 +57,15 @@ export async function validateResetRequestToken(uuid: string, session_id: string
  * Creates a temporary 7-day session, for the specified user.
  * @param uuid The user's uuid.
  */
-export async function createSession(uuid: string): Promise<Session> {
+export async function createSession(uuid: string): Promise<Session | undefined> {
     const session_id: string = getSha512();
     const token: string = getSha512({encoding: 'base64url', key: session_id, seed: inventar.Cookies.Session});
 
     await Auth.newSession(uuid, token);
+    const session: Session | undefined = await Auth.getSession(token);
+    if (session) session.session_id = session_id;
 
-    return {
-        uuid,
-        session_id,
-        expires: await Auth.getSessionExpiration(token)
-    };
+    return session;
 }
 
 /**
@@ -79,17 +78,18 @@ export async function validateSessionToken(session_id: string, event: RequestEve
     const session: Session | undefined = await Auth.getSession(token);
 
     if (!session) {
+        LOGGER.debug(`Deleting invalid session.`)
         deleteSessionTokenCookie();
         return null;
     }
 
-    const isSessionExpired: boolean = Date.now() >= session.expires;
+    const isSessionExpired: boolean = Date.now() >= Date.parse(String(session.expires));
     if (isSessionExpired) {
         await Auth.invalidateSession(token);
         return null;
     }
 
-    const renewSession: boolean = Date.now() >= (session.expires - DAY_IN_MS * 3);
+    const renewSession: boolean = Date.now() >= (Date.parse(String(session.expires)) - DAY_IN_MS * 3);
     if (renewSession) {
         await Auth.renewSession(token);
     }
@@ -109,10 +109,8 @@ export type SessionValidationResult = Awaited<ReturnType<typeof validateSessionT
  */
 export function setSessionCookie(session: Session, event?: RequestEvent): void {
     const eventCookies: Cookies = event?.cookies ?? getRequestEvent().cookies;
-    const expiration = new Date();
-    expiration.setTime(session.expires);
     eventCookies.set(inventar.Cookies.Session, session.session_id, {
-        expires: expiration,
+        expires: new Date(session.expires),
         path: '/',
         secure: false
     });

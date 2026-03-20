@@ -63,7 +63,7 @@ export interface User {
 export interface Session {
     uuid: string,
     session_id: string,
-    expires: number,
+    expires: string | number,
     ip?: string,
     continent?: string,
     country?: string,

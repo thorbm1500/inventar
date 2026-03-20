@@ -3,11 +3,9 @@ import * as v from 'valibot';
 import * as auth from '$lib/server/internal/auth';
 import * as db from '$lib/server/db/database';
 import {form} from '$app/server';
-import type {ResetRequest, Session, User} from '$lib/server/db/interfaces';
+import type {Session, User} from '$lib/server/db/interfaces';
 import {sendPasswordResetLink} from '$lib/server/internal/mail';
-import {sha256} from '@oslojs/crypto/sha2';
-import {encodeHexLowerCase} from '@oslojs/encoding';
-import {redirect} from '@sveltejs/kit';
+import {error, redirect} from '@sveltejs/kit';
 import {validateResetRequestToken} from "$lib/server/internal/auth";
 import {Auth} from "$lib/server/db/database";
 
@@ -81,11 +79,11 @@ export const login = form(
     }),
     async ({email, _password}) => {
         if (!auth.validateEmail(email)) {
-            console.error(`Login failed: Invalid email (min 3, max 31 characters, alphanumeric only)`);
+            LOGGER.error(`Login failed: Invalid email (min 3, max 31 characters, alphanumeric only)`);
             return {success: false, message: 'Invalid email (min 3, max 31 characters, alphanumeric only)'};
         }
         if (!auth.validatePassword(_password)) {
-            console.error(`Login failed: Invalid password (min 32, max 255 characters)`);
+            LOGGER.error(`Login failed: Invalid password (min 32, max 255 characters)`);
             return {success: false, message: 'Invalid password (min 32, max 255 characters)'};
         }
 
@@ -108,7 +106,9 @@ export const login = form(
             return {success: false, message: 'Incorrect username or password'};
         }
 
-        const session: Session = await auth.createSession(user.uuid);
+        const session: Session | undefined = await auth.createSession(user.uuid);
+        if (!session) return error(500, `Failed to create new session for user '${user.uuid}'`);
+
         auth.setSessionCookie(session);
 
         return redirect(302, '/');

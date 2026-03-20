@@ -10,7 +10,7 @@ export class Database {
     // noinspection JSUnusedGlobalSymbols
     static readonly SQL: Bun.SQL = new Bun.SQL({
         adapter: 'mysql',
-        max: 10,
+        max: 1,
         idleTimeout: 0,
         maxLifetime: 0,
         connectionTimeout: 60,
@@ -247,16 +247,11 @@ export class Database {
     }
 }
 
-class Redis {
-    static async has(key: RedisClient.KeyLike): Promise<boolean> {
-        return await redis.exists(key);
-    }
-}
-
 /**
  * This method returns all the currencies from the database.
  * @return List of currencies as {@link Currency} object.
  */
+//todo: Remove from database.
 export async function getCurrencies(): Promise<Currency[]> {
     return await Database.SQL`SELECT *
                               FROM currencies
@@ -267,6 +262,11 @@ export async function getCurrencies(): Promise<Currency[]> {
         }) as Currency[];
 }
 
+/**
+ * This method returns all the units from the database.
+ * @return List of units as {@link Unit} object.
+ */
+//todo: Remove from database.
 export async function getUnits(): Promise<Unit[]> {
     return await Database.SQL`SELECT *
                               FROM units
@@ -356,21 +356,22 @@ export class Inventories {
      * todo
      */
     static async fetchTotalInventoryCount(): Promise<number> {
-        if (!(await redis.exists(`inventory:total_inventory_count`))) {
+        const redisKey: RedisClient.KeyLike = `inventory:total_inventory_count`;
 
-            const inventoryCount = await Database.SQL`SELECT COUNT(uuid) AS amount
-                                                      FROM inventories`
+        if (await redis.exists(redisKey)) {
+            return Number.parseInt(await redis.get(redisKey) ?? '-1');
+        } else {
+            const inventoryCount: any = await Database.SQL`SELECT COUNT(uuid) AS amount
+                                                           FROM inventories`
                 .catch((err: any): [] => {
                     LOGGER.error(`Inventories#fetchTotalInventoryCount[0]: Database request failed. `, err)
                     return [];
                 });
 
-            const count: number = inventoryCount[0]?.amount ?? 0;
-            await redis.set(`inventory:total_inventory_count`, String(count), 'EX', 60);
+            const count: any = inventoryCount[0].amount ?? 0;
+            await redis.set(redisKey, count, 'EX', 60);
 
             return count;
-        } else {
-            return Number.parseInt(await redis.get(`inventory:total_inventory_count`) ?? '-1');
         }
     }
 
@@ -483,22 +484,23 @@ export class Items {
      * @param inventory
      */
     static async fetchTotalItemCount(inventory: string): Promise<number> {
-        if (!(await redis.exists(`inventory:${inventory}:total_item_count`))) {
+        const redisKey: RedisClient.KeyLike = `inventory:${inventory}:total_item_count`;
 
-            const result: Item[] = await Database.SQL`SELECT COUNT(uuid) AS amount
-                                                      FROM items
-                                                      WHERE inventory = ${inventory}`
-                .catch((err: any): Item[] => {
+        if (await redis.exists(redisKey)) {
+            return Number.parseInt(await redis.get(redisKey) ?? '-1');
+        } else {
+            const result: any = await Database.SQL`SELECT COUNT(uuid) AS amount
+                                                   FROM items
+                                                   WHERE inventory = ${inventory}`
+                .catch((err: any): [] => {
                     LOGGER.error(`Items#fetchTotalItemCount[0]: Database request failed. `, err)
                     return [];
                 });
 
-            const count: number = result[0]?.amount ?? 0;
-            await redis.set(`inventory:${inventory}:total_item_count`, String(count), 'EX', 60);
+            const count: any = result[0].amount ?? 0;
+            await redis.set(redisKey, count, 'EX', 60);
 
             return count;
-        } else {
-            return Number.parseInt(await redis.get(`inventory:${inventory}:total_item_count`) ?? '-1');
         }
     }
 
@@ -561,19 +563,36 @@ export class Users {
      * @param uuid
      */
     static async getFromUuid(uuid: string): Promise<User | undefined> {
-        const result: User[] = await Database.SQL`SELECT *
+        const redisKey: RedisClient.KeyLike = `user:${uuid}`;
+
+        if (await redis.exists(redisKey)) {
+            const user = (await redis.hgetall(redisKey) as Record<any, any>) as User;
+
+            user.created_at = Number.parseInt(String(user.created_at));
+
+            return user;
+        } else {
+            const result: User[] = await Database.SQL`SELECT *
                                                       FROM users
                                                       WHERE uuid = ${uuid}`
-            .catch((err: any): User[] => {
-                LOGGER.error(`Users#getFromUuid[0]: Database request failed. `, err)
-                return [];
-            });
+                .catch((err: any): User[] => {
+                    LOGGER.error(`Users#getFromUuid[0]: Database request failed. `, err)
+                    return [];
+                });
 
-        const user: User | undefined = result[0] ?? undefined;
-        if (!user) {
-            LOGGER.error(`Users#getFromUuid[0]: No user found with uuid '${uuid}'`);
-            return undefined;
-        } else return user;
+            const user: User | undefined = result[0] ?? undefined;
+            if (!user) {
+                LOGGER.error(`Users#getFromUuid[0]: No user found with uuid '${uuid}'`);
+                return undefined;
+            }
+
+            user.created_at = Date.parse(String(user.created_at));
+
+            await redis.hset(redisKey, user as Record<any, any>)
+                .then(() => redis.expire(redisKey, 300));
+
+            return user;
+        }
     }
 
     /**
@@ -581,27 +600,56 @@ export class Users {
      * @param email
      */
     static async getFromEmail(email: string): Promise<User | undefined> {
-        const result: User[] = await Database.SQL`SELECT *
-                                                  FROM users
-                                                  WHERE email = ${email}`
-            .catch((err: any): User[] => {
-                LOGGER.error(`Users#getFromEmail[0]: Database request failed. `, err)
-                return [];
-            });
+        const uuid: string | null = await this.getUuidFromEmail(email);
+        if (!uuid) return undefined;
 
-        return result[0] ?? undefined;
+        return await this.getFromUuid(uuid);
+    }
+
+    static async getUuidFromEmail(email: string): Promise<string | null> {
+        const redisKey: RedisClient.KeyLike = `user:${email}:email`;
+
+        if (await redis.exists(redisKey)) {
+            return String(await redis.get(redisKey));
+        } else {
+            const result: any = await Database.SQL`SELECT uuid
+                                                   FROM users
+                                                   WHERE email = ${email}`
+                .catch((err: any): User[] => {
+                    LOGGER.error(`Users#getUuidFromEmail[0]: Database request failed. `, err)
+                    return [];
+                });
+
+            const uuid = result[0].uuid ?? null;
+            if (!uuid) return null;
+
+            await redis.set(redisKey, uuid, 'EX', 1200);
+
+            return uuid;
+        }
     }
 
     static async getUuidFromUsername(username: string): Promise<string | null> {
-        const [result] = await Database.SQL`SELECT uuid
-                                            FROM users
-                                            WHERE username = ${username}`
-            .catch((err: any): User[] => {
-                LOGGER.error(`Users#getUuidFromUsername[0]: Database request failed. `, err)
-                return [];
-            });
+        const redisKey: RedisClient.KeyLike = `user:${username}:uuid`;
 
-        return result[0].uuid ?? null;
+        if (await redis.exists(redisKey)) {
+            return String(await redis.get(redisKey));
+        } else {
+            const result: any = await Database.SQL`SELECT uuid
+                                                   FROM users
+                                                   WHERE username = ${username}`
+                .catch((err: any): User[] => {
+                    LOGGER.error(`Users#getUuidFromUsername[0]: Database request failed. `, err)
+                    return [];
+                });
+
+            const uuid = result[0].uuid ?? null;
+            if (!uuid) return null;
+
+            await redis.set(redisKey, uuid, 'EX', 1200);
+
+            return uuid;
+        }
     }
 
     /**
@@ -609,15 +657,25 @@ export class Users {
      * @param uuid
      */
     static async getPasswordHash(uuid: string): Promise<string> {
-        const result = await Database.SQL`SELECT password_hash
-                                          FROM users
-                                          WHERE uuid = ${uuid}`
-            .catch((err: any): [] => {
-                LOGGER.error(`Users#getPasswordHash[0]: Database request failed. `, err)
-                return [];
-            });
+        const redisKey: RedisClient.KeyLike = `user:${uuid}:password_hash`;
 
-        return result[0].password_hash ?? '';
+        if (await redis.exists(redisKey)) {
+            return String(await redis.get(redisKey));
+        } else {
+            const result: any = await Database.SQL`SELECT password_hash
+                                                   FROM users
+                                                   WHERE uuid = ${uuid}`
+                .catch((err: any): [] => {
+                    LOGGER.error(`Users#getPasswordHash[0]: Database request failed. `, err)
+                    return [];
+                });
+
+            const hash: any = result[0].password_hash ?? '';
+
+            await redis.set(redisKey, hash, 'EX', 300);
+
+            return hash;
+        }
     }
 
     /**
@@ -636,14 +694,24 @@ export class Users {
      * todo
      */
     static async getUserAmount(): Promise<number> {
-        const result = await Database.SQL`SELECT count(uuid) as amount
-                                          FROM users`
-            .catch((err: any): [] => {
-                LOGGER.error(`Users#getUserAmount[0]: Database request failed. `, err)
-                return [];
-            });
+        const redisKey: RedisClient.KeyLike = `users:amount`;
 
-        return result[0].amount ?? -1;
+        if (await redis.exists(redisKey)) {
+            return Number.parseInt(String(await redis.get(redisKey)));
+        } else {
+            const result: any = await Database.SQL`SELECT count(uuid) as amount
+                                                   FROM users`
+                .catch((err: any): [] => {
+                    LOGGER.error(`Users#getUserAmount[0]: Database request failed. `, err)
+                    return [];
+                });
+
+            const amount: any = result[0].amount ?? 1;
+
+            await redis.set(redisKey, amount, 'EX', 60);
+
+            return amount;
+        }
     }
 
     /**
@@ -718,15 +786,25 @@ export class Users {
      * todo
      */
     static async isSuperuser(uuid: string): Promise<boolean> {
-        const result = await Database.SQL`SELECT superuser
-                                          FROM users
-                                          WHERE uuid = ${uuid}`
-            .catch((err: any): [] => {
-                LOGGER.error(`Users#isSuperuser[0]: Database request failed. `, err)
-                return [];
-            });
+        const redisKey: RedisClient.KeyLike = `user:${uuid}:superuser`;
 
-        return result[0].superuser ?? 0;
+        if (await redis.exists(redisKey)) {
+            return await redis.get(redisKey) === 'true';
+        } else {
+            const result: any = await Database.SQL`SELECT superuser
+                                                   FROM users
+                                                   WHERE uuid = ${uuid}`
+                .catch((err: any): [] => {
+                    LOGGER.error(`Users#isSuperuser[0]: Database request failed. `, err)
+                    return [];
+                });
+
+            const superuser = result[0].superuser ?? 0;
+
+            await redis.set(redisKey, superuser ? 'true' : 'false', 'EX', 300);
+
+            return superuser;
+        }
     }
 }
 
@@ -743,7 +821,7 @@ export class Auth {
         await Database.SQL`INSERT INTO sessions (uuid, session_id)
                            VALUES (${uuid}, ${session_id})
                            ON DUPLICATE KEY UPDATE session_id = ${session_id},
-                                                   expires=(ADDTIME(CURRENT_TIMESTAMP, "7 0:0"))`
+                                                   expires=(addtime(now(), _utf8mb4'7 0:0'))`
             .catch((err: any): void => LOGGER.error(`Auth#newSession[0]: Database request failed. `, err));
     }
 
@@ -752,15 +830,36 @@ export class Auth {
      * @param session_id Id of session to retrieve.
      */
     static async getSession(session_id: string): Promise<Session | undefined> {
-        const result: Session[] = await Database.SQL`SELECT *
-                                                     FROM sessions
-                                                     WHERE session_id = ${session_id}`
-            .catch((err: any): Session[] => {
-                LOGGER.error(`Auth#getSession[0]: Database request failed. `, err)
-                return [];
-            });
+        const redisKey: RedisClient.KeyLike = `session:${session_id}`;
 
-        return result[0] ?? undefined;
+        if (await redis.exists(redisKey)) {
+            const session = (await redis.hgetall(redisKey) as Record<any, any>) as Session;
+
+            session.expires = Number.parseInt(String(session.expires));
+            session.last_accessed = Number.parseInt(String(session.last_accessed));
+            session.created_at = Number.parseInt(String(session.created_at));
+
+            return session;
+        } else {
+            const session: Session | undefined = (await Database.SQL`SELECT *
+                                                                     FROM sessions
+                                                                     WHERE session_id = ${session_id}`
+                .catch((err: any): Session[] => {
+                    LOGGER.error(`Auth#getSession[0]: Database request failed. `, err)
+                    return [];
+                }))[0] ?? undefined;
+
+            if (!session) return undefined;
+
+            session.expires = Date.parse(String(session.expires));
+            session.last_accessed = Date.parse(String(session.last_accessed));
+            session.created_at = Date.parse(String(session.created_at));
+
+            await redis.hset(redisKey, session as Record<any, any>)
+                .then(() => redis.expire(redisKey, 300));
+
+            return session;
+        }
     }
 
     /**
@@ -773,7 +872,7 @@ export class Auth {
                                            WHERE uuid = ${uuid}
                                            ORDER BY last_accessed`
             .catch((err: any): [] => {
-                LOGGER.error(`Auth#getSession[0]: Database request failed. `, err)
+                LOGGER.error(`Auth#getSessions[0]: Database request failed. `, err)
                 return [];
             });
 
@@ -808,30 +907,6 @@ export class Auth {
                            FROM sessions
                            WHERE session_id = ${session_id}`
             .catch((err: any): void => LOGGER.error(`Auth#invalidateSession[0]: Database request failed. `, err));
-    }
-
-    /**
-     * todo
-     * @param session_id
-     */
-    static async getSessionExpiration(session_id: string): Promise<number> {
-        if (!(await redis.exists(`session:expiration:${session_id}`))) {
-
-            const results = await Database.SQL`SELECT expires
-                                               FROM sessions
-                                               WHERE session_id = ${session_id}`
-                .catch((err: any): [] => {
-                    LOGGER.error(`Auth#getSessionExpiration[0]: Database request failed. `, err);
-                    return [];
-                });
-
-            const expiration: number = results[0]?.expires ? Date.parse(String(results[0].expires)) : -1;
-            await redis.set(`session:expiration:${session_id}`, String(expiration), 'EX', 60);
-
-            return expiration;
-        } else {
-            return Number.parseInt(await redis.get(`session:expiration:${session_id}`) ?? '-1');
-        }
     }
 
     /**
@@ -876,11 +951,11 @@ export class Auth {
      * @param session_id
      */
     static async isSessionInformationMissing(session_id: string): Promise<boolean> {
-        const [result] = await Database.SQL`SELECT ip, continent, country, region, city, device, platform
-                                            FROM sessions
-                                            WHERE session_id = ${session_id}`
+        const result: any = await Database.SQL`SELECT ip, continent, country, region, city, device, platform
+                                               FROM sessions
+                                               WHERE session_id = ${session_id}`
             .catch((err: any): [] => {
-                LOGGER.error(`Auth#updateSessionInformation[0]: Database request failed. `, err)
+                LOGGER.error(`Auth#isSessionInformationMissing[0]: Database request failed. `, err)
                 return [];
             });
 
@@ -892,15 +967,32 @@ export class Auth {
      * @param token
      */
     static async getResetRequest(token: string): Promise<ResetRequest | undefined> {
-        const [result] = await Database.SQL`SELECT *
-                                            FROM reset_tokens
-                                            WHERE token = ${token}`
-            .catch((err: any): [] => {
-                LOGGER.error(`Auth#getResetRequest[0]: Database request failed. `, err)
-                return [];
-            });
+        const redisKey: RedisClient.KeyLike = `reset:request:${token}`;
 
-        return result[0] ?? undefined;
+        if (await redis.exists(redisKey)) {
+            const request = (await redis.hgetall(redisKey) as Record<any, any>) as ResetRequest;
+            request.expires = Number.parseInt(String(request.expires));
+            return request;
+        } else {
+            const result: ResetRequest[] = await Database.SQL`SELECT *
+                                                              FROM reset_tokens
+                                                              WHERE token = ${token}
+                                                              LIMIT 1`
+                .catch((err: any): [] => {
+                    LOGGER.error(`Auth#getResetRequest[0]: Database request failed. `, err)
+                    return [];
+                });
+
+            const request: ResetRequest | undefined = result[0] ?? undefined;
+            if (!request) return undefined;
+
+            request.expires = Date.parse(String(request.expires));
+
+            await redis.hset(redisKey, request as Record<any, any>)
+                .then(() => redis.expire(redisKey, 30));
+
+            return request;
+        }
     }
 
     /**
@@ -908,22 +1000,24 @@ export class Auth {
      * @param uuid
      */
     static async getResetRequestExpiration(uuid: string): Promise<number> {
-        if (!(await redis.exists(`reset:expiration:${uuid}`))) {
-            const [result] = await Database.SQL`SELECT expires
-                                                FROM reset_tokens
-                                                WHERE uuid = ${uuid}
-                                                LIMIT 1`
+        const redisKey: RedisClient.KeyLike = `reset:request:expiration:${uuid}`;
+
+        if (await redis.exists(redisKey)) {
+            return Number.parseInt(await redis.get(redisKey) ?? '-1');
+        } else {
+            const result = await Database.SQL`SELECT expires
+                                              FROM reset_tokens
+                                              WHERE uuid = ${uuid}
+                                              LIMIT 1`
                 .catch((err: any): [] => {
-                    LOGGER.error(`Auth#getResetRequestFromUuid[0]: Database request failed. `, err)
+                    LOGGER.error(`Auth#getResetRequestExpiration[0]: Database request failed. `, err)
                     return [];
                 });
 
-            const expiration = result[0].expires ?? -1;
-            await redis.set(`reset:expiration:${uuid}`, expiration, 'EX', 60);
+            const expiration: any = result[0].expires ?? -1;
+            await redis.set(redisKey, expiration, 'EX', 30);
 
             return expiration;
-        } else {
-            return Number.parseInt(await redis.get(`reset:expiration:${uuid}`) ?? '-1');
         }
     }
 

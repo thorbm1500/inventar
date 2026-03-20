@@ -20,21 +20,22 @@ export const init: ServerInit = async (): Promise<void> => {
         // Skip database initialization if project is building.
         if (!building) {
             process.once('SIGINT', shutdown);
-            process.once('sveltekit:shutdown', shutdown);
-
             LOGGER.debug('Shutdown hooks registered.');
 
             await Database.init();
             cron.initializeJobs();
         }
-    });
+    })
+        .then((): void => {
+            LOGGER.done(`\nSystem Stats`, `\n Root: `, process.cwd(), `\n Available Memory: `, (process.availableMemory() / 1000 / 1000 / 1000).toFixed(2), 'GB');
+        });
 }
 
 async function shutdown(reason?: any): Promise<void> {
     LOGGER.debug(`Shutdown request received. Reason: `, reason);
     LOGGER.info(`Shutting down...`);
 
-    await LOGGER.timed(`Closing database connection.`,`Connection closed.`, Database.SQL.close);
+    await LOGGER.timed(`Closing database connection.`, `Connection closed.`, Database.SQL.close);
     LOGGER.destroy();
 }
 
@@ -73,11 +74,7 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
             return new Response('');
         }
 
-        if (isPublicPath(event.url.pathname)) {
-            return resolve(event);
-        } else {
-            return redirect(302, '/login');
-        }
+        return isPublicPath(event.url.pathname) ? redirect(302, '/login') : resolve(event);
     }
 
     const session: Session | null = await auth.validateSessionToken(token, event);
@@ -93,10 +90,6 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
         return redirect(302, '/login');
     }
 
-    if (isPublicPath(event.url.pathname)) {
-        return redirect(302, '/');
-    }
-
     const user: User | undefined = await Users.getFromUuid(session.uuid);
 
     if (!user) {
@@ -109,7 +102,7 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
     event.locals.uuid = user.uuid;
     event.locals.session_id = session.session_id;
 
-    return resolve(event);
+    return isPublicPath(event.url.pathname) ? redirect(302, '/') : resolve(event);
 };
 
 export const handle: Handle = handleAuth;
