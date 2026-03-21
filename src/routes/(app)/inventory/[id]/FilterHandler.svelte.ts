@@ -1,6 +1,6 @@
 type rowAmountType = number;
 export type OrderType = 'ASC' | 'DESC';
-type FilterType = undefined | 'name' | 'last_updated' | 'price' | 'items';
+type FilterType = undefined | 'name' | 'last_update' | 'price' | 'amount' | 'part_number';
 
 export class Filters {
 
@@ -13,19 +13,20 @@ export class Filters {
     description: boolean = $state(true);
     last_updated: boolean = $state(true);
     price: boolean = $state(true);
-    items: boolean = $state(true);
+    amount: boolean = $state(true);
+    part_number: boolean = $state(true);
 
     initialDescription: boolean = $state(this.description);
     initialLast_updated: boolean = $state(this.last_updated);
     initialPrice: boolean = $state(this.price);
-    initialItems: boolean = $state(this.items);
+    initialAmount: boolean = $state(this.amount);
 
     order: OrderType = $state('DESC');
 
     unsavedChanges: boolean = $derived(this.description !== this.initialDescription
         && this.last_updated !== this.initialLast_updated
         && this.price !== this.initialPrice
-        && this.items !== this.initialItems);
+        && this.amount !== this.initialAmount);
 
     constructor(uuid: string) {
         this.uuid = uuid;

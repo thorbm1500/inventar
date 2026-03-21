@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type {Item} from "$lib/server/db/interfaces";
+    import type {Item} from "$lib/server/db/components/item";
     import {getItem} from "./data.remote.ts";
     import {page} from "$app/state";
     import {onMount} from "svelte";

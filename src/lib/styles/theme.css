@@ -40,6 +40,8 @@
     --theme-border-input: #bcc3cb;
     --theme-border-input-focus: #979fa6;
 
+    --theme-background-blur-main: black;
+
     --error-page-icon-color: rgba(from var(--theme-text) r g b / .075);
 
     --toast-background: rgba(from #0f0f11 r g b / 25%);
@@ -68,6 +70,8 @@
     --theme-text-accent: oklch(0.881 0.226 126.871);
     --theme-text-danger: oklch(0.641 0.228 19.02);
 
+    --theme-text-gradient: linear-gradient(140deg, #eef2f8 40%, #bbbfd7);
+
     --theme-logo: #FFFFF2;
     --theme-icon: var(--theme-text);
 
@@ -87,6 +91,9 @@
     --theme-border-button: #2c303a;
     --theme-border-input: #393d47;
     --theme-border-input-focus: #505779;
+
+    --theme-background-blur-main: #acbad4;
+    --theme-backdrop-container: blur(4px) brightness(1.5);
 
     --error-page-icon-color: rgba(from var(--theme-text) r g b / .02);
 

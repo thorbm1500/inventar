@@ -12,7 +12,8 @@
     color: var(--theme-text);
     stroke-width: 2;
 
-    background: var(--theme-background-button);
+    background: color-mix(var(--theme-background-button) 65%, transparent);
+    backdrop-filter: var(--theme-backdrop-container);
     border: var(--theme-border-width) solid var(--theme-border-button);
     border-radius: var(--theme-border-radius);
 
@@ -25,7 +26,8 @@
 }
 
 .theme-button:hover {
-    background: var(--theme-background-button-hover);
+    background: color-mix(var(--theme-background-button) 70%, transparent);
+    filter: brightness(1.1);
     color: var(--theme-text-accent);
     transition: var(--theme-transition-in);
 }

@@ -219,44 +219,71 @@ export class Logger {
      * @private
      */
     formatNanoseconds(start: number, end: number): string {
-        const multiplier = Math.pow(10, 1);
+        let time: number = end - start;
 
-        let time = end - start;
-        let suffix = 'ns';
+        // Nanoseconds
+        if (time < 1000) return ` [${time}ns]`;
+        else time = time / 1000;
 
-        if (time > 999) {
-            time = time / 1000;
-            suffix = 'µs'
+        // Microseconds
+        if (time < 1000) return ` [${Math.trunc(time)}µs]`;
+        else time = time / 1000;
 
-            if (time > 999) {
-                time = time / 1000;
-                suffix = 'ms';
+        // Milliseconds
+        if (time < 10000) return ` [${Math.trunc(time)}ms]`;
+        else time = time / 1000;
 
-                if (time > 9999) {
-                    time = time / 1000;
-                    suffix = 's';
+        // Seconds
+        if (time < 60) return ` [${time.toFixed(2)}s]`;
+        else time = time / 60;
 
-                    if (time > 59) {
-                        time = time / 60;
-                        suffix = 'm';
+        // Minutes
+        if (time < 60) {
+            const decimal: number = time - Math.trunc(time);
 
-                        if (time > 59) {
-                            time = time / 60;
-                            suffix = 'h';
+            if (decimal > .5) return ` [${Math.trunc(time)}.5m]`;
+            else return ` [${Math.trunc(time)}m]`;
+        }
+        else time = time / 60;
 
-                            if (time > 23) {
-                                time = time / 24;
-                                suffix = 'd';
-                            }
-                        }
-                    }
+        // Hours
+        if (time < 24) {
+            const decimal: number = time - Math.trunc(time);
 
-                    return ` [${Math.round(time * multiplier) / multiplier}${suffix}]`;
-                }
-            }
+            if (decimal > .5) return ` [${Math.trunc(time)}.5h]`;
+            else return ` [${Math.trunc(time)}h]`;
+        }
+        else time = time / 24;
+
+        // Days
+        if (time < 7) {
+            const decimal: number = time - Math.trunc(time);
+
+            if (decimal > .5) return ` [${Math.trunc(time)}.5d]`;
+            else return ` [${Math.trunc(time)}d]`;
+        }
+        // Average days pr. month, of 365 days with 12 months.
+        else time = time / 7;
+
+        // Weeks
+        if (time < 4) {
+            const decimal: number = time - Math.trunc(time);
+
+            if (decimal > .5) return ` [${Math.trunc(time)}.5w]`;
+            else return ` [${Math.trunc(time)}w]`;
+        }
+        else time = time / 4;
+
+        // Months
+        if (time < 12) {
+            const decimal: number = time - Math.trunc(time);
+
+            if (decimal > .5) return ` [${Math.trunc(time)}.5M]`;
+            else return ` [${Math.trunc(time)}M]`;
         }
 
-        return ` [${Math.trunc(time)}${suffix}]`;
+        // Years
+        return ` [${((time * 4) / 365).toFixed(1)}y]`;
     }
 
     /**

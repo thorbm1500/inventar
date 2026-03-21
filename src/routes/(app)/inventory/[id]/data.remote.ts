@@ -4,9 +4,9 @@ import {command, form, query} from "$app/server";
 import * as db from "$lib/server/db/database"
 import * as v from "valibot";
 import util from "$lib/server/internal/utilities";
-import type {Inventory, Item} from "$lib/server/db/interfaces";
+import type {Inventory} from "$lib/server/db/interfaces";
+import {type Item, Items} from "$lib/server/db/components/item";
 import {promises as fs} from "node:fs";
-import moment from "moment";
 
 export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's UUID must be provided when attempting the browse its contents!`)), async (id: string): Promise<Inventory> => {
     let inventory: Inventory | undefined;
@@ -36,7 +36,7 @@ export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
         return [];
     }
 
-    const items = await db.Items.fetch(data.inventory, data.amount, data.offset, data.order_by);
+    const items: Item[] = await Items.fetch(data.inventory, data.amount, data.offset, data.order_by);
 
     return data.order === 'DESC' ? items.reverse() : items;
 });
@@ -46,11 +46,11 @@ export const getTotalItemCount = query(v.string(), async (id: string): Promise<n
         return 0;
     }
 
-    return await db.Items.fetchTotalItemCount(id);
+    return await Items.fetchTotalItemCount(id);
 });
 
-export const deleteItem = query(v.string(), async (id: string): Promise<void> => {
-    if (!util.isOffline()) await db.Items.deleteItem(id);
+export const deleteItem = query(v.object({id: v.string(), user: v.string()}), async ({id, user}): Promise<void> => {
+    if (!util.isOffline()) await Items.deleteItem(id, user);
 });
 
 export const quickAdd = form(v.object({
@@ -59,7 +59,7 @@ export const quickAdd = form(v.object({
     name: v.pipe(v.string(), v.nonEmpty('Error: No name found. A name must be provided when creating new items.')),
     amount: v.number()
 }), async ({user, inventoryUuid, name, amount}) => {
-    const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, amount);
+    const item: Item | undefined = await Items.create(user, inventoryUuid, name, amount);
 
     if (!item) {
         LOGGER.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);
@@ -82,7 +82,7 @@ export const createItem = form(
         image: v.optional(v.file(), undefined)
     }),
     async ({user, inventoryUuid, name, description, amount, price, currency, external, image}) => {
-        const item: Item | undefined = await db.Items.create(user, inventoryUuid, name, amount, {description, image: (image as File)?.name ?? undefined, url: external, price, currency});
+        const item: Item | undefined = await Items.create(user, inventoryUuid, name, amount, {description, image: (image as File)?.name ?? undefined, url: external, price, currency});
 
         if (!item) {
             LOGGER.error(`Failed to create item with name: ${name}, for Inventory: ${inventoryUuid}`);

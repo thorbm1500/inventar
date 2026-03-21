@@ -1,3 +1,5 @@
+import type {Label} from "$lib/server/db/components/labels";
+
 export interface Inventory {
     uuid: string,
     owner: string,
@@ -7,30 +9,6 @@ export interface Inventory {
     labels: Label[],
     last_update: number,
     created_at: number
-}
-
-export interface Label {
-    inventory: string,
-    name: string,
-    color: string
-}
-
-export interface Item {
-    inventory: string,
-    uuid: string,
-    name: string,
-    description?: string,
-    amount: number,
-    image?: string,
-    url?: string,
-    price: number,
-    currency: string | null,
-    currency_format: string,
-    part_number?: string,
-    labels: Label[],
-    last_update: number,
-    created_at: number,
-    created_by: string
 }
 
 export type PageTheme = 'light' | 'dark';

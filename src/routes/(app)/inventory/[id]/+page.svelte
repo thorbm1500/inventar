@@ -1,3 +1,4 @@
+<!--suppress ALL -->
 <script module lang="ts">
     //todo: Add logic to archive deleted items for 30 days to allow for recovery of deleted items
     //todo: Add option to permanently delete any archived item.
@@ -23,54 +24,58 @@
 <script lang="ts">
     import {getContext, onMount} from "svelte";
     import {page} from "$app/state";
-    import type {Inventory, Item, User} from "$lib/server/db/interfaces";
+    import type {Inventory, User} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/util/utilities'
-    import {getInventory, getItems, getTotalItemCount, quickAdd} from './data.remote.ts';
-    import {createItem} from './data.remote.ts';
-    import {deleteItem, updatePrimaryInventory} from "./data.remote";
+    import {getInventory, getItems, getTotalItemCount, quickAdd, createItem, deleteItem, updatePrimaryInventory} from "./data.remote";
     import {Filters} from "./FilterHandler.svelte";
     import {ignorePasswordManagers} from "$lib/util/utilities";
     import {blur} from "svelte/transition";
-    import moment from "moment";
+    import type {Item} from "$lib/server/db/components/item";
+
+    //todo: Add option to save filters, and make them persistent for the user.
+    //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
 
     const latestIcons: number[] = [99, 99, 99];
 
-    const user: User = $state(getContext('user'));
-
-    type TableType = 'table' | 'list';
-    type ItemSize = 'small' | 'large';
+    let user: User = $state(getContext('user'));
 
     /* Variable declarations */
-    //todo: Add option to save filters, and make them persistent for the user.
     const filters: Filters = new Filters(user.uuid);
     let addItemHover = $state(false);
     // svelte-ignore state_referenced_locally
     let isItemCreatorOpen: boolean = $state(false);
     let isFilterContainerOpen: boolean = $state(false);
     let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
-    let itemSize: ItemSize = $state('small');
-    let tableType: TableType = $state('list');
+    let itemSize: string = $state('small');
+    let tableType: string = $state('table');
     let currentPage = $state(1);
-    let offset = $derived(filters.rowAmount * (currentPage - 1));
     let inventory: Inventory | undefined = $state();
-    let isLoaded: boolean = $derived(inventory !== undefined);
 
-    getInventory(String(page.params.id)).then(async (res) => {
-        inventory = res;
-        itemCount = await getTotalItemCount(inventory.uuid);
-        await refresh();
-    });
-
-    //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
-    let items: Item[] = $state([]);
-    let itemCount: number = $state(0);
+    let allItems: Map<number, Item[]> = $state(new Map<number, Item[]>());
+    let items: Item[] = $derived(allItems.get(currentPage) ?? []);
+    let itemCount: number = $state(-1);
     let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filters.rowAmount) ?? 1));
+
+    let offset = $derived(filters.rowAmount * (currentPage - 1));
+    let offsetMinusOne = $derived(currentPage - 1 > 0 ? filters.rowAmount * ((currentPage - 1) - 1) : -1);
+    let offsetPlusOne = $derived(currentPage + 1 <= totalPages ? filters.rowAmount * ((currentPage + 1) - 1) : -1);
+
+    let isLoaded: boolean = $derived(inventory !== undefined && itemCount !== -1 && allItems.has(currentPage));
 
     onMount(() => {
         const openItemCreatorButtonElement = document.getElementById('create-item-button');
         openItemCreatorButtonElement?.addEventListener('mouseover', () => addItemHover = true);
         openItemCreatorButtonElement?.addEventListener('mouseout', () => addItemHover = false);
     })
+
+    onMount(async () => {
+        inventory = await getInventory(String(page.params.id));
+        if (!inventory) return;
+
+        itemCount = await getTotalItemCount(inventory.uuid);
+
+        await refresh();
+    });
 
 
     // Sets the current page to 1.
@@ -99,13 +104,32 @@
         else if (newPage > totalPages) goToLastPage();
         else currentPage += difference;
 
-        refresh();
+        await refresh();
     }
 
     async function refresh() {
         if (!inventory) return;
-        await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset}).refresh();
-        items = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset});
+
+        let newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset})
+        if (!!newItems) {
+            allItems = structuredClone(allItems.set(currentPage, newItems));
+        }
+
+        if (offsetPlusOne !== -1) {
+            newItems = [];
+            newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset: offsetPlusOne})
+            if (!!newItems) {
+                allItems = structuredClone(allItems.set(currentPage + 1, newItems));
+            }
+        }
+
+        if (offsetMinusOne !== -1) {
+            newItems = [];
+            newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset: offsetMinusOne})
+            if (!!newItems) {
+                allItems = structuredClone(allItems.set(currentPage - 1, newItems));
+            }
+        }
     }
 
     function getRandomIcon(): string {
@@ -119,6 +143,8 @@
         latestIcons?.push(next);
         return confirmItemCreationIcons[next];
     }
+
+    refresh();
 </script>
 
 <div class="page-content">
@@ -133,6 +159,7 @@
                                 <button class="primary-inventory-bookmark-icon" onclick={() => {
                                 user.primary_inventory = user.primary_inventory === inventory?.uuid ? undefined : inventory?.uuid;
                                 updatePrimaryInventory({user: user.uuid, inventory_uuid: user.primary_inventory});
+                                user = structuredClone(user);
                             }}>
                                     {#if user.primary_inventory === inventory?.uuid }
                                         <svg style="color:var(--theme-color-accent);" width="24" height="24" viewBox="0 0 24 24">
@@ -153,7 +180,7 @@
                         </div>
                         <div class="header-buttons">
                             {#if tableType === 'table'}
-                                <div class="size-switcher">
+                                <div class="theme-button size-switcher">
                                     <button class="{itemSize==='small'?'selected':''}" title="Small" onclick="{() => itemSize = 'small'}">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                              stroke-linejoin="round">
@@ -185,7 +212,7 @@
                                     </button>
                                 </div>
                             {/if}
-                            <div class="size-switcher">
+                            <div class="theme-button size-switcher">
                                 <button class="{tableType==='table'?'selected':''}" title="Table" onclick="{() => tableType = 'table'}">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M3 9L21 9M9 3L9 21M7.8 3H16.2C17.8802 3 18.7202 3 19.362 3.32698C19.9265 3.6146 20.3854 4.07354 20.673 4.63803C21 5.27976 21 6.11984 21 7.8V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V7.8C3 6.11984 3 5.27976 3.32698 4.63803C3.6146 4.07354 4.07354 3.6146 4.63803 3.32698C5.27976 3 6.11984 3 7.8 3Z"
@@ -214,22 +241,12 @@
                                     document.getElementById('item-creator-form-reset-button')?.click();
                                 }
                             }}>
-                                {#if isFilterContainerOpen}
-                                    <svg width="24" height="24" viewBox="0 0 24 24">
-                                        <g fill="currentColor">
-                                            <path d="M19.396 11.056a6 6 0 0 1-5.647 10.506q.206-.21.396-.44a8 8 0 0 0 1.789-6.155a8.02 8.02 0 0 0 3.462-3.911m-14.787-.005a7.99 7.99 0 0 0 9.386 4.698a6 6 0 1 1-9.534-4.594z"/>
-                                            <path d="M12 2a6 6 0 1 1-6 6l.004-.225A6 6 0 0 1 12 2"/>
-                                        </g>
-                                    </svg>
-                                {:else}
-                                    <svg width="24" height="24" viewBox="0 0 24 24">
-                                        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-                                            <path d="M7 8a5 5 0 1 0 10 0A5 5 0 1 0 7 8"/>
-                                            <path d="M8 11a5 5 0 1 0 3.998 1.997"/>
-                                            <path d="M12.002 19.003A5 5 0 1 0 16 11"/>
-                                        </g>
-                                    </svg>
-                                {/if}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                     stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-filter-spark">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M15 12.5v-.5l4.414 -4.414a2 2 0 0 0 .586 -1.414v-2.172h-16v2.227c0 .497 .185 .977 .52 1.345l4.48 4.928v8.5l2 -.667"/>
+                                    <path d="M18.5 22a4.75 4.75 0 0 1 3.5 -3.5a4.75 4.75 0 0 1 -3.5 -3.5a4.75 4.75 0 0 1 -3.5 3.5a4.75 4.75 0 0 1 3.5 3.5"/>
+                                </svg>
                                 Filters
                             </button>
                             <button id="create-item-button" class="theme-button create-item-button {isItemCreatorOpen?'open':''}" onclick={() => {
@@ -386,12 +403,12 @@
                             </div>
                         {:else if isLoaded && isItemCreatorOpen }
                             <div class="extra-container open create-item-container" id="create-item-container" style="display:flex;flex-flow:column nowrap;">
-                                <form {...createItem.enhance(async ({form, data, submit}) => {
+                                <form {...createItem.enhance(async ({form, submit}) => {
                                     try {
                                         await submit();
                                         form.reset();
                                         isItemCreatorOpen = false;
-                                        await refresh();
+                                        refresh();
                                     } catch (err) {
                                         console.log(err);
                                     }
@@ -455,12 +472,11 @@
                                         </div>
                                     </div>
                                     <div class="entry-item labels">
-                                        <div class="label blue">
-                                            Refurbished
-                                        </div>
-                                        <div class="label green">
-                                            Category
-                                        </div>
+                                        {#each item.labels as {name, color}}
+                                            <div class="label {color}">
+                                                {name}
+                                            </div>
+                                        {/each}
                                     </div>
                                 </a>
                             {/each}
@@ -470,19 +486,179 @@
                             <div class="inventory-header">
                                 <div class="header-items">
                                     <div class="header-item name">
-                                        <p>Name</p>
+                                        <button onclick="{() => {
+                                            filters.update('name');
+                                            refresh();
+                                        }}" class="header-button {filters.current === 'name' ? 'active' : ''}">
+                                            Name
+                                            {#if filters.current === 'name'}
+                                                {#if filters.order === 'DESC'}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {:else}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M7 20V4M7 4L3 8M7 4L11 8M17 20V9M17 9L13 13M17 9L21 13"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {/if}
+                                            {:else}
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0;">
+                                                    <path d="M7 4V20M7 20L3 16M7 20L11 16M17 20V4M17 4L13 8M17 4L21 8"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round"
+                                                          stroke-linejoin="round"/>
+                                                </svg>
+                                            {/if}
+                                        </button>
                                     </div>
                                     <div class="header-item part-number">
-                                        <p>Part Nr.</p>
+                                        <button onclick="{() => {
+                                            filters.update('part_number');
+                                            refresh();
+                                        }}" class="header-button">
+                                            Part Nr.
+                                            {#if filters.current === 'part_number'}
+                                                {#if filters.order === 'DESC'}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {:else}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M7 20V4M7 4L3 8M7 4L11 8M17 20V9M17 9L13 13M17 9L21 13"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {/if}
+                                            {:else}
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0;">
+                                                    <path d="M7 4V20M7 20L3 16M7 20L11 16M17 20V4M17 4L13 8M17 4L21 8"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round"
+                                                          stroke-linejoin="round"/>
+                                                </svg>
+                                            {/if}
+                                        </button>
                                     </div>
                                     <div class="header-item updated">
-                                        <p>Updated</p>
+                                        <button onclick="{() => {
+                                            filters.update('last_update');
+                                            refresh();
+                                        }}" class="header-button">
+                                            Updated
+                                            {#if filters.current === 'last_update'}
+                                                {#if filters.order === 'DESC'}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {:else}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M7 20V4M7 4L3 8M7 4L11 8M17 20V9M17 9L13 13M17 9L21 13"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {/if}
+                                            {:else}
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0;">
+                                                    <path d="M7 4V20M7 20L3 16M7 20L11 16M17 20V4M17 4L13 8M17 4L21 8"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round"
+                                                          stroke-linejoin="round"/>
+                                                </svg>
+                                            {/if}
+                                        </button>
                                     </div>
                                     <div class="header-item price">
-                                        <p>Price</p>
+                                        <button onclick="{() => {
+                                            filters.update('price');
+                                            refresh();
+                                        }}" class="header-button">
+                                            Price
+                                            {#if filters.current === 'price'}
+                                                {#if filters.order === 'DESC'}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {:else}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M7 20V4M7 4L3 8M7 4L11 8M17 20V9M17 9L13 13M17 9L21 13"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {/if}
+                                            {:else}
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0;">
+                                                    <path d="M7 4V20M7 20L3 16M7 20L11 16M17 20V4M17 4L13 8M17 4L21 8"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round"
+                                                          stroke-linejoin="round"/>
+                                                </svg>
+                                            {/if}
+                                        </button>
                                     </div>
                                     <div class="header-item amount">
-                                        <p>Amount</p>
+                                        <button onclick="{() => {
+                                            filters.update('amount');
+                                            refresh();
+                                        }}" class="header-button">
+                                            Amount
+                                            {#if filters.current === 'amount'}
+                                                {#if filters.order === 'DESC'}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {:else}
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M7 20V4M7 4L3 8M7 4L11 8M17 20V9M17 9L13 13M17 9L21 13"
+                                                              stroke="currentColor"
+                                                              stroke-width="2"
+                                                              stroke-linecap="round"
+                                                              stroke-linejoin="round"/>
+                                                    </svg>
+                                                {/if}
+                                            {:else}
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0;">
+                                                    <path d="M7 4V20M7 20L3 16M7 20L11 16M17 20V4M17 4L13 8M17 4L21 8"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round"
+                                                          stroke-linejoin="round"/>
+                                                </svg>
+                                            {/if}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -490,7 +666,8 @@
                                 {#if isLoaded }
                                     {#if items.length > 0 }
                                         {#each items as item}
-                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry">
+                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry"
+                                               style="border-bottom-color: {currentPage === totalPages && (itemCount / totalPages) === offset ? 'var(--theme-border-container)' : 'var(--theme-border-container)'}">
                                                 <div class="entry-item image">
                                                     {#if item.image }
                                                         <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
@@ -504,12 +681,11 @@
                                                 <div class="entry-item meta">
                                                     <div class="name-label">
                                                         <h1 class="name">{item.name}</h1>
-                                                        <div class="label blue">
-                                                            Refurbished
-                                                        </div>
-                                                        <div class="label green">
-                                                            Category
-                                                        </div>
+                                                        {#each item.labels as {name, color}}
+                                                            <div class="label {color}">
+                                                                {name}
+                                                            </div>
+                                                        {/each}
                                                     </div>
                                                     <span class="description">
                                                         {#if item.description}
@@ -520,22 +696,31 @@
                                                     </span>
                                                 </div>
                                                 <div class="entry-item part-number">
-                                                    <!--todo-->
-                                                    0
+                                                    {#if !item.part_number}
+                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M18.5708 20C19.8328 20 20.8568 18.977 20.8568 17.714V13.143L21.9998 12L20.8568 10.857V6.286C20.8568 5.023 19.8338 4 18.5708 4M5.429 4C4.166 4 3.143 5.023 3.143 6.286V10.857L2 12L3.143 13.143V17.714C3.143 18.977 4.166 20 5.429 20"
+                                                                  stroke="currentColor"
+                                                                  stroke-width="2"
+                                                                  stroke-linecap="round"
+                                                                  stroke-linejoin="round"/>
+                                                        </svg>
+                                                    {:else}
+                                                        {item.part_number ?? 0}
+                                                    {/if}
                                                 </div>
                                                 <div class="entry-item updated">
-                                                    {parseTimestamp(item?.last_update)}
+                                                    {item?.last_update ? parseTimestamp(item.last_update instanceof Date ? item.last_update.getTime() : Date.parse(String(item.last_update))) : 'Unknown'}
                                                 </div>
                                                 <div class="entry-item price">
                                                     {item.currency_format.replace('%value%', String(item.price ?? 0))}
                                                 </div>
                                                 <div class="entry-item amount">
-                                                    {item.amount}
+                                                    {item.amount.toLocaleString('da-DK')}
                                                 </div>
                                                 <div class="quick-delete">
                                                     <!-- todo - Add popup warning to confirm deletion -->
                                                     <button title="Delete Item" onclick="{() => {
-                                                    deleteItem(item.uuid);
+                                                    deleteItem({id: item.uuid, user: user.uuid});
                                                 }}">
                                                         <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -585,7 +770,7 @@
                             </div>
                             <div class="inventory-footer">
                                 <div class="inventory-footer-items">
-                                    <button class="pagination-back-button pagination-button" style="visibility: { currentPage === 1 ? 'hidden' : 'visible' }"
+                                    <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
                                             onclick={goToFirstPage} title="Switch to previous page">
                                         <svg width="19" height="19" viewBox="0 0 16 16">
                                             <path fill="currentColor" fill-rule="evenodd"
@@ -612,7 +797,7 @@
                                                   clip-rule="evenodd"/>
                                         </svg>
                                     </button>
-                                    <button class="pagination-forward-button pagination-button" style="visibility: { currentPage === totalPages ? 'hidden' : 'visible' }"
+                                    <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
                                             onclick={goToLastPage} title="Switch to next page">
                                         <svg width="19" height="19" viewBox="0 0 16 16">
                                             <path fill="currentColor" fill-rule="evenodd"
@@ -628,6 +813,8 @@
             </section>
         </section>
     </div>
+    <div class="blur-box"></div>
+    <div id="mouse-glow"></div>
 </div>
 
 <style>
@@ -637,6 +824,18 @@
 
     .page-content {
         color: var(--theme-color-white);
+
+        .blur-box {
+            position: absolute;
+            width: 92rem;
+            height: 8rem;
+            background: var(--theme-background-blur-main);
+
+            top: 12rem;
+            margin: 0 calc(50vw - 46rem);
+
+            filter: blur(80px) brightness(.7);
+        }
     }
 
     .inventory-table * {
@@ -652,13 +851,13 @@
     }
 
     .body-section {
-        height: calc(100vh - 4rem);
-        overflow: hidden;
+        max-height: fit-content;
+        height: 100vh;
+        overflow: visible;
         box-sizing: border-box;
-        width: 100%;
+        width: 100vw;
         position: absolute;
-        top: 4rem;
-        z-index: 10;
+        z-index: 1 !important;
     }
 
     .inventory-outer-section {
@@ -675,6 +874,7 @@
         justify-content: center;
         align-items: center;
         align-content: center;
+        padding-top: 4rem;
 
         width: 100vw;
         height: fit-content;
@@ -688,7 +888,7 @@
 
             width: 100%;
 
-            z-index: 1000;
+            z-index: 2000;
 
             .inventory-header-content {
                 display: flex;
@@ -711,26 +911,25 @@
                     user-select: none;
 
                     h1 {
-                        font-size: 2.25rem;
-                        font-family: 'FunnelDisplay', sans-serif;
-                        font-variation-settings: "wght" 800;
-                        color: var(--theme-text);
+                        font-size: 2.35rem;
+                        font-family: 'FunnelDisplay', 'FunnelSans', sans-serif;
+                        font-variation-settings: "wght" 900;
+
+                        background-image: var(--theme-text-gradient);
+                        background-clip: text;
+                        color: transparent;
                     }
 
                     .primary-inventory-bookmark-icon {
                         svg {
                             stroke-width: 2.5;
-                            height: 1.75rem;
-                            width: 1.75rem;
+                            height: 1.85rem;
+                            width: 1.85rem;
                             color: var(--theme-text);
                             align-self: center;
+                            margin-top: .2rem;
                             margin-left: .35rem;
-                            padding-top: .1em;
                             cursor: pointer;
-                        }
-
-                        .primary-inventory-icon {
-                            color: var(--theme-text-accent);
                         }
                     }
 
@@ -752,10 +951,8 @@
                         align-items: center;
                         align-content: center;
                         justify-content: space-between;
-
-                        background: var(--theme-background-button);
-                        border: var(--theme-border-width) solid var(--theme-border-button);
-                        border-radius: var(--theme-border-radius);
+                        gap: 0;
+                        padding: 0;
 
                         overflow: hidden;
 
@@ -807,7 +1004,6 @@
                     }
 
                     .size-switcher button:hover {
-                        background: var(--theme-background-button-hover);
                         color: var(--theme-text-accent);
                     }
 
@@ -870,6 +1066,7 @@
             margin-top: 0;
             margin-bottom: 2.5rem;
             height: 0;
+            z-index: auto;
 
             transition: 125ms ease-in-out;
 
@@ -920,6 +1117,7 @@
             visibility: visible;
             height: fit-content;
             opacity: 1;
+            z-index: 2000;
         }
 
         .extra-container.closed {
@@ -932,6 +1130,7 @@
             display: flex;
             align-items: flex-start;
             align-content: center;
+            z-index: 2000;
 
             color: var(--theme-text);
             font-family: 'FunnelDisplay', sans-serif;
@@ -982,6 +1181,8 @@
         }
 
         .extra-container.inventory-filter-container {
+            z-index: 2000 !important;
+
             .header {
                 .filters-save-button {
                     svg {
@@ -1074,7 +1275,8 @@
                 box-sizing: border-box;
                 margin: 0 0 4rem 0;
 
-                background: var(--theme-background-container);
+                background: rgba(from var(--theme-background-container) r g b / .85);
+                backdrop-filter: var(--theme-backdrop-container);
                 border: var(--theme-border-width) solid var(--theme-border-container);
                 border-radius: .35rem;
                 color: var(--theme-text);
@@ -1082,6 +1284,7 @@
                 width: 90vw;
                 min-width: 60rem;
                 max-width: 125rem;
+                z-index: inherit;
 
                 .inventory-header {
                     border-width: var(--theme-border-width);
@@ -1110,6 +1313,42 @@
 
                             font-family: 'FunnelSans', sans-serif;
                             font-weight: 600;
+
+                            .header-button {
+                                cursor: pointer;
+                                display: flex;
+                                flex-flow: row nowrap;
+                                gap: .25rem;
+
+                                svg {
+                                    width: 1.25rem;
+                                    height: 1.25rem;
+                                    align-self: center;
+
+                                    position: absolute;
+
+                                    transition: 65ms ease-out;
+                                }
+                            }
+
+                            .header-button.active {
+                                svg {
+                                    opacity: 1 !important;
+
+                                    transition: 50ms ease-out;
+                                }
+                            }
+
+                            .header-button:hover {
+                                color: var(--theme-color-accent);
+                                filter: brightness(1.1) drop-shadow(0 0 .75rem rgba(from currentColor r g b / .15));
+
+                                svg {
+                                    opacity: 1 !important;
+
+                                    transition: 50ms ease-out;
+                                }
+                            }
                         }
                     }
                 }
@@ -1118,7 +1357,8 @@
                     display: flex;
                     flex-flow: column nowrap;
                     justify-content: flex-start;
-                    height: fit-content;
+                    height: 37.1rem;
+                    min-height: fit-content;
 
                     .empty-inventory-table {
                         display: flex;
@@ -1152,7 +1392,7 @@
                     }
 
                     .inventory-table-entry:nth-of-type(odd) {
-                        background: var(--theme-background-list-odd);
+                        background: rgba(from var(--theme-background-list-odd) r g b / .25);
                     }
 
                     .inventory-table-entry:first-child {
@@ -1171,12 +1411,12 @@
                         box-sizing: border-box;
                         overflow: hidden;
 
-                        background: var(--theme-background-list-even);
+                        background: rgba(from var(--theme-background-list-even) r g b / .25);
                         border: var(--theme-border-width) solid var(--theme-border-container);
 
                         border-left-color: transparent;
                         border-right-color: transparent;
-                        border-bottom-color: transparent;
+                        border-top-color: transparent;
 
                         .image {
                             visibility: hidden;
@@ -1184,6 +1424,12 @@
 
                         .meta {
                             flex: 1 35%;
+                        }
+
+                        .entry-item.part-number {
+                            svg {
+                                color: var(--theme-text-fourth);
+                            }
                         }
 
                         .entry-item {
@@ -1201,8 +1447,11 @@
                         .quick-delete {
                             align-items: center;
                             opacity: 0;
+                            filter: blur(2px);
 
-                            transition: 200ms 100ms;
+                            transition: 350ms,
+                            opacity 500ms,
+                            filter 400ms ease;
                             transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
                             user-select: none;
 
@@ -1222,7 +1471,7 @@
                                     background: var(--theme-background-button);
                                     border: .122em solid var(--theme-border-button);
                                     border-radius: .7em;
-                                    transition: 50ms ease-in-out;
+                                    transition: 35ms ease-in-out;
                                 }
                             }
 
@@ -1231,7 +1480,7 @@
                                     background: var(--theme-background-button-hover);
                                     stroke: oklch(58.6% 0.253 17.585) !important;
                                     stroke-width: 2.25;
-                                    transition: 50ms ease-out;
+                                    transition: 10ms linear;
                                 }
                             }
                         }
@@ -1239,10 +1488,12 @@
 
                     .inventory-table-entry:hover {
                         background: var(--theme-background-button-hover);
+                        filter: brightness(1.1);
 
                         .quick-delete {
                             opacity: 1;
-                            transition: 50ms;
+                            filter: blur(0px);
+                            transition: 15ms;
                             transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
 
                             svg {
@@ -1268,6 +1519,13 @@
                         height: 100%;
 
                         font-family: 'FunnelSans', sans-serif;
+
+                        .pagination-current-page {
+                            width: 3rem;
+
+                            text-align: center;
+                            font-weight: 500;
+                        }
 
                         .pagination-button {
                             cursor: pointer;

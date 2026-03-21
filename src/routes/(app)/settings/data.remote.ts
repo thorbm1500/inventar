@@ -6,9 +6,9 @@ import * as v from "valibot";
 import {formatLogs} from "$lib/util/utilities";
 import {Application} from "$lib/server/db/database";
 
-export const generateNewRegistrationToken = command(async (): Promise<string> => {
+export const generateNewRegistrationToken = command(v.string(), async (id: string): Promise<string> => {
     const token: string = generateRegistrationToken();
-    await Application.updateRegistrationToken(token);
+    await Application.updateRegistrationToken(token, id);
     return token;
 })
 

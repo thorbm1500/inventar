@@ -1,12 +1,15 @@
 <script lang="ts">
     import Logs from "$lib/components/settings/Logs.svelte";
     import {generateNewRegistrationToken} from "../../data.remote";
-    import {onMount} from "svelte";
+    import {getContext, onMount} from "svelte";
     import {page} from "$app/state";
     import type {ApplicationSettings} from "$lib/server/internal/settings";
     import {ignorePasswordManagers} from "$lib/util/utilities";
+    import type {User} from "$lib/server/db/interfaces";
 
     let {data} = $props();
+
+    const user: User = getContext('user');
 
     // svelte-ignore state_referenced_locally
     let applicationSettings: ApplicationSettings = $state(data.settings);
@@ -385,7 +388,7 @@
                             <button title="Regenerate" onclick="{async () => {
                                     if (isRegenerating) return;
                                     applicationSettings.security.general.registration_token = 'Regenerating....';
-                                    applicationSettings.security.general.registration_token = await generateNewRegistrationToken();
+                                    applicationSettings.security.general.registration_token = await generateNewRegistrationToken(user.uuid);
                                 }}" class="regenerate-registration-token">
                                 {#if isRegenerating}
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">

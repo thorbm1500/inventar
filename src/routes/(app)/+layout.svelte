@@ -65,7 +65,7 @@
         height: 100vh;
         width: 100vw;
         scrollbar-width: none;
-        z-index: 1;
+        z-index: 10;
         background: var(--theme-background) !important;
         overflow: hidden;
     }

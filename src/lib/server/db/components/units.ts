@@ -1,4 +1,4 @@
-declare type UnitType = 'Weight' | 'Liquid' | 'Count' | 'Energy' | 'Storage';
+export type UnitType = 'Weight' | 'Liquid' | 'Count' | 'Energy' | 'Storage';
 
 export interface Unit {
     type: UnitType,
