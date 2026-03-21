@@ -1,8 +1,10 @@
 <script lang="ts">
     import {createItem} from './data.remote';
     import {ignorePasswordManagers} from '$lib/util/utilities';
-    import type {Currency, Label, Unit} from '$lib/server/db/interfaces';
+    import type {Label} from '$lib/server/db/interfaces';
     import {onMount} from "svelte";
+    import type {Unit} from "$lib/server/db/components/units";
+    import type {Currency} from "$lib/server/db/components/currencies";
 
     //todo: Cleanup
 

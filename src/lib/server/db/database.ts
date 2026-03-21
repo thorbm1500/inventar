@@ -1,13 +1,12 @@
 // noinspection DuplicatedCode
 
 import {LOGGER} from "../../../hooks.server";
-import type {Currency, Inventory, Item, Label, PageTheme, ResetRequest, Session, Unit, User} from "$lib/server/db/interfaces";
-import currencies from "$lib/server/db/components/currencies";
+import type {Inventory, Item, Label, PageTheme, ResetRequest, Session, User} from "$lib/server/db/interfaces";
 import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
-import {units} from "$lib/server/db/components/units";
 import {redis, RedisClient} from "bun";
 import {faker} from "@faker-js/faker/locale/en";
+import {env} from "$env/dynamic/private";
 
 declare type RedisKey = RedisClient.KeyLike;
 
@@ -75,26 +74,15 @@ export class Database {
      */
     private static async ensureTables(): Promise<void> {
         LOGGER.debug(`Creating tables...`);
-        await Database.SQL`CREATE TABLE IF NOT EXISTS currencies
+        await Database.SQL`CREATE TABLE IF NOT EXISTS audit
                            (
-                               id     CHAR(3)     NOT NULL,
-                               code   CHAR(3)     NOT NULL,
-                               format VARCHAR(18) NOT NULL,
-                               PRIMARY KEY (id),
-                               CONSTRAINT currencies_code_u
-                                   UNIQUE (code),
-                               CONSTRAINT currencies_id_u
-                                   UNIQUE (id)
+                               id        INT AUTO_INCREMENT PRIMARY KEY,
+                               user      CHAR(36)                            NOT NULL,
+                               message   TEXT                                NOT NULL,
+                               type      VARCHAR(64)                         NOT NULL,
+                               timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
                            )`
-            .catch((err: any): void => LOGGER.error(`Failed to create table 'currencies'. `, err));
-
-        await Database.SQL`CREATE TABLE IF NOT EXISTS units
-                           (
-                               unit VARCHAR(24) NOT NULL,
-                               type VARCHAR(12) NOT NULL,
-                               PRIMARY KEY (unit)
-                           )`
-            .catch((err: any): void => LOGGER.error(`Failed to create table 'units'. `, err));
+            .catch((err: any): void => LOGGER.error(`Failed to create table 'audit'. `, err));
 
         /*
        todo: If account of owner is attempted deleted;
@@ -166,8 +154,6 @@ export class Database {
                                CONSTRAINT items_inventory_fk
                                    FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                                        ON DELETE CASCADE,
-                               CONSTRAINT items_currency_fk
-                                   FOREIGN KEY (currency) REFERENCES currencies (code),
                                CONSTRAINT items_created_by_fk
                                    FOREIGN KEY (created_by) REFERENCES users (uuid)
                            )`
@@ -250,71 +236,20 @@ export class Database {
     private static async ensureDefaultValues(): Promise<void> {
         LOGGER.debug(`Ensuring default values...`);
 
-        /**
-         * Adds all the currencies to the currency table.
-         * ID should theoretically never change, hence why it's the primary key.
-         * If any of the currencies' values changes, they'll be updated as well,
-         * to allow for adding more formats at any time.
-         */
-        for (const row of currencies) {
-            await Database.SQL`INSERT INTO currencies (id, code, format)
-                               VALUES (${row.id}, ${row.code}, ${row.format ?? '%value%'})
-                               ON DUPLICATE KEY UPDATE code=${row.code},
-                                                       format=${row.format ?? '%value%'}`
-                .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'currencies'. `, err))
-        }
+        if (env.NODE_ENV !== 'production') {
+            await Database.SQL`INSERT IGNORE INTO inventories(uuid,owner,name) VALUES('devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx','devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','Development')`;
+            await Database.SQL`INSERT IGNORE INTO users(uuid,email,password_hash,username,superuser) VALUES('devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','development@inventar.dev','none','development',1)`;
 
-        /**
-         * Adds all the units for the units table.
-         * Unlike currencies, this table doesn't have any value we can rely on,
-         * to not change, so any changes in the future will have to be done
-         * manually.
-         */
-        for (const row of units) {
-            await Database.SQL`INSERT IGNORE INTO units (unit, type)
-                               VALUES (${row.unit}, ${row.type})`
-                .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'units'. `, err))
-        }
+            const result = (await Database.SQL`SELECT COUNT(uuid) as amount FROM items WHERE inventory='devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx'`)[0].amount ?? 0;
 
-        await Database.SQL`INSERT IGNORE INTO inventories(uuid,owner,name) VALUES('devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx','devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','Development')`;
-        await Database.SQL`INSERT IGNORE INTO users(uuid,email,password_hash,username,superuser) VALUES('devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','development@inventar.dev','none','development',1)`;
+            for (let i = result; i < 50; i++) {
+                await Items.create('devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx',faker.commerce.productName(), Math.random() > .5 ? faker.number.int({min: 0, max: 1000000}) : 0, {price: Math.random() > .5 ? Number.parseFloat(faker.commerce.price({min: 0, max: 10000, dec: 2})) : 0});
+                if (Math.random() > 0.60) {
 
-        const result = (await Database.SQL`SELECT COUNT(uuid) as amount FROM items WHERE inventory='devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx'`)[0].amount ?? 0;
-
-        for (let i = result; i < 50; i++) {
-            await Items.create('devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx',faker.commerce.productName(), Math.random() > .5 ? faker.number.int({min: 0, max: 1000000}) : 0, {price: Math.random() > .5 ? Number.parseFloat(faker.commerce.price({min: 0, max: 10000, dec: 2})) : 0});
+                }
+            }
         }
     }
-}
-
-/**
- * This method returns all the currencies from the database.
- * @return List of currencies as {@link Currency} object.
- */
-//todo: Remove from database.
-export async function getCurrencies(): Promise<Currency[]> {
-    return await Database.SQL`SELECT *
-                              FROM currencies
-                              ORDER BY code ASC`
-        .catch((err: any): Currency[] => {
-            LOGGER.error(`getCurrencies[0]: Database request failed. `, err)
-            return [];
-        }) as Currency[];
-}
-
-/**
- * This method returns all the units from the database.
- * @return List of units as {@link Unit} object.
- */
-//todo: Remove from database.
-export async function getUnits(): Promise<Unit[]> {
-    return await Database.SQL`SELECT *
-                              FROM units
-                              ORDER BY type`
-        .catch((err: any): Unit[] => {
-            LOGGER.error(`getUnits[0]: Database request failed. `, err)
-            return [];
-        }) as Unit[];
 }
 
 /**
@@ -588,7 +523,8 @@ export class Items {
         unit?: string,
         url?: string,
         price?: number,
-        currency?: string
+        currency?: string,
+        labels?: string[]
     }): Promise<Item | undefined> {
         const uuid: string = Bun.randomUUIDv7();
 

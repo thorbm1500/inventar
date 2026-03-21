@@ -1,14 +1,3 @@
-export interface Currency {
-    id: string,
-    code: string,
-    symbol?: string | null
-}
-
-export interface Unit {
-    type: string,
-    unit: string
-}
-
 export interface Inventory {
     uuid: string,
     owner: string,

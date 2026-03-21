@@ -1,3 +1,9 @@
+export interface Currency {
+    id: string,
+    code: string,
+    format: string | null
+}
+
 /* Source of ISO 4217: https://en.wikipedia.org/wiki/ISO_4217
 The database should only contain the current active currency codes, used by at least one country,
 not including fund codes.
@@ -13,7 +19,7 @@ Example - For Denmark's currency "Krone" also referred to as "Danish Crowns";
 Whenever a price is displayed, we will look for a format, and if none is found (null), the price will be displayed raw,
 otherwise we'll parse the price to the format, and display it like so,allowing all currencies to be properly displayed.
 */
-export const currencies: { code: string, id: string, format: string | null }[] = [
+export const currencies: Currency[] = [
     {code: 'N/A', id: '000', format: null},
     {code: 'AED', id: '784', format: null},
     {code: 'AFN', id: '971', format: null},
