@@ -35,7 +35,7 @@ async function shutdown(reason?: any): Promise<void> {
     LOGGER.debug(`Shutdown request received. Reason: `, reason);
     LOGGER.info(`Shutting down...`);
 
-    await LOGGER.timed(`Closing database connection.`, `Connection closed.`, Database.SQL.close);
+    await LOGGER.timed(`Closing database connection.`, `Connection closed.`, Database.shutdown);
     LOGGER.destroy();
 }
 
@@ -74,7 +74,7 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
             return new Response('');
         }
 
-        return isPublicPath(event.url.pathname) ? redirect(302, '/login') : resolve(event);
+        return isPublicPath(event.url.pathname) ? resolve(event) : redirect(302, '/login');
     }
 
     const session: Session | null = await auth.validateSessionToken(token, event);

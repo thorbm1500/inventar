@@ -218,7 +218,7 @@ export class Logger {
      * @param end Nanosecond end-time
      * @private
      */
-    private parseTimeResult(start: number, end: number): string {
+    formatNanoseconds(start: number, end: number): string {
         const multiplier = Math.pow(10, 1);
 
         let time = end - start;
@@ -272,7 +272,7 @@ export class Logger {
         const startTime: number = Bun.nanoseconds();
         await func();
 
-        this.done(endLog.concat(this.parseTimeResult(startTime, Bun.nanoseconds())));
+        this.done(endLog.concat(this.formatNanoseconds(startTime, Bun.nanoseconds())));
     }
 
     /**
@@ -288,7 +288,7 @@ export class Logger {
         const startTime: number = Bun.nanoseconds();
         func();
 
-        this.done(endLog.concat(this.parseTimeResult(startTime, Bun.nanoseconds())));
+        this.done(endLog.concat(this.formatNanoseconds(startTime, Bun.nanoseconds())));
     }
 
     /**

@@ -31,12 +31,14 @@
     import {Filters} from "./FilterHandler.svelte";
     import {ignorePasswordManagers} from "$lib/util/utilities";
     import {blur} from "svelte/transition";
+    import moment from "moment";
 
     const latestIcons: number[] = [99, 99, 99];
 
     const user: User = $state(getContext('user'));
 
-    type TableItemSize = 'small' | 'large';
+    type TableType = 'table' | 'list';
+    type ItemSize = 'small' | 'large';
 
     /* Variable declarations */
     //todo: Add option to save filters, and make them persistent for the user.
@@ -46,7 +48,8 @@
     let isItemCreatorOpen: boolean = $state(false);
     let isFilterContainerOpen: boolean = $state(false);
     let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
-    let tableSize: TableItemSize = $state('small');
+    let itemSize: ItemSize = $state('small');
+    let tableType: TableType = $state('list');
     let currentPage = $state(1);
     let offset = $derived(filters.rowAmount * (currentPage - 1));
     let inventory: Inventory | undefined = $state();
@@ -57,6 +60,7 @@
         itemCount = await getTotalItemCount(inventory.uuid);
         await refresh();
     });
+
     //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
     let items: Item[] = $state([]);
     let itemCount: number = $state(0);
@@ -68,18 +72,17 @@
         openItemCreatorButtonElement?.addEventListener('mouseout', () => addItemHover = false);
     })
 
-    /**
-     * Sets the current page to 1.
-     */
+
+    // Sets the current page to 1.
     function goToFirstPage() {
         currentPage = 1;
+        refresh();
     }
 
-    /**
-     * Sets the current page to the highest possible page number.
-     */
+    // Sets the current page to the highest possible page number.
     function goToLastPage(): null {
         currentPage = totalPages;
+        refresh();
         return null;
     }
 
@@ -149,34 +152,57 @@
                             {/if}
                         </div>
                         <div class="header-buttons">
+                            {#if tableType === 'table'}
+                                <div class="size-switcher">
+                                    <button class="{itemSize==='small'?'selected':''}" title="Small" onclick="{() => itemSize = 'small'}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M5 9l4 0l0 -4"/>
+                                            <path d="M3 3l6 6"/>
+                                            <path d="M5 15l4 0l0 4"/>
+                                            <path d="M3 21l6 -6"/>
+                                            <path d="M19 9l-4 0l0 -4"/>
+                                            <path d="M15 9l6 -6"/>
+                                            <path d="M19 15l-4 0l0 4"/>
+                                            <path d="M15 15l6 6"/>
+                                        </svg>
+                                    </button>
+                                    <div class="size-switcher-button-seperator"></div>
+                                    <button class="{itemSize==='large'?'selected':''}" title="Large" onclick="{() => itemSize = 'large'}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                             stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M16 4l4 0l0 4"/>
+                                            <path d="M14 10l6 -6"/>
+                                            <path d="M8 20l-4 0l0 -4"/>
+                                            <path d="M4 20l6 -6"/>
+                                            <path d="M16 20l4 0l0 -4"/>
+                                            <path d="M14 14l6 6"/>
+                                            <path d="M8 4l-4 0l0 4"/>
+                                            <path d="M4 4l6 6"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            {/if}
                             <div class="size-switcher">
-                                <button class="{tableSize==='small'?'selected':''}" title="small" onclick="{() => tableSize = 'small'}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                         stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M5 9l4 0l0 -4"/>
-                                        <path d="M3 3l6 6"/>
-                                        <path d="M5 15l4 0l0 4"/>
-                                        <path d="M3 21l6 -6"/>
-                                        <path d="M19 9l-4 0l0 -4"/>
-                                        <path d="M15 9l6 -6"/>
-                                        <path d="M19 15l-4 0l0 4"/>
-                                        <path d="M15 15l6 6"/>
+                                <button class="{tableType==='table'?'selected':''}" title="Table" onclick="{() => tableType = 'table'}">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M3 9L21 9M9 3L9 21M7.8 3H16.2C17.8802 3 18.7202 3 19.362 3.32698C19.9265 3.6146 20.3854 4.07354 20.673 4.63803C21 5.27976 21 6.11984 21 7.8V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V7.8C3 6.11984 3 5.27976 3.32698 4.63803C3.6146 4.07354 4.07354 3.6146 4.63803 3.32698C5.27976 3 6.11984 3 7.8 3Z"
+                                              stroke="currentColor"
+                                              stroke-width="2"
+                                              stroke-linecap="round"
+                                              stroke-linejoin="round"/>
                                     </svg>
                                 </button>
                                 <div class="size-switcher-button-seperator"></div>
-                                <button class="{tableSize==='large'?'selected':''}" title="large" onclick="{() => tableSize = 'large'}">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                         stroke-linejoin="round">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M16 4l4 0l0 4"/>
-                                        <path d="M14 10l6 -6"/>
-                                        <path d="M8 20l-4 0l0 -4"/>
-                                        <path d="M4 20l6 -6"/>
-                                        <path d="M16 20l4 0l0 -4"/>
-                                        <path d="M14 14l6 6"/>
-                                        <path d="M8 4l-4 0l0 4"/>
-                                        <path d="M4 4l6 6"/>
+                                <button class="{tableType==='list'?'selected':''}" title="List" onclick="{() => tableType = 'list'}">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M17.5 17H6.5M17.5 13H6.5M3 9H21M7.8 3H16.2C17.8802 3 18.7202 3 19.362 3.32698C19.9265 3.6146 20.3854 4.07354 20.673 4.63803C21 5.27976 21 6.11984 21 7.8V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V7.8C3 6.11984 3 5.27976 3.32698 4.63803C3.6146 4.07354 4.07354 3.6146 4.63803 3.32698C5.27976 3 6.11984 3 7.8 3Z"
+                                              stroke="currentColor"
+                                              stroke-width="2"
+                                              stroke-linecap="round"
+                                              stroke-linejoin="round"/>
                                     </svg>
                                 </button>
                             </div>
@@ -409,87 +435,118 @@
                     </div>
                 {/if}
                 <section class="inventory-body-section">
-                    <div class="inventory-list-container {tableSize}">
-                        <div class="inventory-header">
-                            <div class="header-items">
-                                <div class="header-item name">
-                                    <p>Name</p>
-                                </div>
-                                <div class="header-item part-number">
-                                    <p>Part Nr.</p>
-                                </div>
-                                <div class="header-item updated">
-                                    <p>Updated</p>
-                                </div>
-                                <div class="header-item price">
-                                    <p>Price</p>
-                                </div>
-                                <div class="header-item amount">
-                                    <p>Amount</p>
+                    {#if tableType === 'list'}
+                        <div class="inventory-list-container {itemSize}">
+                            {#each items as item}
+                                <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-list-entry">
+                                    <div class="entry-item image">
+                                        {#if item.image }
+                                            <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
+                                        {:else }
+                                            <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                      d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
+                                            </svg>
+                                        {/if}
+                                    </div>
+                                    <div class="entry-item meta">
+                                        <div class="name">
+                                            <h1 class="name">{item.name}</h1>
+                                        </div>
+                                    </div>
+                                    <div class="entry-item labels">
+                                        <div class="label blue">
+                                            Refurbished
+                                        </div>
+                                        <div class="label green">
+                                            Category
+                                        </div>
+                                    </div>
+                                </a>
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="inventory-table-container {itemSize}">
+                            <div class="inventory-header">
+                                <div class="header-items">
+                                    <div class="header-item name">
+                                        <p>Name</p>
+                                    </div>
+                                    <div class="header-item part-number">
+                                        <p>Part Nr.</p>
+                                    </div>
+                                    <div class="header-item updated">
+                                        <p>Updated</p>
+                                    </div>
+                                    <div class="header-item price">
+                                        <p>Price</p>
+                                    </div>
+                                    <div class="header-item amount">
+                                        <p>Amount</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="inventory-list">
-                            {#if isLoaded }
-                                {#if items.length > 0 }
-                                    {#each items as item}
-                                        <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-list-entry">
-                                            <div class="entry-item image">
-                                                {#if item.image }
-                                                    <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
-                                                {:else }
-                                                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                              d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
-                                                    </svg>
-                                                {/if}
-                                            </div>
-                                            <div class="entry-item meta">
-                                                <div class="name-label">
-                                                    <h1 class="name">{item.name}</h1>
-                                                    <div class="label blue">
-                                                        Refurbished
-                                                    </div>
-                                                    <div class="label green">
-                                                        Category
-                                                    </div>
+                            <div class="inventory-table">
+                                {#if isLoaded }
+                                    {#if items.length > 0 }
+                                        {#each items as item}
+                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry">
+                                                <div class="entry-item image">
+                                                    {#if item.image }
+                                                        <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
+                                                    {:else }
+                                                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                  d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
+                                                        </svg>
+                                                    {/if}
                                                 </div>
-                                                <span class="description">
+                                                <div class="entry-item meta">
+                                                    <div class="name-label">
+                                                        <h1 class="name">{item.name}</h1>
+                                                        <div class="label blue">
+                                                            Refurbished
+                                                        </div>
+                                                        <div class="label green">
+                                                            Category
+                                                        </div>
+                                                    </div>
+                                                    <span class="description">
                                                         {#if item.description}
                                                                 {item.description}
                                                             {:else}
                                                                 No description has been set.
                                                             {/if}
                                                     </span>
-                                            </div>
-                                            <div class="entry-item part-number">
-                                                <!--todo-->
-                                                0
-                                            </div>
-                                            <div class="entry-item updated">
-                                                {parseTimestamp(item?.last_update)}
-                                            </div>
-                                            <div class="entry-item price">
-                                                {item.currency_format.replace('%value%', String(item.price ?? 0))}
-                                            </div>
-                                            <div class="entry-item amount">
-                                                {item.amount}
-                                            </div>
-                                            <div class="quick-delete">
-                                                <!-- todo - Add popup warning to confirm deletion -->
-                                                <button title="Delete Item" onclick="{() => {
+                                                </div>
+                                                <div class="entry-item part-number">
+                                                    <!--todo-->
+                                                    0
+                                                </div>
+                                                <div class="entry-item updated">
+                                                    {parseTimestamp(item?.last_update)}
+                                                </div>
+                                                <div class="entry-item price">
+                                                    {item.currency_format.replace('%value%', String(item.price ?? 0))}
+                                                </div>
+                                                <div class="entry-item amount">
+                                                    {item.amount}
+                                                </div>
+                                                <div class="quick-delete">
+                                                    <!-- todo - Add popup warning to confirm deletion -->
+                                                    <button title="Delete Item" onclick="{() => {
                                                     deleteItem(item.uuid);
                                                 }}">
-                                                    <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                              d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </a>
-                                    {/each}
-                                {:else}
-                                    <div class="empty-inventory-list">
+                                                        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
+                                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                                  d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </a>
+                                        {/each}
+                                    {:else}
+                                        <div class="empty-inventory-table">
                                         <span class="text-theme-text-third">
                                             {#if navigator.onLine }
                                                 There are no items in this inventory yet. Add your first item now!
@@ -497,75 +554,76 @@
                                                 No internet found. Reconnect to browse inventory.
                                             {/if}
                                         </span>
+                                        </div>
+                                    {/if}
+                                {:else}
+                                    <div class="inventory-list-loading">
+                                        <div class="spinner">
+                                            <svg width="24" height="24" viewBox="0 0 24 24">
+                                                <rect width="10" height="10" x="1" y="1" fill="currentColor" rx="1">
+                                                    <animate id="SVG7WybndBt" fill="freeze" attributeName="x" begin="0;SVGo3aOUHlJ.end" dur="0.2s" values="1;13"/>
+                                                    <animate id="SVGVoKldbWM" fill="freeze" attributeName="y" begin="SVGFpk9ncYc.end" dur="0.2s" values="1;13"/>
+                                                    <animate id="SVGKsXgPbui" fill="freeze" attributeName="x" begin="SVGaI8owdNK.end" dur="0.2s" values="13;1"/>
+                                                    <animate id="SVG7JzAfdGT" fill="freeze" attributeName="y" begin="SVG28A4To9L.end" dur="0.2s" values="13;1"/>
+                                                </rect>
+                                                <rect width="10" height="10" x="1" y="13" fill="currentColor" rx="1">
+                                                    <animate id="SVGUiS2jeZq" fill="freeze" attributeName="y" begin="SVG7WybndBt.end" dur="0.2s" values="13;1"/>
+                                                    <animate id="SVGU0vu2GEM" fill="freeze" attributeName="x" begin="SVGVoKldbWM.end" dur="0.2s" values="1;13"/>
+                                                    <animate id="SVGOIboFeLf" fill="freeze" attributeName="y" begin="SVGKsXgPbui.end" dur="0.2s" values="1;13"/>
+                                                    <animate id="SVG14lAaeuv" fill="freeze" attributeName="x" begin="SVG7JzAfdGT.end" dur="0.2s" values="13;1"/>
+                                                </rect>
+                                                <rect width="10" height="10" x="13" y="13" fill="currentColor" rx="1">
+                                                    <animate id="SVGFpk9ncYc" fill="freeze" attributeName="x" begin="SVGUiS2jeZq.end" dur="0.2s" values="13;1"/>
+                                                    <animate id="SVGaI8owdNK" fill="freeze" attributeName="y" begin="SVGU0vu2GEM.end" dur="0.2s" values="13;1"/>
+                                                    <animate id="SVG28A4To9L" fill="freeze" attributeName="x" begin="SVGOIboFeLf.end" dur="0.2s" values="1;13"/>
+                                                    <animate id="SVGo3aOUHlJ" fill="freeze" attributeName="y" begin="SVG14lAaeuv.end" dur="0.2s" values="1;13"/>
+                                                </rect>
+                                            </svg>
+                                        </div>
                                     </div>
                                 {/if}
-                            {:else}
-                                <div class="inventory-list-loading">
-                                    <div class="spinner">
-                                        <svg width="24" height="24" viewBox="0 0 24 24">
-                                            <rect width="10" height="10" x="1" y="1" fill="currentColor" rx="1">
-                                                <animate id="SVG7WybndBt" fill="freeze" attributeName="x" begin="0;SVGo3aOUHlJ.end" dur="0.2s" values="1;13"/>
-                                                <animate id="SVGVoKldbWM" fill="freeze" attributeName="y" begin="SVGFpk9ncYc.end" dur="0.2s" values="1;13"/>
-                                                <animate id="SVGKsXgPbui" fill="freeze" attributeName="x" begin="SVGaI8owdNK.end" dur="0.2s" values="13;1"/>
-                                                <animate id="SVG7JzAfdGT" fill="freeze" attributeName="y" begin="SVG28A4To9L.end" dur="0.2s" values="13;1"/>
-                                            </rect>
-                                            <rect width="10" height="10" x="1" y="13" fill="currentColor" rx="1">
-                                                <animate id="SVGUiS2jeZq" fill="freeze" attributeName="y" begin="SVG7WybndBt.end" dur="0.2s" values="13;1"/>
-                                                <animate id="SVGU0vu2GEM" fill="freeze" attributeName="x" begin="SVGVoKldbWM.end" dur="0.2s" values="1;13"/>
-                                                <animate id="SVGOIboFeLf" fill="freeze" attributeName="y" begin="SVGKsXgPbui.end" dur="0.2s" values="1;13"/>
-                                                <animate id="SVG14lAaeuv" fill="freeze" attributeName="x" begin="SVG7JzAfdGT.end" dur="0.2s" values="13;1"/>
-                                            </rect>
-                                            <rect width="10" height="10" x="13" y="13" fill="currentColor" rx="1">
-                                                <animate id="SVGFpk9ncYc" fill="freeze" attributeName="x" begin="SVGUiS2jeZq.end" dur="0.2s" values="13;1"/>
-                                                <animate id="SVGaI8owdNK" fill="freeze" attributeName="y" begin="SVGU0vu2GEM.end" dur="0.2s" values="13;1"/>
-                                                <animate id="SVG28A4To9L" fill="freeze" attributeName="x" begin="SVGOIboFeLf.end" dur="0.2s" values="1;13"/>
-                                                <animate id="SVGo3aOUHlJ" fill="freeze" attributeName="y" begin="SVG14lAaeuv.end" dur="0.2s" values="1;13"/>
-                                            </rect>
+                            </div>
+                            <div class="inventory-footer">
+                                <div class="inventory-footer-items">
+                                    <button class="pagination-back-button pagination-button" style="visibility: { currentPage === 1 ? 'hidden' : 'visible' }"
+                                            onclick={goToFirstPage} title="Switch to previous page">
+                                        <svg width="19" height="19" viewBox="0 0 16 16">
+                                            <path fill="currentColor" fill-rule="evenodd"
+                                                  d="M7.721 2.22a.75.75 0 0 1 1.061 1.06L4.061 8.002l4.721 4.721a.75.75 0 0 1-1.06 1.061L2.47 8.532a.75.75 0 0 1 0-1.06L7.722 2.22Zm5 0a.75.75 0 0 1 1.061 1.06L9.061 8.002l4.721 4.721a.75.75 0 0 1-1.06 1.061L7.47 8.532a.75.75 0 0 1 0-1.06z"
+                                                  clip-rule="evenodd"/>
                                         </svg>
-                                    </div>
+                                    </button>
+                                    <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
+                                            onclick={() => { updatePage(-1) } } title="Switch to previous page">
+                                        <svg width="19" height="19" viewBox="0 0 16 16">
+                                            <path fill="currentColor" fill-rule="evenodd"
+                                                  d="M10.78 2.22a.75.75 0 0 0-1.06 0L4.468 7.472a.75.75 0 0 0 0 1.06l5.252 5.252a.75.75 0 1 0 1.06-1.06L6.06 8.001l4.72-4.721a.75.75 0 0 0 0-1.06"
+                                                  clip-rule="evenodd"/>
+                                        </svg>
+                                    </button>
+                                    <p class="pagination-current-page">
+                                        {currentPage}
+                                    </p>
+                                    <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
+                                            onclick={() => { updatePage(1) } } title="Switch to next page">
+                                        <svg width="19" height="19" viewBox="0 0 16 16">
+                                            <path fill="currentColor" fill-rule="evenodd"
+                                                  d="M5.22 2.22a.75.75 0 0 1 1.06 0l5.252 5.252a.75.75 0 0 1 0 1.06L6.28 13.784a.75.75 0 1 1-1.06-1.06l4.72-4.723L5.22 3.28a.75.75 0 0 1 0-1.06"
+                                                  clip-rule="evenodd"/>
+                                        </svg>
+                                    </button>
+                                    <button class="pagination-forward-button pagination-button" style="visibility: { currentPage === totalPages ? 'hidden' : 'visible' }"
+                                            onclick={goToLastPage} title="Switch to next page">
+                                        <svg width="19" height="19" viewBox="0 0 16 16">
+                                            <path fill="currentColor" fill-rule="evenodd"
+                                                  d="M3.53 2.22a.75.75 0 0 0-1.06 1.06l4.72 4.722l-4.72 4.721a.75.75 0 0 0 1.06 1.061l5.252-5.252a.75.75 0 0 0 0-1.06zm5 0a.75.75 0 0 0-1.06 1.06l4.721 4.722l-4.721 4.721a.75.75 0 0 0 1.06 1.061l5.252-5.252a.75.75 0 0 0 0-1.06z"
+                                                  clip-rule="evenodd"/>
+                                        </svg>
+                                    </button>
                                 </div>
-                            {/if}
-                        </div>
-                        <div class="inventory-footer">
-                            <div class="inventory-footer-items">
-                                <button class="pagination-back-button pagination-button" style="visibility: { currentPage === 1 ? 'hidden' : 'visible' }"
-                                        onclick={goToFirstPage} title="Switch to previous page">
-                                    <svg width="19" height="19" viewBox="0 0 16 16">
-                                        <path fill="currentColor" fill-rule="evenodd"
-                                              d="M7.721 2.22a.75.75 0 0 1 1.061 1.06L4.061 8.002l4.721 4.721a.75.75 0 0 1-1.06 1.061L2.47 8.532a.75.75 0 0 1 0-1.06L7.722 2.22Zm5 0a.75.75 0 0 1 1.061 1.06L9.061 8.002l4.721 4.721a.75.75 0 0 1-1.06 1.061L7.47 8.532a.75.75 0 0 1 0-1.06z"
-                                              clip-rule="evenodd"/>
-                                    </svg>
-                                </button>
-                                <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
-                                        onclick={() => { updatePage(-1) } } title="Switch to previous page">
-                                    <svg width="19" height="19" viewBox="0 0 16 16">
-                                        <path fill="currentColor" fill-rule="evenodd"
-                                              d="M10.78 2.22a.75.75 0 0 0-1.06 0L4.468 7.472a.75.75 0 0 0 0 1.06l5.252 5.252a.75.75 0 1 0 1.06-1.06L6.06 8.001l4.72-4.721a.75.75 0 0 0 0-1.06"
-                                              clip-rule="evenodd"/>
-                                    </svg>
-                                </button>
-                                <p class="pagination-current-page">
-                                    {currentPage}
-                                </p>
-                                <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
-                                        onclick={() => { updatePage(1) } } title="Switch to next page">
-                                    <svg width="19" height="19" viewBox="0 0 16 16">
-                                        <path fill="currentColor" fill-rule="evenodd"
-                                              d="M5.22 2.22a.75.75 0 0 1 1.06 0l5.252 5.252a.75.75 0 0 1 0 1.06L6.28 13.784a.75.75 0 1 1-1.06-1.06l4.72-4.723L5.22 3.28a.75.75 0 0 1 0-1.06"
-                                              clip-rule="evenodd"/>
-                                    </svg>
-                                </button>
-                                <button class="pagination-forward-button pagination-button" style="visibility: { currentPage === totalPages ? 'hidden' : 'visible' }"
-                                        onclick={goToLastPage()} title="Switch to next page">
-                                    <svg width="19" height="19" viewBox="0 0 16 16">
-                                        <path fill="currentColor" fill-rule="evenodd"
-                                              d="M3.53 2.22a.75.75 0 0 0-1.06 1.06l4.72 4.722l-4.72 4.721a.75.75 0 0 0 1.06 1.061l5.252-5.252a.75.75 0 0 0 0-1.06zm5 0a.75.75 0 0 0-1.06 1.06l4.721 4.722l-4.721 4.721a.75.75 0 0 0 1.06 1.061l5.252-5.252a.75.75 0 0 0 0-1.06z"
-                                              clip-rule="evenodd"/>
-                                    </svg>
-                                </button>
                             </div>
                         </div>
-                    </div>
+                    {/if}
                 </section>
             </section>
         </section>
@@ -581,7 +639,7 @@
         color: var(--theme-color-white);
     }
 
-    .inventory-list * {
+    .inventory-table * {
         transition: 100ms;
         transition-timing-function: cubic-bezier(0.5, 0.25, .5, .45) !important;
     }
@@ -881,7 +939,7 @@
             form {
                 width: 100%;
 
-                input, option, select, textarea {
+                input {
                     background: var(--theme-background-input);
                     border: var(--theme-border-width) solid var(--theme-border-input);
                     border-radius: var(--theme-border-radius);
@@ -896,7 +954,7 @@
                     resize: none;
                 }
 
-                input:focus, option:focus, select:focus, textarea:focus {
+                input:focus {
                     box-shadow: none;
                     border-color: var(--theme-border-input-focus);
 
@@ -1004,14 +1062,14 @@
         .inventory-body-section {
             user-select: none !important;
 
-            .inventory-list-container,
-            .inventory-list-container.small,
-            .inventory-list-container.large {
+            .inventory-table-container,
+            .inventory-table-container.small,
+            .inventory-table-container.large {
                 transition: var(--theme-transition-in),
                 transform var(--theme-transition-out);
             }
 
-            .inventory-list-container {
+            .inventory-table-container {
                 height: fit-content;
                 box-sizing: border-box;
                 margin: 0 0 4rem 0;
@@ -1052,51 +1110,17 @@
 
                             font-family: 'FunnelSans', sans-serif;
                             font-weight: 600;
-
-                            button {
-                                display: flex;
-                                flex-flow: row nowrap;
-                                justify-content: flex-end;
-
-                                cursor: pointer;
-
-                                transition: 400ms 100ms ease;
-
-                                svg {
-                                    height: 1.25rem;
-                                    align-self: center;
-                                    stroke-width: 2;
-                                    transition: 125ms ease,
-                                    transform 0ms;
-                                    position: fixed;
-                                    transform: translateX(1.5rem);
-                                }
-                            }
-
-                            button:hover {
-                                svg {
-                                    stroke-width: 2.5;
-                                    transition: 125ms ease-in-out;
-                                }
-
-                                svg.auto-hide-filter-icon {
-                                    opacity: 1 !important;
-
-                                    transition: 100ms ease-in-out,
-                                    transform 0ms;
-                                }
-                            }
                         }
                     }
                 }
 
-                .inventory-list {
+                .inventory-table {
                     display: flex;
                     flex-flow: column nowrap;
                     justify-content: flex-start;
                     height: fit-content;
 
-                    .empty-inventory-list {
+                    .empty-inventory-table {
                         display: flex;
                         align-content: center;
                         align-items: center;
@@ -1127,15 +1151,15 @@
                         }
                     }
 
-                    .inventory-list-entry:nth-of-type(odd) {
+                    .inventory-table-entry:nth-of-type(odd) {
                         background: var(--theme-background-list-odd);
                     }
 
-                    .inventory-list-entry:first-child {
+                    .inventory-table-entry:first-child {
                         border-top-color: transparent;
                     }
 
-                    .inventory-list-entry {
+                    .inventory-table-entry {
                         display: flex;
                         flex-flow: row nowrap;
                         justify-content: center;
@@ -1213,7 +1237,7 @@
                         }
                     }
 
-                    .inventory-list-entry:hover {
+                    .inventory-table-entry:hover {
                         background: var(--theme-background-button-hover);
 
                         .quick-delete {
@@ -1223,20 +1247,6 @@
 
                             svg {
                                 stroke: var(--theme-text);
-                            }
-                        }
-
-                        .inventory-meta {
-                            .inventory-image {
-                                svg {
-                                    stroke: var(--theme-color-accent);
-                                    transition: stroke 75ms ease;
-                                }
-                            }
-
-                            span {
-                                color: var(--theme-text-accent);
-                                transition: 75ms ease;
                             }
                         }
                     }
@@ -1277,7 +1287,7 @@
                 }
             }
 
-            .inventory-list-container.small {
+            .inventory-table-container.small {
                 .inventory-header {
                     .header-items {
                         padding-left: 1rem;
@@ -1300,7 +1310,7 @@
                     }
                 }
 
-                .inventory-list-entry {
+                .inventory-table-entry {
                     padding-left: 1rem;
                     height: 2.475rem;
 
@@ -1350,16 +1360,12 @@
                                 font-size: 1.05rem;
                                 font-weight: 550;
                             }
-
-                            .label {
-
-                            }
                         }
                     }
                 }
             }
 
-            .inventory-list-container.large {
+            .inventory-table-container.large {
                 .inventory-header {
                     .header-item:first-child {
                         flex: 1 35%;
@@ -1375,12 +1381,12 @@
                     }
                 }
 
-                .inventory-list {
-                    .inventory-list-entry:first-child {
+                .inventory-table {
+                    .inventory-table-entry:first-child {
                         border-top-color: transparent;
                     }
 
-                    .inventory-list-entry {
+                    .inventory-table-entry {
                         height: 5rem;
                         font-family: 'FunnelSans', sans-serif;
 
@@ -1452,6 +1458,62 @@
                     .amount {
                         flex: 1 0 10%;
                         justify-content: center;
+                    }
+                }
+            }
+
+            .inventory-list-container {
+                height: fit-content;
+                box-sizing: border-box;
+                margin: 0 0 4rem 0;
+
+                color: var(--theme-text);
+
+                width: 90vw;
+                min-width: fit-content;
+                max-width: 125rem;
+
+                .inventory-list-entry {
+                    display: flex;
+                    flex-flow: row nowrap;
+                    justify-content: flex-start;
+
+                    width: 100%;
+                    height: 100%;
+
+                    padding: 1rem .5rem;
+                    margin: .5rem 0;
+
+                    background: var(--theme-background-container);
+                    border: var(--theme-border-width) solid var(--theme-border-container);
+                    border-radius: .35rem;
+
+                    .entry-item.image {
+                        height: 100%;
+                        margin: auto 1rem;
+
+                        svg {
+                            width: 2.25rem;
+                            height: 2.25rem;
+                        }
+                    }
+
+                    .entry-item.meta {
+                        height: 100%;
+                        margin: auto 1rem auto 0;
+
+                        .name {
+                            font-size: 1.2rem;
+                            font-weight: 700;
+                            text-wrap: nowrap;
+                        }
+                    }
+
+                    .entry-item.labels {
+                        display: flex;
+                        flex-flow: row nowrap;
+                        align-items: center;
+                        gap: .25rem;
                     }
                 }
             }

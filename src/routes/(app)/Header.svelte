@@ -12,13 +12,13 @@
     let theme = $derived(user.preferred_theme);
 
     let sidebar = $state(false);
-
     let isOnline = $state(true);
 
     onMount(() => {
         document.getElementById('pill')?.addEventListener('click', () => {
             sidebar = !sidebar;
-        })
+        });
+
         document.querySelectorAll('#pill-action').forEach(element => element.addEventListener('click', () => sidebar = false))
 
         document.addEventListener('click', (event: MouseEvent) => {
@@ -110,6 +110,18 @@
                 <path d="M16.5 9.5L7.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Inventory
+        </a>
+        <a id="pill-action" href="/inventory">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                        d="M12 4C10.6193 4 9.5 5.11929 9.5 6.5C9.5 7.88071 10.6193 9 12 9C13.3807 9 14.5 7.88071 14.5 6.5C14.5 5.11929 13.3807 4 12 4ZM12 4V2M21 14.9375C18.8012 17.4287 15.5841 19 12 19C8.41592 19 5.19883 17.4287 3 14.9375M10.7448 8.66169L3 22M13.2552 8.66169L21 22"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                />
+            </svg>
+            Projects
         </a>
         <a id="pill-action" href="/settings">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -375,13 +387,14 @@
 
     .sidebar.open {
         filter: blur(0px);
-        height: 16rem;
+        height: 17.25rem;
         opacity: 1;
 
-        transition: 500ms,
+        transition: 175ms,
+        height 175ms,
         background 0ms,
         opacity 0ms;
-        transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
+        transition-timing-function: cubic-bezier(0.57, 0.1, 0.3, 1.5) !important;
     }
 
     .sidebar.closed {

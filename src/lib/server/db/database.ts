@@ -1,3 +1,5 @@
+// noinspection DuplicatedCode
+
 import {LOGGER} from "../../../hooks.server";
 import type {Currency, Inventory, Item, Label, PageTheme, ResetRequest, Session, Unit, User} from "$lib/server/db/interfaces";
 import currencies from "$lib/server/db/components/currencies";
@@ -5,12 +7,15 @@ import {UserSettings} from "$lib/components/settings/UserSettings";
 import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
 import {units} from "$lib/server/db/components/units";
 import {redis, RedisClient} from "bun";
+import {faker} from "@faker-js/faker/locale/en";
+
+declare type RedisKey = RedisClient.KeyLike;
 
 export class Database {
     // noinspection JSUnusedGlobalSymbols
     static readonly SQL: Bun.SQL = new Bun.SQL({
         adapter: 'mysql',
-        max: 1,
+        max: 5,
         idleTimeout: 0,
         maxLifetime: 0,
         connectionTimeout: 60,
@@ -30,11 +35,39 @@ export class Database {
      * This method is called one, during the server load, at startup.
      */
     static async init(): Promise<void> {
-        await LOGGER.timed('Initializing database...', 'Database initialization completed.', async () => {
+        await LOGGER.timed('Initializing database...', 'Database initialization completed.', async (): Promise<void> => {
+            redis.onconnect = (): void => {
+                const pingStart = Bun.nanoseconds();
+                redis.ping()
+                    .then((): void => {
+                        LOGGER.info(`New Redis connection established. Ping Latency`, LOGGER.formatNanoseconds(pingStart, Bun.nanoseconds()));
+                    })
+                    .catch((err: Error): void => LOGGER.error(`Failed to connect to Redis server. `, err));
+            };
+            redis.connect()
+                .then(() => {
+                    redis.onclose = (error: Error): void => {
+                        // @ts-ignore
+                        if (error.code === 'ERR_REDIS_CONNECTION_CLOSED') {
+                            LOGGER.info(`Redis connection closed.`);
+                        } else {
+                            LOGGER.error(`Redis connection closed due to Error! `, error);
+                        }
+                    }
+                })
+                .catch(() => LOGGER.warn(`No Redis connection was found. Is the URL set correctly?`));
+
             await this.ensureTables();
             await this.ensureConstraints();
             await this.ensureDefaultValues();
         });
+    }
+
+    static async shutdown(): Promise<void> {
+        redis.close();
+        LOGGER.debug(`Flushing potential pending database operations...`);
+        Database.SQL.flush();
+        await Database.SQL.close();
     }
 
     /**
@@ -118,8 +151,8 @@ export class Database {
                                pending_amount      INT(255)       DEFAULT 0                 NOT NULL,
                                pending_expiration  TIMESTAMP                                NULL,
                                part_number         VARCHAR(64)                              NULL,
-                               unit_type           VARCHAR(42)                              NOT NULL,
-                               unit                VARCHAR(42)                              NOT NULL,
+                               unit_type           VARCHAR(64)                              NOT NULL,
+                               unit                VARCHAR(64)                              NOT NULL,
                                image               TEXT                                     NULL,
                                url                 TEXT                                     NULL,
                                price               DECIMAL(50, 2) DEFAULT 0.00              NOT NULL,
@@ -133,8 +166,6 @@ export class Database {
                                CONSTRAINT items_inventory_fk
                                    FOREIGN KEY (inventory) REFERENCES inventories (uuid)
                                        ON DELETE CASCADE,
-                               CONSTRAINT items_unit_fk
-                                   FOREIGN KEY (unit) REFERENCES units (unit),
                                CONSTRAINT items_currency_fk
                                    FOREIGN KEY (currency) REFERENCES currencies (code),
                                CONSTRAINT items_created_by_fk
@@ -244,6 +275,15 @@ export class Database {
                                VALUES (${row.unit}, ${row.type})`
                 .catch((err: any): void => LOGGER.error(`Failed to add default values to table 'units'. `, err))
         }
+
+        await Database.SQL`INSERT IGNORE INTO inventories(uuid,owner,name) VALUES('devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx','devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','Development')`;
+        await Database.SQL`INSERT IGNORE INTO users(uuid,email,password_hash,username,superuser) VALUES('devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','development@inventar.dev','none','development',1)`;
+
+        const result = (await Database.SQL`SELECT COUNT(uuid) as amount FROM items WHERE inventory='devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx'`)[0].amount ?? 0;
+
+        for (let i = result; i < 50; i++) {
+            await Items.create('devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx','devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx',faker.commerce.productName(), Math.random() > .5 ? faker.number.int({min: 0, max: 1000000}) : 0, {price: Math.random() > .5 ? Number.parseFloat(faker.commerce.price({min: 0, max: 10000, dec: 2})) : 0});
+        }
     }
 }
 
@@ -278,6 +318,112 @@ export async function getUnits(): Promise<Unit[]> {
 }
 
 /**
+ * A Helper class for dealing with Redis related tasks. This class mostly exists to lower the amount of
+ * repeated code, and helps provide a more uniform end product.
+ */
+class Redis {
+    /**
+     * Checks if the provided key exists.
+     * @param key The key to check for
+     * @returns True, if the key exists, otherwise false
+     */
+    static async has(key: RedisKey): Promise<boolean> {
+        if (!redis.connected) return false;
+        return await redis.exists(key);
+    }
+
+    /**
+     * Deletes the key for a specific key, and value pair.
+     * @param key Key to delete
+     */
+    static async del(key: RedisKey): Promise<void> {
+        if (!redis.connected) return;
+        await redis.del(key);
+    }
+
+    /**
+     * Sets the key, and value pair.
+     * @param key The key to set
+     * @param value The value to set
+     * @param seconds `Default: 300` - The key's time to live, in seconds.
+     */
+    static async set(key: RedisKey, value: RedisKey, seconds: number = 300): Promise<void> {
+        if (!redis.connected) return;
+        await redis.set(key, value, 'EX', seconds);
+    }
+
+    /**
+     * Sets the key, and value pair.
+     * @remarks
+     * The object is automatically cast to `Record<any,any>`, to allow for passing whole objects such
+     * as fx. {@link User} or {@link Inventory}.
+     * @param key The key to set
+     * @param obj The Object to set
+     * @param seconds `Default: 300` - The key's time to live, in seconds.
+     */
+    static async setObj(key: RedisKey, obj: Object, seconds: number = 300): Promise<void> {
+        if (!redis.connected) return;
+        await redis.hset(key, obj as Record<any, any>)
+            .then(() => redis.expire(key, seconds))
+            .catch((err): void => LOGGER.error(`Redis#setObj[0]: Failed to set object in Redis. `, err));
+    }
+
+    /**
+     * Gets the value for a specific key.
+     * @param key The key
+     * @returns String, if the key exists, otherwise null
+     */
+    static async get(key: RedisKey): Promise<string | null> {
+        if (!redis.connected) return null;
+        return await redis.get(key);
+    }
+
+    /**
+     * Gets the value for a specific key.
+     * @param key The key
+     * @returns The value of the key as {@link number}
+     */
+    static async getAsNumber(key: RedisKey): Promise<number> {
+        if (!redis.connected) return -1;
+        return Number.parseInt(String(await Redis.get(key)));
+    }
+
+    /**
+     * Gets the object for a specific key.
+     * @param key The key
+     * @returns Object as {@link Record}, if the key exists, otherwise null
+     */
+    static async getObj(key: RedisKey): Promise<Record<any, any>> {
+        if (!redis.connected) return {};
+        return await redis.hgetall(key) as Record<any, any>;
+    }
+
+    /**
+     * Updates a field for a specific object.
+     * @param key Key of object
+     * @param field Field to update
+     * @param value The field's new value
+     */
+    static async updateObjField(key: RedisKey, field: string | number, value: RedisKey | number): Promise<void> {
+        if (!redis.connected) return;
+        await redis.hset(key, [field, value] as Record<any, any>);
+    }
+}
+
+/**
+ * A Helper class for dealing with Application related database tasks.
+ */
+export class Application {
+    static async updateRegistrationToken(token: string): Promise<void> {
+        await Database.SQL`UPDATE application_settings
+                           SET text_value=${token}
+                           WHERE category = 'security'
+                             AND subcategory = 'general'
+                             AND setting = 'registration_token'`
+    }
+}
+
+/**
  * A Helper class for dealing with Inventories in the database.
  */
 export class Inventories {
@@ -295,16 +441,7 @@ export class Inventories {
                            VALUES (${uuid}, ${owner}, ${name}, ${description ?? null})`
             .catch((err: any): void => LOGGER.error(`Inventories#create[0]: Database request failed. `, err));
 
-        const result: Inventory[] = await Database.SQL`SELECT *
-                                                       FROM inventories
-                                                       WHERE uuid = ${uuid}
-                                                       LIMIT 1`
-            .catch((err: any): [] => {
-                LOGGER.error(`Inventories#create[1]: Database request failed. `, err)
-                return [];
-            });
-
-        return result[0] ?? undefined;
+        return this.fetchInventoryByUuid(uuid);
     }
 
     /**
@@ -315,6 +452,7 @@ export class Inventories {
      * @param offset
      */
     static async fetch(amount: number = 6, order_by: string, order: string, offset: number = 0): Promise<Inventory[]> {
+        //todo: Add caching in Redis
         const inventories: Inventory[] = await Database.SQL`SELECT uuid,
                                                                    owner,
                                                                    name,
@@ -356,10 +494,10 @@ export class Inventories {
      * todo
      */
     static async fetchTotalInventoryCount(): Promise<number> {
-        const redisKey: RedisClient.KeyLike = `inventory:total_inventory_count`;
+        const redisKey: RedisKey = `inventory:total_inventory_count`;
 
-        if (await redis.exists(redisKey)) {
-            return Number.parseInt(await redis.get(redisKey) ?? '-1');
+        if (await Redis.has(redisKey)) {
+            return await Redis.getAsNumber(redisKey);
         } else {
             const inventoryCount: any = await Database.SQL`SELECT COUNT(uuid) AS amount
                                                            FROM inventories`
@@ -368,8 +506,10 @@ export class Inventories {
                     return [];
                 });
 
-            const count: any = inventoryCount[0].amount ?? 0;
-            await redis.set(redisKey, count, 'EX', 60);
+            const count: any = inventoryCount[0].amount ?? null;
+            if (count === null) return 0;
+
+            await Redis.set(redisKey, count, 60);
 
             return count;
         }
@@ -380,19 +520,42 @@ export class Inventories {
      * @param uuid
      */
     static async fetchInventoryByUuid(uuid: string): Promise<Inventory | undefined> {
-        const result: Inventory[] = await Database.SQL`SELECT *
-                                                       FROM inventories
-                                                       WHERE uuid = ${uuid}
-                                                       LIMIT 1`
-            .catch((err: any): Inventory[] => {
-                LOGGER.error(`Inventories#fetchInventoryByUuid[0]: Database request failed. `, err)
-                return [];
-            });
+        const redisKey: RedisKey = `inventory:${uuid}`;
 
-        return result[0] ?? undefined;
+        if (await Redis.has(redisKey)) {
+            const redisObj: Record<any, any> = await Redis.getObj(redisKey);
+            if (!redisObj) return undefined;
+
+            const inventory: Inventory = redisObj as Inventory;
+            inventory.created_at = Number.parseInt(String(inventory.created_at));
+            inventory.last_update = Number.parseInt(String(inventory.last_update));
+
+            return inventory;
+        } else {
+            const result: Inventory[] = await Database.SQL`SELECT *
+                                                           FROM inventories
+                                                           WHERE uuid = ${uuid}
+                                                           LIMIT 1`
+                .catch((err: any): Inventory[] => {
+                    LOGGER.error(`Inventories#fetchInventoryByUuid[0]: Database request failed. `, err)
+                    return [];
+                });
+
+            const inventory: Inventory | undefined = result[0] ?? undefined;
+            if (!inventory) return undefined;
+
+            inventory.created_at = Date.parse(String(inventory.created_at));
+            inventory.last_update = Date.parse(String(inventory.last_update));
+
+            // noinspection ES6MissingAwait
+            Redis.setObj(redisKey, inventory);
+
+            return inventory;
+        }
     }
 
     static async fetchLabels(uuid: string): Promise<Label[]> {
+        //todo: Add caching in Redis
         const result: Label[] = await Database.SQL`SELECT *
                                                    FROM labels
                                                    WHERE inventory = ${uuid}
@@ -546,16 +709,10 @@ export class Users {
                            VALUES (${uuid}, ${email}, ${username}, ${password_hash}, ${superuser})`
             .catch((err: any): void => LOGGER.error(`Users#create[0]: Database request failed. `, err));
 
-        const result: User[] = await Database.SQL`SELECT *
-                                                  FROM users
-                                                  WHERE uuid = ${uuid}
-                                                  LIMIT 1`
-            .catch((err: any): User[] => {
-                LOGGER.error(`Users#create[1]: Database request failed. `, err)
-                return [];
-            });
+        // noinspection ES6MissingAwait
+        Redis.del(`users:amount`);
 
-        return result[0] ?? undefined;
+        return this.getFromUuid(uuid);
     }
 
     /**
@@ -563,11 +720,13 @@ export class Users {
      * @param uuid
      */
     static async getFromUuid(uuid: string): Promise<User | undefined> {
-        const redisKey: RedisClient.KeyLike = `user:${uuid}`;
+        const redisKey: RedisKey = `user:${uuid}`;
 
-        if (await redis.exists(redisKey)) {
-            const user = (await redis.hgetall(redisKey) as Record<any, any>) as User;
+        if (await Redis.has(redisKey)) {
+            const redisObj = await Redis.getObj(redisKey) as User;
+            if (!redisObj) return undefined;
 
+            const user = redisObj as User;
             user.created_at = Number.parseInt(String(user.created_at));
 
             return user;
@@ -588,8 +747,8 @@ export class Users {
 
             user.created_at = Date.parse(String(user.created_at));
 
-            await redis.hset(redisKey, user as Record<any, any>)
-                .then(() => redis.expire(redisKey, 300));
+            // noinspection ES6MissingAwait
+            Redis.setObj(redisKey, user);
 
             return user;
         }
@@ -601,16 +760,16 @@ export class Users {
      */
     static async getFromEmail(email: string): Promise<User | undefined> {
         const uuid: string | null = await this.getUuidFromEmail(email);
-        if (!uuid) return undefined;
+        if (uuid === null) return undefined;
 
         return await this.getFromUuid(uuid);
     }
 
     static async getUuidFromEmail(email: string): Promise<string | null> {
-        const redisKey: RedisClient.KeyLike = `user:${email}:email`;
+        const redisKey: RedisKey = `user:${email}`;
 
-        if (await redis.exists(redisKey)) {
-            return String(await redis.get(redisKey));
+        if (await Redis.has(redisKey)) {
+            return await Redis.get(redisKey);
         } else {
             const result: any = await Database.SQL`SELECT uuid
                                                    FROM users
@@ -620,20 +779,21 @@ export class Users {
                     return [];
                 });
 
-            const uuid = result[0].uuid ?? null;
-            if (!uuid) return null;
+            const uuid: any = result[0].uuid ?? null;
+            if (uuid === null) return null;
 
-            await redis.set(redisKey, uuid, 'EX', 1200);
+            // noinspection ES6MissingAwait
+            Redis.set(redisKey, uuid);
 
             return uuid;
         }
     }
 
     static async getUuidFromUsername(username: string): Promise<string | null> {
-        const redisKey: RedisClient.KeyLike = `user:${username}:uuid`;
+        const redisKey: RedisKey = `user:${username}:uuid`;
 
-        if (await redis.exists(redisKey)) {
-            return String(await redis.get(redisKey));
+        if (await Redis.has(redisKey)) {
+            return await Redis.get(redisKey);
         } else {
             const result: any = await Database.SQL`SELECT uuid
                                                    FROM users
@@ -643,10 +803,11 @@ export class Users {
                     return [];
                 });
 
-            const uuid = result[0].uuid ?? null;
+            const uuid: any = result[0].uuid ?? null;
             if (!uuid) return null;
 
-            await redis.set(redisKey, uuid, 'EX', 1200);
+            // noinspection ES6MissingAwait
+            Redis.set(redisKey, uuid, 3600);
 
             return uuid;
         }
@@ -657,25 +818,17 @@ export class Users {
      * @param uuid
      */
     static async getPasswordHash(uuid: string): Promise<string> {
-        const redisKey: RedisClient.KeyLike = `user:${uuid}:password_hash`;
+        const result: any = await Database.SQL`SELECT password_hash
+                                               FROM users
+                                               WHERE uuid = ${uuid}`
+            .catch((err: any): [] => {
+                LOGGER.error(`Users#getPasswordHash[0]: Database request failed. `, err)
+                return [];
+            });
 
-        if (await redis.exists(redisKey)) {
-            return String(await redis.get(redisKey));
-        } else {
-            const result: any = await Database.SQL`SELECT password_hash
-                                                   FROM users
-                                                   WHERE uuid = ${uuid}`
-                .catch((err: any): [] => {
-                    LOGGER.error(`Users#getPasswordHash[0]: Database request failed. `, err)
-                    return [];
-                });
+        const hash: any = result[0].password_hash ?? '';
 
-            const hash: any = result[0].password_hash ?? '';
-
-            await redis.set(redisKey, hash, 'EX', 300);
-
-            return hash;
-        }
+        return hash;
     }
 
     /**
@@ -694,10 +847,10 @@ export class Users {
      * todo
      */
     static async getUserAmount(): Promise<number> {
-        const redisKey: RedisClient.KeyLike = `users:amount`;
+        const redisKey: RedisKey = `users:amount`;
 
-        if (await redis.exists(redisKey)) {
-            return Number.parseInt(String(await redis.get(redisKey)));
+        if (await Redis.has(redisKey)) {
+            return await Redis.getAsNumber(redisKey);
         } else {
             const result: any = await Database.SQL`SELECT count(uuid) as amount
                                                    FROM users`
@@ -708,7 +861,8 @@ export class Users {
 
             const amount: any = result[0].amount ?? 1;
 
-            await redis.set(redisKey, amount, 'EX', 60);
+            // noinspection ES6MissingAwait
+            Redis.set(redisKey, amount, 300);
 
             return amount;
         }
@@ -786,10 +940,10 @@ export class Users {
      * todo
      */
     static async isSuperuser(uuid: string): Promise<boolean> {
-        const redisKey: RedisClient.KeyLike = `user:${uuid}:superuser`;
+        const redisKey: RedisKey = `user:${uuid}:superuser`;
 
-        if (await redis.exists(redisKey)) {
-            return await redis.get(redisKey) === 'true';
+        if (await Redis.has(redisKey)) {
+            return await Redis.get(redisKey) === 'true';
         } else {
             const result: any = await Database.SQL`SELECT superuser
                                                    FROM users
@@ -799,12 +953,28 @@ export class Users {
                     return [];
                 });
 
-            const superuser = result[0].superuser ?? 0;
+            const superuser: any = result[0].superuser ?? 0;
 
-            await redis.set(redisKey, superuser ? 'true' : 'false', 'EX', 300);
+            await Redis.set(redisKey, superuser ? 'true' : 'false', 3600);
 
             return superuser;
         }
+    }
+
+    /**
+     * todo
+     */
+    static async getSuperusers(): Promise<User[]> {
+        const users: User[] = await Database.SQL`SELECT *
+                                               FROM users
+                                               WHERE superuser = 1
+                                               ORDER BY created_at DESC`
+            .catch((err: any): User[] => {
+                LOGGER.error(`Users#isSuperuser[0]: Database request failed. `, err)
+                return [];
+            });
+
+        return users;
     }
 }
 
@@ -830,10 +1000,10 @@ export class Auth {
      * @param session_id Id of session to retrieve.
      */
     static async getSession(session_id: string): Promise<Session | undefined> {
-        const redisKey: RedisClient.KeyLike = `session:${session_id}`;
+        const redisKey: RedisKey = `session:${session_id}`;
 
-        if (await redis.exists(redisKey)) {
-            const session = (await redis.hgetall(redisKey) as Record<any, any>) as Session;
+        if (await Redis.has(redisKey)) {
+            const session = await Redis.getObj(redisKey) as Session;
 
             session.expires = Number.parseInt(String(session.expires));
             session.last_accessed = Number.parseInt(String(session.last_accessed));
@@ -855,8 +1025,8 @@ export class Auth {
             session.last_accessed = Date.parse(String(session.last_accessed));
             session.created_at = Date.parse(String(session.created_at));
 
-            await redis.hset(redisKey, session as Record<any, any>)
-                .then(() => redis.expire(redisKey, 300));
+            // noinspection ES6MissingAwait
+            Redis.setObj(redisKey, session, 300);
 
             return session;
         }
@@ -907,6 +1077,9 @@ export class Auth {
                            FROM sessions
                            WHERE session_id = ${session_id}`
             .catch((err: any): void => LOGGER.error(`Auth#invalidateSession[0]: Database request failed. `, err));
+
+        // noinspection ES6MissingAwait
+        Redis.del(`session:${session_id}`);
     }
 
     /**
@@ -967,29 +1140,28 @@ export class Auth {
      * @param token
      */
     static async getResetRequest(token: string): Promise<ResetRequest | undefined> {
-        const redisKey: RedisClient.KeyLike = `reset:request:${token}`;
+        const redisKey: RedisKey = `reset:request:${token}`;
 
-        if (await redis.exists(redisKey)) {
-            const request = (await redis.hgetall(redisKey) as Record<any, any>) as ResetRequest;
+        if (await Redis.has(redisKey)) {
+            const request = await Redis.getObj(redisKey) as ResetRequest;
             request.expires = Number.parseInt(String(request.expires));
             return request;
         } else {
-            const result: ResetRequest[] = await Database.SQL`SELECT *
+            const request: ResetRequest = (await Database.SQL`SELECT *
                                                               FROM reset_tokens
                                                               WHERE token = ${token}
                                                               LIMIT 1`
-                .catch((err: any): [] => {
+                .catch((err: any): ResetRequest[] => {
                     LOGGER.error(`Auth#getResetRequest[0]: Database request failed. `, err)
                     return [];
-                });
+                }))[0] ?? undefined
 
-            const request: ResetRequest | undefined = result[0] ?? undefined;
             if (!request) return undefined;
 
             request.expires = Date.parse(String(request.expires));
 
-            await redis.hset(redisKey, request as Record<any, any>)
-                .then(() => redis.expire(redisKey, 30));
+            // noinspection ES6MissingAwait
+            await Redis.setObj(redisKey, request);
 
             return request;
         }
@@ -1015,7 +1187,12 @@ export class Auth {
                 });
 
             const expiration: any = result[0].expires ?? -1;
-            await redis.set(redisKey, expiration, 'EX', 30);
+
+
+            if (expiration > -1) {
+                // noinspection ES6MissingAwait
+                Redis.set(redisKey, expiration, 30);
+            }
 
             return expiration;
         }

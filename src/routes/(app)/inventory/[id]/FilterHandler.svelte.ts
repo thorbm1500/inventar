@@ -1,4 +1,4 @@
-type rowAmountType = 15 | 30 | 45 | 60;
+type rowAmountType = number;
 export type OrderType = 'ASC' | 'DESC';
 type FilterType = undefined | 'name' | 'last_updated' | 'price' | 'items';
 
