@@ -1,6 +1,6 @@
 type rowAmountType = number;
 export type OrderType = 'ASC' | 'DESC';
-type FilterType = undefined | 'name' | 'last_update' | 'price' | 'amount' | 'part_number';
+export type FilterType = undefined | 'name' | 'last_update' | 'price' | 'amount' | 'part_number';
 
 export class Filters {
 

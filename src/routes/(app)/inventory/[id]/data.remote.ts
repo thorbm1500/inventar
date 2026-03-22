@@ -26,19 +26,13 @@ export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's
 const itemsObj = v.object({
     inventory: v.string(),
     amount: v.number(),
-    order_by: v.optional(v.string(), undefined),
     order: v.string(),
+    order_by: v.optional(v.string(), undefined),
     offset: v.number()
 });
 
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
-    if (util.isOffline()) {
-        return [];
-    }
-
-    const items: Item[] = await Items.fetch(data.inventory, data.amount, data.offset, data.order_by);
-
-    return data.order === 'DESC' ? items.reverse() : items;
+    return util.isOffline() ? [] : (data.order === 'DESC' ? (await Items.fetch(data.inventory, data.amount, data.offset, data.order_by)).reverse() : await Items.fetch(data.inventory, data.amount, data.offset, data.order_by));
 });
 
 export const getTotalItemCount = query(v.string(), async (id: string): Promise<number> => {

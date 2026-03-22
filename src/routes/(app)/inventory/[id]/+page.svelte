@@ -27,7 +27,7 @@
     import type {Inventory, User} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/util/utilities'
     import {getInventory, getItems, getTotalItemCount, quickAdd, createItem, deleteItem, updatePrimaryInventory} from "./data.remote";
-    import {Filters} from "./FilterHandler.svelte";
+    import {Filters, type FilterType} from "./FilterHandler.svelte";
     import {ignorePasswordManagers} from "$lib/util/utilities";
     import {blur} from "svelte/transition";
     import type {Item} from "$lib/server/db/components/item";
@@ -38,9 +38,10 @@
     const latestIcons: number[] = [99, 99, 99];
 
     let user: User = $state(getContext('user'));
-
-    /* Variable declarations */
+    let inventory: Inventory | undefined = $state();
+    // svelte-ignore state_referenced_locally
     const filters: Filters = new Filters(user.uuid);
+
     let addItemHover = $state(false);
     // svelte-ignore state_referenced_locally
     let isItemCreatorOpen: boolean = $state(false);
@@ -49,16 +50,15 @@
     let itemSize: string = $state('small');
     let tableType: string = $state('table');
     let currentPage = $state(1);
-    let inventory: Inventory | undefined = $state();
 
     let allItems: Map<number, Item[]> = $state(new Map<number, Item[]>());
-    let items: Item[] = $derived(allItems.get(currentPage) ?? []);
     let itemCount: number = $state(-1);
     let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filters.rowAmount) ?? 1));
+    let items: Item[] = $derived(allItems.get(currentPage) ?? []);
 
-    let offset = $derived(filters.rowAmount * (currentPage - 1));
-    let offsetMinusOne = $derived(currentPage - 1 > 0 ? filters.rowAmount * ((currentPage - 1) - 1) : -1);
-    let offsetPlusOne = $derived(currentPage + 1 <= totalPages ? filters.rowAmount * ((currentPage + 1) - 1) : -1);
+    let offset = $derived(filters.order === 'DESC' ? filters.rowAmount * (totalPages - currentPage - 1) : filters.rowAmount * (currentPage - 1));
+    let offsetMinusOne = $derived((filters.order === 'DESC' ? totalPages - currentPage : currentPage) - 1 > 0 ? filters.rowAmount * ((currentPage - 1) - 1) : -1);
+    let offsetPlusOne = $derived((filters.order === 'DESC' ? totalPages - currentPage : currentPage) + 1 <= totalPages ? filters.rowAmount * ((currentPage + 1) - 1) : -1);
 
     let isLoaded: boolean = $derived(inventory !== undefined && itemCount !== -1 && allItems.has(currentPage));
 
@@ -85,10 +85,9 @@
     }
 
     // Sets the current page to the highest possible page number.
-    function goToLastPage(): null {
+    function goToLastPage() {
         currentPage = totalPages;
         refresh();
-        return null;
     }
 
     /**
@@ -107,29 +106,38 @@
         await refresh();
     }
 
-    async function refresh() {
+    async function refresh(purge: boolean = false) {
         if (!inventory) return;
 
-        let newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset})
-        if (!!newItems) {
-            allItems = structuredClone(allItems.set(currentPage, newItems));
+        if (purge) allItems = new Map<number, Item[]>();
+
+        let newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order: filters.order, order_by: filters.current, offset})
+        if (newItems.length !== 0) {
+            allItems.set(currentPage, newItems);
         }
 
-        if (offsetPlusOne !== -1) {
+        if (offsetPlusOne !== -1 && !allItems.has(currentPage + 1)) {
             newItems = [];
-            newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset: offsetPlusOne})
-            if (!!newItems) {
-                allItems = structuredClone(allItems.set(currentPage + 1, newItems));
+            newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order: filters.order, order_by: filters.current, offset: offsetPlusOne})
+            if (newItems.length !== 0) {
+                allItems.set(currentPage + 1, newItems);
             }
         }
 
-        if (offsetMinusOne !== -1) {
+        if (offsetMinusOne !== -1 && !allItems.has(currentPage - 1)) {
             newItems = [];
-            newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order_by: filters.current, order: filters.order, offset: offsetMinusOne})
-            if (!!newItems) {
-                allItems = structuredClone(allItems.set(currentPage - 1, newItems));
+            newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order: filters.order, order_by: filters.current, offset: offsetMinusOne})
+            if (newItems.length !== 0) {
+                allItems.set(currentPage - 1, newItems);
             }
         }
+
+        allItems = structuredClone(allItems);
+    }
+
+    async function updateFilterOrder(value: FilterType) {
+        filters.update(value);
+        await refresh(true);
     }
 
     function getRandomIcon(): string {
@@ -143,8 +151,6 @@
         latestIcons?.push(next);
         return confirmItemCreationIcons[next];
     }
-
-    refresh();
 </script>
 
 <div class="page-content">
@@ -274,7 +280,7 @@
                                 {/if}
                                 Add Item
                             </button>
-                            <button id="refresh-button" class="theme-button refresh-button" title="Refresh" onclick="{refresh}">
+                            <button id="refresh-button" class="theme-button refresh-button" title="Refresh" onclick="{() => refresh()}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
@@ -486,10 +492,7 @@
                             <div class="inventory-header">
                                 <div class="header-items">
                                     <div class="header-item name">
-                                        <button onclick="{() => {
-                                            filters.update('name');
-                                            refresh();
-                                        }}" class="header-button {filters.current === 'name' ? 'active' : ''}">
+                                        <button onclick="{() => {updateFilterOrder('name')}}" class="header-button {filters.current === 'name' ? 'active' : ''}">
                                             Name
                                             {#if filters.current === 'name'}
                                                 {#if filters.order === 'DESC'}
@@ -521,10 +524,7 @@
                                         </button>
                                     </div>
                                     <div class="header-item part-number">
-                                        <button onclick="{() => {
-                                            filters.update('part_number');
-                                            refresh();
-                                        }}" class="header-button">
+                                        <button onclick="{() => {updateFilterOrder('part_number')}}" class="header-button {filters.current === 'part_number' ? 'active' : ''}">
                                             Part Nr.
                                             {#if filters.current === 'part_number'}
                                                 {#if filters.order === 'DESC'}
@@ -556,10 +556,7 @@
                                         </button>
                                     </div>
                                     <div class="header-item updated">
-                                        <button onclick="{() => {
-                                            filters.update('last_update');
-                                            refresh();
-                                        }}" class="header-button">
+                                        <button onclick="{() => {updateFilterOrder('last_update')}}" class="header-button {filters.current === 'last_update' ? 'active' : ''}">
                                             Updated
                                             {#if filters.current === 'last_update'}
                                                 {#if filters.order === 'DESC'}
@@ -591,10 +588,7 @@
                                         </button>
                                     </div>
                                     <div class="header-item price">
-                                        <button onclick="{() => {
-                                            filters.update('price');
-                                            refresh();
-                                        }}" class="header-button">
+                                        <button onclick="{() => {updateFilterOrder('price')}}" class="header-button {filters.current === 'price' ? 'active' : ''}">
                                             Price
                                             {#if filters.current === 'price'}
                                                 {#if filters.order === 'DESC'}
@@ -626,10 +620,7 @@
                                         </button>
                                     </div>
                                     <div class="header-item amount">
-                                        <button onclick="{() => {
-                                            filters.update('amount');
-                                            refresh();
-                                        }}" class="header-button">
+                                        <button onclick="{() => {updateFilterOrder('amount')}}" class="header-button {filters.current === 'amount' ? 'active' : ''}">
                                             Amount
                                             {#if filters.current === 'amount'}
                                                 {#if filters.order === 'DESC'}
@@ -666,8 +657,7 @@
                                 {#if isLoaded }
                                     {#if items.length > 0 }
                                         {#each items as item}
-                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry"
-                                               style="border-bottom-color: {currentPage === totalPages && (itemCount / totalPages) === offset ? 'var(--theme-border-container)' : 'var(--theme-border-container)'}">
+                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry">
                                                 <div class="entry-item image">
                                                     {#if item.image }
                                                         <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
@@ -814,7 +804,6 @@
         </section>
     </div>
     <div class="blur-box"></div>
-    <div id="mouse-glow"></div>
 </div>
 
 <style>
@@ -918,6 +907,8 @@
                         background-image: var(--theme-text-gradient);
                         background-clip: text;
                         color: transparent;
+
+                        filter: drop-shadow(0 0 2rem rgba(from var(--theme-text) r g b / .4));
                     }
 
                     .primary-inventory-bookmark-icon {
@@ -1302,6 +1293,26 @@
                         padding: 0 1.5rem;
 
                         transition: padding 75ms ease;
+
+                        .header-item.name .header-button svg {
+                            transform: translateX(2.75rem);
+                        }
+
+                        .header-item.part-number .header-button svg {
+                            transform: translateX(3.55rem);
+                        }
+
+                        .header-item.updated .header-button svg {
+                            transform: translateX(3.9rem);
+                        }
+
+                        .header-item.price .header-button svg {
+                            transform: translateX(2.35rem);
+                        }
+
+                        .header-item.amount .header-button svg {
+                            transform: translateX(3.7rem);
+                        }
 
                         .header-item {
                             flex: 1;
