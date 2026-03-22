@@ -95,7 +95,8 @@ export class Items {
      * @param offset
      */
     static async fetch(inventory: string, amount: number = 15, offset: number = 0, order_by: string = 'last_update'): Promise<Item[]> {
-        const redisKey: RedisKey = inventory + ':' + amount + ':' + offset + ':' + (order_by);
+        offset = offset > -1 ? offset : 0;
+        const redisKey: RedisKey = inventory + ':' + amount + ':' + offset + ':' + order_by;
 
         let items: Item[] = [];
 
@@ -122,14 +123,69 @@ export class Items {
                                               last_update
                                        FROM items
                                        WHERE inventory = ${inventory}
-                                       ORDER BY ${Database.SQL(order_by)}
+                                       ORDER BY ${Database.SQL(order_by)} ASC
                                        LIMIT ${amount} OFFSET ${offset}`
                 .catch((err: any): Item[] => {
                     LOGGER.error(`Items#fetch[0]: Database request failed. `, err)
                     return [];
                 });
 
-            await Redis.setObjList(redisKey, items);
+            // noinspection ES6MissingAwait
+            Redis.setObjList(redisKey, items);
+        }
+
+        for (const item of items) {
+            item.labels = await Labels.getLabelsForItem(item.uuid);
+        }
+
+        return items ?? [];
+    }
+
+    /**
+     * todo
+     * @param inventory
+     * @param amount
+     * @param order_by
+     * @param offset
+     */
+    static async fetchDesc(inventory: string, amount: number = 15, offset: number = 0, order_by: string = 'last_update'): Promise<Item[]> {
+        offset = offset > -1 ? offset : 0;
+        const redisKey: RedisKey = inventory + ':' + amount + ':' + offset + ':' + order_by + ':DESC';
+
+        let items: Item[] = [];
+
+        if (await Redis.has(redisKey)) {
+            items = await Redis.getObjList(redisKey) as Item[];
+        } else {
+            items = await Database.SQL`SELECT uuid,
+                                              inventory,
+                                              name,
+                                              description,
+                                              amount,
+                                              reserved_amount,
+                                              reserved_expiration,
+                                              pending_amount,
+                                              pending_expiration,
+                                              part_number,
+                                              unit_type,
+                                              unit,
+                                              image,
+                                              url,
+                                              price,
+                                              currency,
+                                              currency_format,
+                                              last_update
+                                       FROM items
+                                       WHERE inventory = ${inventory}
+                                       ORDER BY ${Database.SQL(order_by)} DESC
+                                       LIMIT ${amount} OFFSET ${offset}`
+                .catch((err: any): Item[] => {
+                    LOGGER.error(`Items#fetchDesc[0]: Database request failed. `, err)
+                    return [];
+                });
+
+            // noinspection ES6MissingAwait
+            Redis.setObjList(redisKey, items);
         }
 
         for (const item of items) {
@@ -158,7 +214,9 @@ export class Items {
                 });
 
             const count: any = result[0].amount ?? 0;
-            await Redis.set(redisKey, count, 60);
+
+            // noinspection ES6MissingAwait
+            Redis.set(redisKey, count, 60);
 
             return count;
         }

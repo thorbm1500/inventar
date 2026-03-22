@@ -1,8 +1,5 @@
 <!--suppress ALL -->
 <script module lang="ts">
-    //todo: Add logic to archive deleted items for 30 days to allow for recovery of deleted items
-    //todo: Add option to permanently delete any archived item.
-
     const confirmItemCreationIcons: string[] = [
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M21 12.5v-4.509a1.98 1.98 0 0 0 -1 -1.717l-7 -4.008a2.016 2.016 0 0 0 -2 0l-7 4.007c-.619 .355 -1 1.01 -1 1.718v8.018c0 .709 .381 1.363 1 1.717l7 4.008a2.016 2.016 0 0 0 2 0" /><path d="M12 22v-10" /><path d="M12 12l8.73 -5.04" /><path d="M3.27 6.96l8.73 5.04" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v13" /><path d="M13.02 21.655a1.7 1.7 0 0 1 -2.04 0l-5.98 -4.485a2.5 2.5 0 0 1 -1 -2v-11.17a1 1 0 0 1 1 -1h14a1 1 0 0 1 1 1v8" /><path d="M4.3 3.3l6.655 5.186a1.7 1.7 0 0 0 2.09 0l6.655 -5.186" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
@@ -19,126 +16,8 @@
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 12l1.752 -6.13a1 1 0 0 0 -.592 -1.205l-6.282 -2.503a2.46 2.46 0 0 0 -1.756 0l-6.282 2.503a1 1 0 0 0 -.592 1.204l1.752 6.131l-1.752 6.13a1 1 0 0 0 .592 1.205l6.282 2.503a2.46 2.46 0 0 0 1.756 0l.221 -.088" /><path d="M4.5 5.5l6.622 2.33a2.35 2.35 0 0 0 1.756 0l6.622 -2.33" /><path d="M6 12l5.21 1.862a2.34 2.34 0 0 0 1.58 0l5.21 -1.862" /><path d="M12 22v-14" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 6c0 1.657 3.582 3 8 3s8 -1.343 8 -3s-3.582 -3 -8 -3s-8 1.343 -8 3" /><path d="M4 6v6c0 1.657 3.582 3 8 3c1.075 0 2.1 -.08 3.037 -.224" /><path d="M20 12v-6" /><path d="M4 12v6c0 1.657 3.582 3 8 3c.166 0 .331 -.002 .495 -.006" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`
     ];
-</script>
-
-<script lang="ts">
-    import {getContext, onMount} from "svelte";
-    import {page} from "$app/state";
-    import type {Inventory, User} from "$lib/server/db/interfaces";
-    import {parseTimestamp} from '$lib/util/utilities'
-    import {getInventory, getItems, getTotalItemCount, quickAdd, createItem, deleteItem, updatePrimaryInventory} from "./data.remote";
-    import {Filters, type FilterType} from "./FilterHandler.svelte";
-    import {ignorePasswordManagers} from "$lib/util/utilities";
-    import {blur} from "svelte/transition";
-    import type {Item} from "$lib/server/db/components/item";
-
-    //todo: Add option to save filters, and make them persistent for the user.
-    //todo: Update to respect inventory settings, in terms of amount, ordering, etc.
 
     const latestIcons: number[] = [99, 99, 99];
-
-    let user: User = $state(getContext('user'));
-    let inventory: Inventory | undefined = $state();
-    // svelte-ignore state_referenced_locally
-    const filters: Filters = new Filters(user.uuid);
-
-    let addItemHover = $state(false);
-    // svelte-ignore state_referenced_locally
-    let isItemCreatorOpen: boolean = $state(false);
-    let isFilterContainerOpen: boolean = $state(false);
-    let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
-    let itemSize: string = $state('small');
-    let tableType: string = $state('table');
-    let currentPage = $state(1);
-
-    let allItems: Map<number, Item[]> = $state(new Map<number, Item[]>());
-    let itemCount: number = $state(-1);
-    let totalPages = $derived(Math.max(1, Math.ceil(itemCount / filters.rowAmount) ?? 1));
-    let items: Item[] = $derived(allItems.get(currentPage) ?? []);
-
-    let offset = $derived(filters.order === 'DESC' ? filters.rowAmount * (totalPages - currentPage - 1) : filters.rowAmount * (currentPage - 1));
-    let offsetMinusOne = $derived((filters.order === 'DESC' ? totalPages - currentPage : currentPage) - 1 > 0 ? filters.rowAmount * ((currentPage - 1) - 1) : -1);
-    let offsetPlusOne = $derived((filters.order === 'DESC' ? totalPages - currentPage : currentPage) + 1 <= totalPages ? filters.rowAmount * ((currentPage + 1) - 1) : -1);
-
-    let isLoaded: boolean = $derived(inventory !== undefined && itemCount !== -1 && allItems.has(currentPage));
-
-    onMount(() => {
-        const openItemCreatorButtonElement = document.getElementById('create-item-button');
-        openItemCreatorButtonElement?.addEventListener('mouseover', () => addItemHover = true);
-        openItemCreatorButtonElement?.addEventListener('mouseout', () => addItemHover = false);
-    })
-
-    onMount(async () => {
-        inventory = await getInventory(String(page.params.id));
-        if (!inventory) return;
-
-        itemCount = await getTotalItemCount(inventory.uuid);
-
-        await refresh();
-    });
-
-
-    // Sets the current page to 1.
-    function goToFirstPage() {
-        currentPage = 1;
-        refresh();
-    }
-
-    // Sets the current page to the highest possible page number.
-    function goToLastPage() {
-        currentPage = totalPages;
-        refresh();
-    }
-
-    /**
-     * Updates the current page, according to the provided difference.
-     * @param difference Pages to go up or down. Takes positive values for incrementing current page, and negative values to decrement the current page.
-     */
-    async function updatePage(difference: number) {
-        const newPage = currentPage + difference;
-        if (newPage === currentPage) return;
-
-        // Ensure the new page is legal.
-        if (newPage < 1) goToFirstPage();
-        else if (newPage > totalPages) goToLastPage();
-        else currentPage += difference;
-
-        await refresh();
-    }
-
-    async function refresh(purge: boolean = false) {
-        if (!inventory) return;
-
-        if (purge) allItems = new Map<number, Item[]>();
-
-        let newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order: filters.order, order_by: filters.current, offset})
-        if (newItems.length !== 0) {
-            allItems.set(currentPage, newItems);
-        }
-
-        if (offsetPlusOne !== -1 && !allItems.has(currentPage + 1)) {
-            newItems = [];
-            newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order: filters.order, order_by: filters.current, offset: offsetPlusOne})
-            if (newItems.length !== 0) {
-                allItems.set(currentPage + 1, newItems);
-            }
-        }
-
-        if (offsetMinusOne !== -1 && !allItems.has(currentPage - 1)) {
-            newItems = [];
-            newItems = await getItems({inventory: inventory.uuid, amount: filters.rowAmount, order: filters.order, order_by: filters.current, offset: offsetMinusOne})
-            if (newItems.length !== 0) {
-                allItems.set(currentPage - 1, newItems);
-            }
-        }
-
-        allItems = structuredClone(allItems);
-    }
-
-    async function updateFilterOrder(value: FilterType) {
-        filters.update(value);
-        await refresh(true);
-    }
 
     function getRandomIcon(): string {
         let next: number = 99;
@@ -151,6 +30,48 @@
         latestIcons?.push(next);
         return confirmItemCreationIcons[next];
     }
+
+    let inventory: Inventory | undefined = $state(undefined);
+    let handler: ItemHandler | undefined = $state(undefined);
+</script>
+
+<script lang="ts">
+    import {getContext, onMount} from "svelte";
+    import {page} from "$app/state";
+    import type {Inventory, User} from "$lib/server/db/interfaces";
+    import {parseTimestamp} from '$lib/util/utilities'
+    import {getInventory, quickAdd, createItem, deleteItem, updatePrimaryInventory} from "./data.remote";
+    import {ignorePasswordManagers} from "$lib/util/utilities";
+    import {blur} from "svelte/transition";
+    import {ItemHandler} from "./item/[item_id]/itemHandler.svelte.ts";
+
+    let user: User = $state(getContext('user'));
+    // svelte-ignore state_referenced_locally
+
+    let addItemHover = $state(false);
+    // svelte-ignore state_referenced_locally
+    let isItemCreatorOpen: boolean = $state(false);
+    let isFilterContainerOpen: boolean = $state(false);
+    let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
+    let itemSize: string = $state('small');
+    let tableType: string = $state('table');
+
+    let isLoaded: boolean = $derived(handler?.isLoaded ?? false);
+
+    onMount(() => {
+        const openItemCreatorButtonElement = document.getElementById('create-item-button');
+        openItemCreatorButtonElement?.addEventListener('mouseover', () => addItemHover = true);
+        openItemCreatorButtonElement?.addEventListener('mouseout', () => addItemHover = false);
+    })
+
+    onMount(async () => {
+        inventory = await getInventory(String(page.params.id));
+        if (!inventory || !inventory.uuid) return;
+
+        handler = new ItemHandler(inventory.uuid, user.uuid);
+        await handler.init();
+        await handler.refreshPage();
+    });
 </script>
 
 <div class="page-content">
@@ -280,7 +201,7 @@
                                 {/if}
                                 Add Item
                             </button>
-                            <button id="refresh-button" class="theme-button refresh-button" title="Refresh" onclick="{() => refresh()}">
+                            <button id="refresh-button" class="theme-button refresh-button" title="Refresh" onclick="{async () => await handler?.refreshPage()}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                           d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
@@ -303,7 +224,7 @@
                             <div class="extra-container open inventory-filter-container">
                                 <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
                                     <h1>Filters</h1>
-                                    <button class="filters-save-button {filters.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
+                                    <button class="filters-save-button {handler?.filters.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
                                         <svg width="16" height="16" fill="currentColor" class="bi bi-floppy-fill" viewBox="0 0 16 16">
                                             <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0H3v5.5A1.5 1.5 0 0 0 4.5 7h7A1.5 1.5 0 0 0 13 5.5V0h.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5H14v-5.5A1.5 1.5 0 0 0 12.5 9h-9A1.5 1.5 0 0 0 2 10.5V16h-.5A1.5 1.5 0 0 1 0 14.5z"/>
                                             <path d="M3 16h10v-5.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5zm9-16H4v5.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5zM9 1h2v4H9z"/>
@@ -320,13 +241,15 @@
                                             <h1>Columns</h1>
                                         </div>
                                         <div class="buttons">
-                                            <button class="extra-container-button price filter-button {filters.price ? '' : 'off'}"
-                                                    style="order:{filters.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
+                                            <button class="extra-container-button price filter-button {handler?.filters.price ? '' : 'off'}"
+                                                    style="order:{handler?.filters.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
                                                     onclick={() => {
-                                                filters.price = !filters.price;
-                                                filters.reset();
+                                                if (handler) {
+                                                    handler.filters.price = !handler.filters.price;
+                                                    handler.filters.reset();
+                                                }
                                             }}>
-                                                {#if filters.price }
+                                                {#if handler?.filters.price }
                                                     <svg width="24" height="24" viewBox="0 0 24 24">
                                                         <path fill="currentColor"
                                                               d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -339,13 +262,13 @@
                                                 {/if}
                                                 Prices
                                             </button>
-                                            <button class="extra-container-button last-updated filter-button {filters.last_updated ? '' : 'off'}"
-                                                    style="order:{filters.last_updated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
-                                                    onclick={() => {
-                                                filters.last_updated = !filters.last_updated;
-                                                filters.reset();
-                                            }}>
-                                                {#if filters.last_updated }
+                                            <button class="extra-container-button last-updated filter-button {handler?.filters.last_updated ? '' : 'off'}"
+                                                    style="order:{handler?.filters.last_updated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
+                                                    onclick={() => {if (handler) {
+                                                        handler.filters.last_updated = !handler.filters.last_updated;
+                                                        handler.filters.reset();
+                                                        }}}>
+                                                {#if handler?.filters.last_updated }
                                                     <svg width="24" height="24" viewBox="0 0 24 24">
                                                         <path fill="currentColor"
                                                               d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -358,13 +281,13 @@
                                                 {/if}
                                                 Last Updated
                                             </button>
-                                            <button class="extra-container-button description filter-button {filters.description ? '' : 'off'}"
-                                                    style="order:{filters.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
-                                                    onclick={() => {
-                                                filters.description = !filters.description
-                                                filters.reset();
-                                            }}>
-                                                {#if filters.description }
+                                            <button class="extra-container-button description filter-button {handler?.filters.description ? '' : 'off'}"
+                                                    style="order:{handler?.filters.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
+                                                    onclick={() => {if (handler) {
+                                                         handler.filters.description = !handler.filters.description
+                                                         handler.filters.reset();
+                                                        }}}>
+                                                {#if handler?.filters.description }
                                                     <svg width="24" height="24" viewBox="0 0 24 24">
                                                         <path fill="currentColor"
                                                               d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -391,16 +314,16 @@
                                             <h1>Row Amount</h1>
                                         </div>
                                         <div style="display:flex;flex-flow:row nowrap;gap:.25rem;">
-                                            <button onclick={() => filters.rowAmount = 15} class="extra-container-button filter-button row-amount {filters.rowAmount === 15 ? 'selected' : ''}">
+                                            <button onclick={() => {if (handler) handler.filters.rowAmount = 15}} class="extra-container-button filter-button row-amount {handler?.filters.rowAmount === 15 ? 'selected' : ''}">
                                                 15
                                             </button>
-                                            <button onclick={() => filters.rowAmount = 30} class="extra-container-button filter-button row-amount {filters.rowAmount === 30 ? 'selected' : ''}">
+                                            <button onclick={() => {if (handler) handler.filters.rowAmount = 30}} class="extra-container-button filter-button row-amount {handler?.filters.rowAmount === 30 ? 'selected' : ''}">
                                                 30
                                             </button>
-                                            <button onclick={() => filters.rowAmount = 45} class="extra-container-button filter-button row-amount {filters.rowAmount === 45 ? 'selected' : ''}">
+                                            <button onclick={() => {if (handler) handler.filters.rowAmount = 45}} class="extra-container-button filter-button row-amount {handler?.filters.rowAmount === 45 ? 'selected' : ''}">
                                                 45
                                             </button>
-                                            <button onclick={() => filters.rowAmount = 60} class="extra-container-button filter-button row-amount {filters.rowAmount === 60 ? 'selected' : ''}">
+                                            <button onclick={() => {if (handler) handler.filters.rowAmount = 60}} class="extra-container-button filter-button row-amount {handler?.filters.rowAmount === 60 ? 'selected' : ''}">
                                                 60
                                             </button>
                                         </div>
@@ -414,7 +337,7 @@
                                         await submit();
                                         form.reset();
                                         isItemCreatorOpen = false;
-                                        refresh();
+                                        await handler?.refreshPage();
                                     } catch (err) {
                                         console.log(err);
                                     }
@@ -460,7 +383,7 @@
                 <section class="inventory-body-section">
                     {#if tableType === 'list'}
                         <div class="inventory-list-container {itemSize}">
-                            {#each items as item}
+                            {#each handler?.currentItems as item}
                                 <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-list-entry">
                                     <div class="entry-item image">
                                         {#if item.image }
@@ -480,7 +403,7 @@
                                     <div class="entry-item labels">
                                         {#each item.labels as {name, color}}
                                             <div class="label {color}">
-                                                {name}
+                                                <p class="label-title">{name}</p>
                                             </div>
                                         {/each}
                                     </div>
@@ -492,10 +415,10 @@
                             <div class="inventory-header">
                                 <div class="header-items">
                                     <div class="header-item name">
-                                        <button onclick="{() => {updateFilterOrder('name')}}" class="header-button {filters.current === 'name' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('name')}}" class="header-button {handler?.filters.current === 'name' ? 'active' : ''}">
                                             Name
-                                            {#if filters.current === 'name'}
-                                                {#if filters.order === 'DESC'}
+                                            {#if handler?.filters.current === 'name'}
+                                                {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
                                                               stroke="currentColor"
@@ -524,10 +447,10 @@
                                         </button>
                                     </div>
                                     <div class="header-item part-number">
-                                        <button onclick="{() => {updateFilterOrder('part_number')}}" class="header-button {filters.current === 'part_number' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('part_number')}}" class="header-button {handler?.filters.current === 'part_number' ? 'active' : ''}">
                                             Part Nr.
-                                            {#if filters.current === 'part_number'}
-                                                {#if filters.order === 'DESC'}
+                                            {#if handler?.filters.current === 'part_number'}
+                                                {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
                                                               stroke="currentColor"
@@ -556,10 +479,10 @@
                                         </button>
                                     </div>
                                     <div class="header-item updated">
-                                        <button onclick="{() => {updateFilterOrder('last_update')}}" class="header-button {filters.current === 'last_update' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('last_update')}}" class="header-button {handler?.filters.current === 'last_update' ? 'active' : ''}">
                                             Updated
-                                            {#if filters.current === 'last_update'}
-                                                {#if filters.order === 'DESC'}
+                                            {#if handler?.filters.current === 'last_update'}
+                                                {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
                                                               stroke="currentColor"
@@ -588,10 +511,10 @@
                                         </button>
                                     </div>
                                     <div class="header-item price">
-                                        <button onclick="{() => {updateFilterOrder('price')}}" class="header-button {filters.current === 'price' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('price')}}" class="header-button {handler?.filters.current === 'price' ? 'active' : ''}">
                                             Price
-                                            {#if filters.current === 'price'}
-                                                {#if filters.order === 'DESC'}
+                                            {#if handler?.filters.current === 'price'}
+                                                {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
                                                               stroke="currentColor"
@@ -620,10 +543,10 @@
                                         </button>
                                     </div>
                                     <div class="header-item amount">
-                                        <button onclick="{() => {updateFilterOrder('amount')}}" class="header-button {filters.current === 'amount' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('amount')}}" class="header-button {handler?.filters.current === 'amount' ? 'active' : ''}">
                                             Amount
-                                            {#if filters.current === 'amount'}
-                                                {#if filters.order === 'DESC'}
+                                            {#if handler?.filters.current === 'amount'}
+                                                {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
                                                               stroke="currentColor"
@@ -655,25 +578,15 @@
                             </div>
                             <div class="inventory-table">
                                 {#if isLoaded }
-                                    {#if items.length > 0 }
-                                        {#each items as item}
+                                    {#if handler && handler.currentItems.length > 0 }
+                                        {#each handler?.currentItems as item}
                                             <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry">
-                                                <div class="entry-item image">
-                                                    {#if item.image }
-                                                        <img src='/src/lib/assets/uploads/item-images/{item.image}' alt="Item Thumbnail">
-                                                    {:else }
-                                                        <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                  d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
-                                                        </svg>
-                                                    {/if}
-                                                </div>
                                                 <div class="entry-item meta">
                                                     <div class="name-label">
                                                         <h1 class="name">{item.name}</h1>
                                                         {#each item.labels as {name, color}}
                                                             <div class="label {color}">
-                                                                {name}
+                                                                <p class="label-title">{name}</p>
                                                             </div>
                                                         {/each}
                                                     </div>
@@ -708,7 +621,6 @@
                                                     {item.amount.toLocaleString('da-DK')}
                                                 </div>
                                                 <div class="quick-delete">
-                                                    <!-- todo - Add popup warning to confirm deletion -->
                                                     <button title="Delete Item" onclick="{() => {
                                                     deleteItem({id: item.uuid, user: user.uuid});
                                                 }}">
@@ -760,16 +672,16 @@
                             </div>
                             <div class="inventory-footer">
                                 <div class="inventory-footer-items">
-                                    <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
-                                            onclick={goToFirstPage} title="Switch to previous page">
+                                    <button class="pagination-back-button pagination-button{ handler?.isFirstPage ? ' disabled' : '' }"
+                                            onclick={() => handler?.firstPage()} title="Switch to previous page">
                                         <svg width="19" height="19" viewBox="0 0 16 16">
                                             <path fill="currentColor" fill-rule="evenodd"
                                                   d="M7.721 2.22a.75.75 0 0 1 1.061 1.06L4.061 8.002l4.721 4.721a.75.75 0 0 1-1.06 1.061L2.47 8.532a.75.75 0 0 1 0-1.06L7.722 2.22Zm5 0a.75.75 0 0 1 1.061 1.06L9.061 8.002l4.721 4.721a.75.75 0 0 1-1.06 1.061L7.47 8.532a.75.75 0 0 1 0-1.06z"
                                                   clip-rule="evenodd"/>
                                         </svg>
                                     </button>
-                                    <button class="pagination-back-button pagination-button{ currentPage === 1 ? ' disabled' : '' }"
-                                            onclick={() => { updatePage(-1) } } title="Switch to previous page">
+                                    <button class="pagination-back-button pagination-button{ handler?.isFirstPage ? ' disabled' : '' }"
+                                            onclick={() => handler?.previousPage()} title="Switch to previous page">
                                         <svg width="19" height="19" viewBox="0 0 16 16">
                                             <path fill="currentColor" fill-rule="evenodd"
                                                   d="M10.78 2.22a.75.75 0 0 0-1.06 0L4.468 7.472a.75.75 0 0 0 0 1.06l5.252 5.252a.75.75 0 1 0 1.06-1.06L6.06 8.001l4.72-4.721a.75.75 0 0 0 0-1.06"
@@ -777,18 +689,18 @@
                                         </svg>
                                     </button>
                                     <p class="pagination-current-page">
-                                        {currentPage}
+                                        {handler?.page}
                                     </p>
-                                    <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
-                                            onclick={() => { updatePage(1) } } title="Switch to next page">
+                                    <button class="pagination-forward-button pagination-button{ handler?.isLastPage ? ' disabled' : '' }"
+                                            onclick={() => handler?.nextPage()} title="Switch to next page">
                                         <svg width="19" height="19" viewBox="0 0 16 16">
                                             <path fill="currentColor" fill-rule="evenodd"
                                                   d="M5.22 2.22a.75.75 0 0 1 1.06 0l5.252 5.252a.75.75 0 0 1 0 1.06L6.28 13.784a.75.75 0 1 1-1.06-1.06l4.72-4.723L5.22 3.28a.75.75 0 0 1 0-1.06"
                                                   clip-rule="evenodd"/>
                                         </svg>
                                     </button>
-                                    <button class="pagination-forward-button pagination-button{ currentPage === totalPages ? ' disabled' : '' }"
-                                            onclick={goToLastPage} title="Switch to next page">
+                                    <button class="pagination-forward-button pagination-button{ handler?.isLastPage ? ' disabled' : '' }"
+                                            onclick={() => handler?.lastPage()} title="Switch to next page">
                                         <svg width="19" height="19" viewBox="0 0 16 16">
                                             <path fill="currentColor" fill-rule="evenodd"
                                                   d="M3.53 2.22a.75.75 0 0 0-1.06 1.06l4.72 4.722l-4.72 4.721a.75.75 0 0 0 1.06 1.061l5.252-5.252a.75.75 0 0 0 0-1.06zm5 0a.75.75 0 0 0-1.06 1.06l4.721 4.722l-4.721 4.721a.75.75 0 0 0 1.06 1.061l5.252-5.252a.75.75 0 0 0 0-1.06z"
@@ -862,7 +774,6 @@
         flex-flow: column nowrap;
         justify-content: center;
         align-items: center;
-        align-content: center;
         padding-top: 4rem;
 
         width: 100vw;
@@ -875,21 +786,14 @@
             align-content: center;
             margin: .5rem 0;
 
-            width: 100%;
-
-            z-index: 2000;
-
             .inventory-header-content {
                 display: flex;
                 flex-flow: row nowrap;
                 align-items: center;
-                align-content: center;
                 justify-content: space-between;
 
-                padding: 2rem 0;
-                margin: 0;
-
                 width: 80rem;
+                padding: 2rem 0;
 
                 .inventory-name {
                     display: flex;
@@ -900,9 +804,9 @@
                     user-select: none;
 
                     h1 {
+                        font-family: 'FunnelDisplay', sans-serif;
                         font-size: 2.35rem;
-                        font-family: 'FunnelDisplay', 'FunnelSans', sans-serif;
-                        font-variation-settings: "wght" 900;
+                        font-weight: 900;
 
                         background-image: var(--theme-text-gradient);
                         background-clip: text;
@@ -937,24 +841,15 @@
                     gap: .5rem;
 
                     .size-switcher {
-                        display: flex;
-                        flex-flow: row nowrap;
-                        align-items: center;
-                        align-content: center;
-                        justify-content: space-between;
+                        color: var(--theme-text);
+
                         gap: 0;
                         padding: 0;
-
-                        overflow: hidden;
-
-                        color: var(--theme-text);
 
                         .size-switcher-button-seperator {
                             background: var(--theme-border-button);
                             opacity: .5;
                             width: .35rem;
-                            margin: 0;
-                            padding: 0;
                             height: 65%;
                             border-radius: .05rem;
                         }
@@ -992,10 +887,10 @@
                                 stroke-width: 2.5;
                             }
                         }
-                    }
 
-                    .size-switcher button:hover {
-                        color: var(--theme-text-accent);
+                        button:hover {
+                            color: var(--theme-text-accent);
+                        }
                     }
 
                     .refresh-button, .inventory-settings-button {
@@ -1262,8 +1157,7 @@
             }
 
             .inventory-table-container {
-                height: fit-content;
-                box-sizing: border-box;
+
                 margin: 0 0 4rem 0;
 
                 background: rgba(from var(--theme-background-container) r g b / .85);
@@ -1455,6 +1349,16 @@
                             font-family: 'FunnelSans', sans-serif;
                         }
 
+                        .entry-item.meta {
+                            .name-label {
+                                display: flex;
+                                flex-flow: row nowrap;
+                                align-items: center;
+                                justify-content: flex-start;
+                                gap: .3rem;
+                            }
+                        }
+
                         .quick-delete {
                             align-items: center;
                             opacity: 0;
@@ -1568,12 +1472,6 @@
                         justify-content: flex-start;
                     }
 
-                    .header-item:nth-child(2) {
-                        p {
-                            padding-left: .5rem;
-                        }
-                    }
-
                     .header-item:last-child {
                         margin-right: 2.5rem;
                     }
@@ -1601,6 +1499,15 @@
                     .meta {
                         flex: 1 35%;
                         justify-content: flex-start;
+
+                        .name-label {
+                            .name {
+                                margin: 0;
+                                padding-right: .4rem;
+                                font-size: 1.05rem;
+                                font-weight: 550;
+                            }
+                        }
                     }
 
                     .entry-item {
@@ -1612,23 +1519,6 @@
                         .description {
                             visibility: hidden;
                             position: absolute;
-                        }
-                    }
-
-                    .entry-item.meta {
-                        .name-label {
-                            display: flex;
-                            flex-flow: row nowrap;
-                            align-items: center;
-                            justify-content: flex-start;
-                            gap: .3rem;
-
-                            .name {
-                                margin: 0;
-                                padding-right: .4rem;
-                                font-size: 1.05rem;
-                                font-weight: 550;
-                            }
                         }
                     }
                 }
@@ -1657,9 +1547,6 @@
 
                     .inventory-table-entry {
                         height: 5rem;
-                        font-family: 'FunnelSans', sans-serif;
-
-                        z-index: 20;
 
                         .quick-delete {
                             padding: 0 .5rem;
@@ -1668,11 +1555,6 @@
                                 width: 2.25rem;
                                 height: 2.25rem;
                             }
-                        }
-
-                        .image {
-                            visibility: force-hidden;
-                            position: absolute;
                         }
 
                         .entry-item {
@@ -1687,14 +1569,16 @@
                             align-items: flex-start;
                             justify-content: flex-start;
 
-                            .name {
-                                font-weight: 700;
-                                font-size: 1.5rem;
-                                max-width: 50rem;
-                                line-clamp: 1 !important;
-                                text-overflow: ellipsis;
-                                overflow: hidden;
-                                text-wrap: nowrap;
+                            .name-label {
+                                .name {
+                                    font-weight: 700;
+                                    font-size: 1.5rem;
+                                    max-width: 50rem;
+                                    line-clamp: 1 !important;
+                                    text-overflow: ellipsis;
+                                    overflow: hidden;
+                                    text-wrap: nowrap;
+                                }
                             }
 
                             .description {
@@ -1714,19 +1598,16 @@
                         }
                     }
 
-                    .name {
+                    .name-label {
                         flex: 1 0 70%;
-                        justify-content: center;
                     }
 
                     .price {
                         flex: 1 0 10%;
-                        justify-content: center;
                     }
 
                     .amount {
                         flex: 1 0 10%;
-                        justify-content: center;
                     }
                 }
             }

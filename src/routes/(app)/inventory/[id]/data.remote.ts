@@ -32,7 +32,7 @@ const itemsObj = v.object({
 });
 
 export const getItems = query(itemsObj, async (data): Promise<Item[]> => {
-    return util.isOffline() ? [] : (data.order === 'DESC' ? (await Items.fetch(data.inventory, data.amount, data.offset, data.order_by)).reverse() : await Items.fetch(data.inventory, data.amount, data.offset, data.order_by));
+    return util.isOffline() ? [] : (data.order === 'ASC' ? await Items.fetch(data.inventory, data.amount, data.offset, data.order_by) : await Items.fetchDesc(data.inventory, data.amount, data.offset, data.order_by));
 });
 
 export const getTotalItemCount = query(v.string(), async (id: string): Promise<number> => {

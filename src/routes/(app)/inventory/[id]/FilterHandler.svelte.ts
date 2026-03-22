@@ -4,7 +4,7 @@ export type FilterType = undefined | 'name' | 'last_update' | 'price' | 'amount'
 
 export class Filters {
 
-    readonly uuid: string;
+    uuid: string = 'none';
 
     rowAmount: rowAmountType = $state(15);
 
@@ -28,10 +28,6 @@ export class Filters {
         && this.price !== this.initialPrice
         && this.amount !== this.initialAmount);
 
-    constructor(uuid: string) {
-        this.uuid = uuid;
-    }
-
     update(value: FilterType): void {
         if (this.current === value) {
             if (this.order === 'DESC') {
@@ -49,5 +45,10 @@ export class Filters {
     reset(): void {
         this.current = undefined;
         this.order = 'ASC';
+    }
+
+    async init(uuid: string): Promise<void> {
+        this.uuid = uuid;
+        // Load saved filters
     }
 }
