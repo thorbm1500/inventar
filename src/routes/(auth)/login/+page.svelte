@@ -6,6 +6,10 @@
     import {blur} from "svelte/transition";
     import {cubicOut} from "svelte/easing";
 
+    let { data } = $props();
+    // svelte-ignore state_referenced_locally
+    const allowRegistration = data.allowRegistration;
+
     let totp: string = $state('');
     let hasBeenAutoSubmitted: boolean = $state(false);
 
@@ -104,9 +108,11 @@
                 </label>
                 <div class="login-form-buttons">
                     <button type="{canSignIn ? 'submit' : 'button'}" class="theme-button {canSignIn ? '' : 'disabled'}">Login</button>
-                    <button type="button" onclick="{() => window.location.replace('/register')}" class="theme-button">
-                        Register
-                    </button>
+                    {#if allowRegistration}
+                        <button type="button" onclick="{() => window.location.replace('/register')}" class="theme-button">
+                            Register
+                        </button>
+                    {/if}
                 </div>
             </form>
             <button type="button" onclick="{() => window.location.replace('/reset-password')}" class="forgot-password">Forgot password?</button>

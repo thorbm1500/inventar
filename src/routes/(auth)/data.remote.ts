@@ -1,4 +1,4 @@
-import {LOGGER} from '../../hooks.server';
+import {APPLICATION_SETTINGS, LOGGER} from '../../hooks.server';
 import * as v from 'valibot';
 import * as auth from '$lib/server/internal/auth';
 import {form} from '$app/server';
@@ -78,6 +78,11 @@ export const register = form(
         _repeat_password: v.pipe(v.string(), v.nonEmpty())
     }),
     async ({username, email, _password, _repeat_password}) => {
+        if (!APPLICATION_SETTINGS.security.general.allow_registration) {
+            LOGGER.warn(`A user-registration form has been submitted, even though 'allow_registration' is disabled!`);
+            return;
+        }
+
         if (_password !== _repeat_password) {
             return {success: false, message: `Passwords do not match!`};
         }
