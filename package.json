@@ -37,6 +37,7 @@
 		"croner": "^10.0.1",
 		"moment": "^2.30.1",
 		"nodemailer": "^8.0.3",
+		"otpauth": "^9.5.0",
 		"sharp": "^0.34.5",
 		"svelte-adapter-bun": "^1.0.1",
 		"tippy.js": "^6.3.7",

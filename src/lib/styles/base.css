@@ -58,6 +58,8 @@ body {
     height: 100vh;
     overflow: hidden;
 
+    z-index: -100;
+
     font-family: 'FunnelSans', sans-serif;
     scrollbar-color: var(--theme-color-accent) transparent;
 }

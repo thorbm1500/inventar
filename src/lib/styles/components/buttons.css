@@ -6,8 +6,11 @@
     justify-content: center;
     gap: .5rem;
 
+    min-width: fit-content !important;
+    min-height: fit-content !important;
+
     font-family: 'FunnelSans', sans-serif;
-    font-weight: 600;
+    font-weight: 550;
     font-size: 1rem;
     color: var(--theme-text);
     stroke-width: 2;
@@ -17,24 +20,46 @@
     border: var(--theme-border-width) solid var(--theme-border-button);
     border-radius: var(--theme-border-radius);
 
-    padding: .75rem 1rem;
+    padding: .35rem .8rem;
 
     cursor: pointer;
     user-select: none;
 
+    transition: var(--theme-transition-out);
+}
+
+.theme-button:hover, .theme-button:focus {
+    border-color: var(--theme-border-button-hover);
+    filter: drop-shadow(0 0 .4rem rgba(from var(--theme-border-button-hover) r g b / .2)) brightness(1.25);
     transition: var(--theme-transition-in);
 }
 
-.theme-button:hover {
-    background: color-mix(var(--theme-background-button) 70%, transparent);
-    filter: brightness(1.1);
+.theme-button:focus {
+    box-shadow: none;
+    outline: none;
+}
+
+.theme-button.green-hover:hover {
     color: var(--theme-text-accent);
-    transition: var(--theme-transition-in);
+}
+
+.theme-button.blue-hover:hover {
+    background: color-mix(var(--theme-background-button) 65%, transparent);
+    color: oklch(62.3% 0.214 259.815);
 }
 
 .theme-button.disabled {
     color: var(--theme-text-fourth);
-    filter: grayscale(25%);
+    filter: grayscale(50%) brightness(1);
 
-    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.theme-button.disabled:hover {
+    background: initial;
+    border-color: initial;
+    color: var(--theme-text-fourth);
+    filter: initial;
+
+    cursor: not-allowed;
 }

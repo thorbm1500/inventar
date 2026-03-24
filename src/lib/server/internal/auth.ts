@@ -4,9 +4,11 @@ import type {ResetRequest, Session} from "$lib/server/db/interfaces";
 import {DAY_IN_MS} from "$lib/util/utilities";
 import {EMAIL_REGEX} from "valibot";
 import utilities from "$lib/server/internal/utilities";
-import {Auth} from "$lib/server/db/database";
+import {Auth, Users} from "$lib/server/db/database";
 import inventar from "$lib/server/internal/inventar";
-import {LOGGER} from "../../../hooks.server.ts";
+import {LOGGER} from "../../../hooks.server";
+import {Secret, TOTP} from "otpauth";
+import {randomBytes, createCipheriv, createDecipheriv, type Cipher, type Decipher} from "node:crypto";
 
 declare interface CryptoOptions {
     encoding?: Bun.DigestEncoding,
@@ -18,8 +20,8 @@ declare interface CryptoOptions {
  * todo
  * @param options
  */
-function getSha512(options?: CryptoOptions): string {
-    const sha: Bun.SHA512 = options?.key ? new Bun.CryptoHasher('sha512', options.key) : new Bun.SHA512();
+export function getSha512(options?: CryptoOptions): string {
+    const sha: Bun.SHA512 = options !== undefined && options.key ? new Bun.CryptoHasher('sha512', options.key) : new Bun.SHA512();
 
     if (options?.seed) {
         sha.update(options.seed);
@@ -63,7 +65,10 @@ export async function createSession(uuid: string): Promise<Session | undefined> 
 
     await Auth.newSession(uuid, token);
     const session: Session | undefined = await Auth.getSession(token);
-    if (session) session.session_id = session_id;
+    if (session) {
+        session.session_id = session_id;
+        setSessionCookie(session);
+    }
 
     return session;
 }
@@ -126,6 +131,90 @@ export function deleteSessionTokenCookie(event: RequestEvent | undefined = undef
         path: '/',
         secure: false
     });
+}
+
+export function generateOTPToken(): { uri: string, secret: string } {
+    const secret: string = new Secret().base32;
+    return {
+        uri: new TOTP({
+            issuer: 'inventar',
+            label: '2fa',
+            secret
+        }).toString(),
+        secret
+    };
+}
+
+export async function updateOTPToken(uuid: string, token: { raw?: string, encrypted?: string }, secret?: string): Promise<void> {
+    if (!token.raw && !token.encrypted) {
+        LOGGER.error(`Failed to update OTP token for user '${uuid}'. Both the raw and encrypted version of the token is null.`);
+        return;
+    }
+
+    let newToken: string = token.encrypted ? token.encrypted : '';
+
+    if (newToken === '' && token.raw) {
+        if (!secret) {
+            LOGGER.error(`Failed to update OTP token for user '${uuid}'. A raw token has been provided, but without a secret to encrypt it with.`);
+            return;
+        }
+        newToken = encrypt(secret, token.raw);
+    }
+
+    await Users.setOTPToken(uuid, newToken);
+}
+
+export async function getOTPToken(uuid: string, secret: string): Promise<string | null> {
+    const encryptedToken: string | undefined = await Users.getOTPToken(uuid);
+    if (!encryptedToken) {
+        LOGGER.error(`No OTP token found.`);
+        return null;
+    }
+
+    return decrypt(secret, encryptedToken);
+}
+
+export function validateOTP(token: string, secret: string): boolean {
+    const result: number | null = new TOTP({
+        issuer: 'inventar',
+        label: '2fa',
+        secret
+    }).validate({token});
+
+    return result !== null && result > -1;
+}
+
+/**
+ * todo
+ * @param secret
+ * @param data
+ */
+export function encrypt(secret: string, data: string): string {
+    const iv = randomBytes(16);
+    const key: Buffer = new Bun.CryptoHasher('sha512-256', secret).digest();
+
+    const cipher: Cipher = createCipheriv('aes256', key, iv);
+
+    let encrypted: string = cipher.update(data, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+
+    return iv.toString('hex') + encrypted;
+}
+
+/**
+ * todo
+ * @param secret
+ * @param data
+ */
+export function decrypt(secret: string, data: string): string {
+    const iv: string = data.slice(0, 32);
+    const key: Buffer = new Bun.CryptoHasher('sha512-256', secret).digest();
+
+    const encrypted: string = data.slice(32);
+    const decipher: Decipher = createDecipheriv('aes256', key, Buffer.from(iv, 'hex'));
+
+    let decrypted: string = decipher.update(encrypted, 'hex', 'utf8');
+    return decrypted + decipher.final('utf8');
 }
 
 /**

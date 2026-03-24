@@ -92,6 +92,7 @@ export class Database {
                                uuid              CHAR(36)                             NOT NULL,
                                email             VARCHAR(254)                         NOT NULL,
                                password_hash     VARCHAR(255)                         NOT NULL,
+                               otp_token         VARCHAR(255)                         NULL,
                                username          VARCHAR(32)                          NOT NULL,
                                profile_picture   TEXT                                 NULL,
                                primary_inventory CHAR(36)                             NULL,
@@ -237,13 +238,20 @@ export class Database {
         if (env.NODE_ENV !== 'production') {
             await Database.SQL`INSERT IGNORE INTO inventories(uuid, owner, name)
                                VALUES ('devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'devxuser-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Development')`;
-            await Database.SQL`INSERT IGNORE INTO labels VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxxgreen', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Refurbished','green')`;
-            await Database.SQL`INSERT IGNORE INTO labels VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxxxblue', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Remote','blue')`;
-            await Database.SQL`INSERT IGNORE INTO labels VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxpurple', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Development','purple')`;
-            await Database.SQL`INSERT IGNORE INTO labels VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxxxpink', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'New','pink')`;
-            await Database.SQL`INSERT IGNORE INTO labels VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxyellow', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Reserved','yellow')`;
-            await Database.SQL`INSERT IGNORE INTO labels VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxorange', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Spare','orange')`;
-            await Database.SQL`INSERT IGNORE INTO labels VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxxxxred', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Broken','red')`;
+            await Database.SQL`INSERT IGNORE INTO labels
+                               VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxxgreen', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Refurbished', 'green')`;
+            await Database.SQL`INSERT IGNORE INTO labels
+                               VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxxxblue', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Remote', 'blue')`;
+            await Database.SQL`INSERT IGNORE INTO labels
+                               VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxpurple', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Development', 'purple')`;
+            await Database.SQL`INSERT IGNORE INTO labels
+                               VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxxxpink', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'New', 'pink')`;
+            await Database.SQL`INSERT IGNORE INTO labels
+                               VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxyellow', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Reserved', 'yellow')`;
+            await Database.SQL`INSERT IGNORE INTO labels
+                               VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxorange', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Spare', 'orange')`;
+            await Database.SQL`INSERT IGNORE INTO labels
+                               VALUES ('devlabel-xxxx-xxxx-xxxx-xxxxxxxxred', 'devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx', 'Broken', 'red')`;
 
 
             await Database.SQL`INSERT IGNORE INTO users(uuid, email, password_hash, username, superuser)
@@ -251,7 +259,7 @@ export class Database {
 
             const result: number = await Items.fetchTotalItemCount('devxinvx-xxxx-xxxx-xxxx-xxxxxxxxxxx');
 
-            const getRandomLabel = () => faker.helpers.arrayElement(['devlabel-xxxx-xxxx-xxxx-xxxxxxgreen','devlabel-xxxx-xxxx-xxxx-xxxxxxxblue','devlabel-xxxx-xxxx-xxxx-xxxxxpurple','devlabel-xxxx-xxxx-xxxx-xxxxxxxpink','devlabel-xxxx-xxxx-xxxx-xxxxxyellow','devlabel-xxxx-xxxx-xxxx-xxxxxorange','devlabel-xxxx-xxxx-xxxx-xxxxxxxxred']);
+            const getRandomLabel = () => faker.helpers.arrayElement(['devlabel-xxxx-xxxx-xxxx-xxxxxxgreen', 'devlabel-xxxx-xxxx-xxxx-xxxxxxxblue', 'devlabel-xxxx-xxxx-xxxx-xxxxxpurple', 'devlabel-xxxx-xxxx-xxxx-xxxxxxxpink', 'devlabel-xxxx-xxxx-xxxx-xxxxxyellow', 'devlabel-xxxx-xxxx-xxxx-xxxxxorange', 'devlabel-xxxx-xxxx-xxxx-xxxxxxxxred']);
 
             for (let i: number = result; i < 250; i++) {
                 let labels: string[] = [];
@@ -572,6 +580,41 @@ export class Users {
                            WHERE uuid = ${uuid}`
             .then((): Promise<void> => Audit.user(uuid, uuid, 'Modification', `Updated password hash`))
             .catch((err: any): void => LOGGER.error(`Users#setPasswordHash[0]: Database request failed. `, err));
+    }
+
+    /**
+     * todo
+     * @param uuid
+     */
+    static async getOTPToken(uuid: string): Promise<string | undefined> {
+        return (await Database.SQL`SELECT otp_token
+                                   FROM users
+                                   WHERE uuid = ${uuid}`
+            .catch((err: any): [] => {
+                LOGGER.error(`Users#getOTPToken[0]: Database request failed. `, err)
+                return [];
+            }))[0].otp_token;
+    }
+
+    /**
+     * todo
+     * @param uuid
+     * @param token
+     */
+    static async setOTPToken(uuid: string, token: string | null): Promise<void> {
+        if (token === null) {
+            await Database.SQL`UPDATE users
+                               SET otp_token = NULL
+                               WHERE uuid = ${uuid}`
+                .then((): Promise<void> => Audit.user(uuid, uuid, 'Modification', `Removed OTP token`))
+                .catch((err: any): void => LOGGER.error(`Users#setOTPToken[0]: Database request failed. `, err));
+        } else {
+            await Database.SQL`UPDATE users
+                               SET otp_token = ${token}
+                               WHERE uuid = ${uuid}`
+                .then((): Promise<void> => Audit.user(uuid, uuid, 'Modification', `Updated OTP token`))
+                .catch((err: any): void => LOGGER.error(`Users#setOTPToken[1]: Database request failed. `, err));
+        }
     }
 
     /**
