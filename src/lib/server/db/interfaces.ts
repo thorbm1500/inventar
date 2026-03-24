@@ -27,6 +27,14 @@ export interface User {
     superuser: boolean
 }
 
+export interface UserSettings {
+    uuid: string,
+    preferred_theme: PageTheme,
+    primary_inventory: string,
+    preferred_order_by: string,
+    preferred_ordering: string
+}
+
 export interface Session {
     uuid: string,
     session_id: string,

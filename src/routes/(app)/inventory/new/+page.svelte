@@ -9,7 +9,7 @@
     import Toast from "$lib/components/toast.svelte";
     import {ignorePasswordManagers} from "$lib/util/utilities";
 
-    let user: User = $state(getContext('user'));
+    const user = getContext('user') as Function;
     let toast: Toast = getContext('toasts') as Toast
 
     let value = $state('');

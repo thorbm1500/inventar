@@ -99,6 +99,7 @@ const handleAuth: Handle = async ({event, resolve}): Promise<Response> => {
     }
 
     event.locals.user = user;
+    event.locals.userSettings = await Users.getSettings(user.uuid);
     event.locals.uuid = user.uuid;
     event.locals.session_id = session.session_id;
 

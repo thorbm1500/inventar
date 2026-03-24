@@ -1,15 +1,14 @@
 <script lang="ts">
     import {getContext, onMount, setContext} from 'svelte';
-    import type {User} from "$lib/server/db/interfaces";
 
     const pageInfo = {
         title: undefined
     }
 
     setContext('pageInfo', pageInfo);
-
-    let user: User = $derived(getContext('user'));
-    let theme = $derived(user.preferred_theme);
+    const user = getContext('user') as Function;
+    //const updateTheme: Function = getContext('update_theme');
+    const userSettings: Function = getContext('user_settings');
 
     let sidebar = $state(false);
     let isOnline = $state(true);
@@ -141,8 +140,10 @@
         <div class="seperator"></div>
     </div>
     <div class="user-actions">
-        <button class="action theme-switcher" title="Change Theme" onclick="{() => user.preferred_theme = user.preferred_theme === 'dark' ? 'light' : 'dark'}">
-            {#if (theme === 'dark')}
+        <button class="action theme-switcher" title="Change Theme" onclick="{() => {
+            userSettings().preferred_theme = userSettings().preferred_theme === 'dark' ? 'light' : 'dark';
+        }}">
+            {#if (user().preferred_theme === 'dark')}
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 2L18.6178 3.23558C18.8833 3.76656 19.016 4.03205 19.1934 4.26211C19.3507 4.46626 19.5337 4.64927 19.7379 4.80664C19.9679 4.98397 20.2334 5.11672 20.7644 5.38221L22 6L20.7644 6.61779C20.2334 6.88328 19.9679 7.01603 19.7379 7.19336C19.5337 7.35073 19.3507 7.53374 19.1934 7.73789C19.016 7.96795 18.8833 8.23344 18.6178 8.76442L18 10L17.3822 8.76442C17.1167 8.23344 16.984 7.96795 16.8066 7.73789C16.6493 7.53374 16.4663 7.35073 16.2621 7.19336C16.0321 7.01603 15.7666 6.88328 15.2356 6.61779L14 6L15.2356 5.38221C15.7666 5.11672 16.0321 4.98397 16.2621 4.80664C16.4663 4.64927 16.6493 4.46626 16.8066 4.26211C16.984 4.03205 17.1167 3.76656 17.3822 3.23558L18 2Z"
                           stroke="currentColor"
@@ -165,7 +166,7 @@
                 </svg>
             {/if}
         </button>
-        <a id="pill-action" class="action profile" title="Profile" href="/account/{user.uuid}">
+        <a id="pill-action" class="action profile" title="Profile" href="/account/{user().uuid}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20 21C20 19.6044 20 18.9067 19.8278 18.3389C19.44 17.0605 18.4395 16.06 17.1611 15.6722C16.5933 15.5 15.8956 15.5 14.5 15.5H9.5C8.10444 15.5 7.40665 15.5 6.83886 15.6722C5.56045 16.06 4.56004 17.0605 4.17224 18.3389C4 18.9067 4 19.6044 4 21M16.5 7.5C16.5 9.98528 14.4853 12 12 12C9.51472 12 7.5 9.98528 7.5 7.5C7.5 5.01472 9.51472 3 12 3C14.4853 3 16.5 5.01472 16.5 7.5Z"
                       stroke="currentColor"

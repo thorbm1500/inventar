@@ -6,7 +6,7 @@
     import Sessions from "$lib/components/Sessions.svelte";
     import {ignorePasswordManagers} from "$lib/util/utilities";
 
-    const user: User = $derived(getContext('user'));
+    const user = getContext('user') as Function;
 
     let settings: UserSettings = $derived(await getSettings(user.uuid) as UserSettings);
     // svelte-ignore state_referenced_locally

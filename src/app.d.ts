@@ -6,7 +6,8 @@ declare global {
 		interface Locals {
 			uuid: import('$lib/server/internal/auth').SessionValidationResult['uuid'];
 			session_id: import('$lib/server/internal/auth').SessionValidationResult['session_id'],
-			user: import('$lib/server/db/database').User;
+			user: import('$lib/server/db/database').User,
+			userSettings: import('$lib/server/db/database').UserSettings;
 		}
 		// interface Error {}
 		// interface Locals {}

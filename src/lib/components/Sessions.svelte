@@ -4,7 +4,7 @@
     import {endSession, getSessions} from "../../routes/(app)/account/[id]/settings/data.remote.ts";
     import moment from "moment";
 
-    const user: User = $derived(getContext('user'));
+    const user = getContext('user') as Function;
 
     // svelte-ignore state_referenced_locally
     const sessions: Session[] = $state(await getSessions(user.uuid));

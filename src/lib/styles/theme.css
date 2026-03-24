@@ -2,7 +2,7 @@
 
 :root {
     /* Theme independent values */
-    --theme-color-accent: oklch(0.836 0.215 127.081);
+    --theme-color-accent: oklch(84.1% 0.238 128.85);
     --theme-color-danger: oklch(0.641 0.228 19.02);
     --theme-color-white: #FFFFF2FF;
     --theme-color-black: #0D0D0DFF;
@@ -63,7 +63,7 @@
     --theme-color-third: #5D6576FF;
     --theme-color-notice: oklch(85.2% 0.199 91.936);
 
-    --theme-text: #FFFFF2;
+    --theme-text: #f8fcff;
     --theme-text-secondary: #c0c4cc;
     --theme-text-third: #6a7282;
     --theme-text-fourth: #5d6576;
@@ -78,8 +78,8 @@
     --theme-background: #0a0a0c;
     --theme-background-header: #131317;
     --theme-background-container: #15151a;
-    --theme-background-list-even: #161619;
-    --theme-background-list-odd: #151518;
+    --theme-background-list-even: #212126;
+    --theme-background-list-odd: #131318;
     --theme-background-button: #14161c;
     --theme-background-button-hover: #19191d;
     --theme-background-button-selected: #1c1c23;

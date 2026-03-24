@@ -9,7 +9,7 @@
 
     let {data} = $props();
 
-    const user: User = getContext('user');
+    const user = getContext('user') as Function;
 
     // svelte-ignore state_referenced_locally
     let applicationSettings: ApplicationSettings = $state(data.settings);

@@ -319,7 +319,7 @@
                     }
 
                     .view-type-button.selected {
-                        color: var(--theme-text-accent);
+                        color: var(--theme-color-accent);
                     }
                 }
             }

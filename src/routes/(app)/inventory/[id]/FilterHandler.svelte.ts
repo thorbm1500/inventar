@@ -5,10 +5,11 @@ export type FilterType = undefined | 'name' | 'last_update' | 'price' | 'amount'
 export class Filters {
 
     uuid: string = 'none';
+    settings: Function | undefined = undefined;
 
     rowAmount: rowAmountType = $state(15);
 
-    current: FilterType = $state();
+    current: FilterType = $derived(this.settings ? this.settings().preferred_order_by : undefined);
 
     description: boolean = $state(true);
     last_updated: boolean = $state(true);
@@ -21,12 +22,17 @@ export class Filters {
     initialPrice: boolean = $state(this.price);
     initialAmount: boolean = $state(this.amount);
 
-    order: OrderType = $state('DESC');
+    order: OrderType = $derived(this.settings ? this.settings().preferred_ordering.toUpperCase() : 'DESC');
 
     unsavedChanges: boolean = $derived(this.description !== this.initialDescription
         && this.last_updated !== this.initialLast_updated
         && this.price !== this.initialPrice
         && this.amount !== this.initialAmount);
+
+    constructor(settings: Function) {
+        this.settings = settings;
+    }
+
 
     update(value: FilterType): void {
         if (this.current === value) {
@@ -45,10 +51,5 @@ export class Filters {
     reset(): void {
         this.current = undefined;
         this.order = 'ASC';
-    }
-
-    async init(uuid: string): Promise<void> {
-        this.uuid = uuid;
-        // Load saved filters
     }
 }

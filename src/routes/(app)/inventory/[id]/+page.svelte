@@ -38,14 +38,15 @@
 <script lang="ts">
     import {getContext, onMount} from "svelte";
     import {page} from "$app/state";
-    import type {Inventory, User} from "$lib/server/db/interfaces";
+    import type {Inventory, User, UserSettings} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/util/utilities'
     import {getInventory, quickAdd, createItem, deleteItem, updatePrimaryInventory} from "./data.remote";
     import {ignorePasswordManagers} from "$lib/util/utilities";
     import {blur} from "svelte/transition";
     import {ItemHandler} from "./item/[item_id]/itemHandler.svelte.ts";
 
-    let user: User = $state(getContext('user'));
+    const user = getContext('user') as Function;
+    let userSettings: Function = getContext('user_settings') as Function;
     // svelte-ignore state_referenced_locally
 
     let addItemHover = $state(false);
@@ -68,7 +69,7 @@
         inventory = await getInventory(String(page.params.id));
         if (!inventory || !inventory.uuid) return;
 
-        handler = new ItemHandler(inventory.uuid, user.uuid);
+        handler = new ItemHandler(inventory.uuid, userSettings);
         await handler.init();
         await handler.refreshPage();
     });
@@ -84,11 +85,9 @@
                             <h1>{isLoaded ? inventory?.name : 'Loading...'}</h1>
                             {#if isLoaded}
                                 <button class="primary-inventory-bookmark-icon" onclick={() => {
-                                user.primary_inventory = user.primary_inventory === inventory?.uuid ? undefined : inventory?.uuid;
-                                updatePrimaryInventory({user: user.uuid, inventory_uuid: user.primary_inventory});
-                                user = structuredClone(user);
+                                userSettings().primary_inventory = userSettings().primary_inventory === inventory?.uuid ? undefined : inventory?.uuid;
                             }}>
-                                    {#if user.primary_inventory === inventory?.uuid }
+                                    {#if userSettings().primary_inventory === inventory?.uuid }
                                         <svg style="color:var(--theme-color-accent);" width="24" height="24" viewBox="0 0 24 24">
                                             <path fill="currentColor" fill-rule="evenodd"
                                                   d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6"
@@ -224,7 +223,7 @@
                             <div class="extra-container open inventory-filter-container">
                                 <div class="header" style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:space-between;">
                                     <h1>Filters</h1>
-                                    <button class="filters-save-button {handler?.filters.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
+                                    <button class="filters-save-button {handler?.filters?.unsavedChanges ? 'new' : 'default' }" title="Save Filters">
                                         <svg width="16" height="16" fill="currentColor" class="bi bi-floppy-fill" viewBox="0 0 16 16">
                                             <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0H3v5.5A1.5 1.5 0 0 0 4.5 7h7A1.5 1.5 0 0 0 13 5.5V0h.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5H14v-5.5A1.5 1.5 0 0 0 12.5 9h-9A1.5 1.5 0 0 0 2 10.5V16h-.5A1.5 1.5 0 0 1 0 14.5z"/>
                                             <path d="M3 16h10v-5.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5zm9-16H4v5.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5zM9 1h2v4H9z"/>
@@ -241,15 +240,15 @@
                                             <h1>Columns</h1>
                                         </div>
                                         <div class="buttons">
-                                            <button class="extra-container-button price filter-button {handler?.filters.price ? '' : 'off'}"
-                                                    style="order:{handler?.filters.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
+                                            <button class="extra-container-button price filter-button {handler?.filters?.price ? '' : 'off'}"
+                                                    style="order:{handler?.filters?.price ? 1 : 101};display:flex;flex-flow:row nowrap;align-items:center;"
                                                     onclick={() => {
-                                                if (handler) {
+                                                if (handler && handler.filters) {
                                                     handler.filters.price = !handler.filters.price;
                                                     handler.filters.reset();
                                                 }
                                             }}>
-                                                {#if handler?.filters.price }
+                                                {#if handler?.filters?.price }
                                                     <svg width="24" height="24" viewBox="0 0 24 24">
                                                         <path fill="currentColor"
                                                               d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -262,13 +261,13 @@
                                                 {/if}
                                                 Prices
                                             </button>
-                                            <button class="extra-container-button last-updated filter-button {handler?.filters.last_updated ? '' : 'off'}"
-                                                    style="order:{handler?.filters.last_updated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
-                                                    onclick={() => {if (handler) {
+                                            <button class="extra-container-button last-updated filter-button {handler?.filters?.last_updated ? '' : 'off'}"
+                                                    style="order:{handler?.filters?.last_updated ? 2 : 102};display:flex;flex-flow:row nowrap;align-items:center;"
+                                                    onclick={() => {if (handler && handler.filters) {
                                                         handler.filters.last_updated = !handler.filters.last_updated;
                                                         handler.filters.reset();
                                                         }}}>
-                                                {#if handler?.filters.last_updated }
+                                                {#if handler?.filters?.last_updated }
                                                     <svg width="24" height="24" viewBox="0 0 24 24">
                                                         <path fill="currentColor"
                                                               d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -281,13 +280,13 @@
                                                 {/if}
                                                 Last Updated
                                             </button>
-                                            <button class="extra-container-button description filter-button {handler?.filters.description ? '' : 'off'}"
-                                                    style="order:{handler?.filters.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
-                                                    onclick={() => {if (handler) {
+                                            <button class="extra-container-button description filter-button {handler?.filters?.description ? '' : 'off'}"
+                                                    style="order:{handler?.filters?.description ? 3 : 103};display:flex;flex-flow:row nowrap;align-items:center;"
+                                                    onclick={() => {if (handler && handler.filters) {
                                                          handler.filters.description = !handler.filters.description
                                                          handler.filters.reset();
                                                         }}}>
-                                                {#if handler?.filters.description }
+                                                {#if handler?.filters?.description }
                                                     <svg width="24" height="24" viewBox="0 0 24 24">
                                                         <path fill="currentColor"
                                                               d="M12 9a3 3 0 0 1 3 3a3 3 0 0 1-3 3a3 3 0 0 1-3-3a3 3 0 0 1 3-3m0-4.5c5 0 9.27 3.11 11 7.5c-1.73 4.39-6 7.5-11 7.5S2.73 16.39 1 12c1.73-4.39 6-7.5 11-7.5M3.18 12a9.821 9.821 0 0 0 17.64 0a9.821 9.821 0 0 0-17.64 0"/>
@@ -314,16 +313,20 @@
                                             <h1>Row Amount</h1>
                                         </div>
                                         <div style="display:flex;flex-flow:row nowrap;gap:.25rem;">
-                                            <button onclick={() => {if (handler) handler.filters.rowAmount = 15}} class="extra-container-button filter-button row-amount {handler?.filters.rowAmount === 15 ? 'selected' : ''}">
+                                            <button onclick={() => {if (handler && handler.filters) handler.filters.rowAmount = 15}}
+                                                    class="extra-container-button filter-button row-amount {handler && handler.filters && handler.filters.rowAmount === 15 ? 'selected' : ''}">
                                                 15
                                             </button>
-                                            <button onclick={() => {if (handler) handler.filters.rowAmount = 30}} class="extra-container-button filter-button row-amount {handler?.filters.rowAmount === 30 ? 'selected' : ''}">
+                                            <button onclick={() => {if (handler && handler.filters) handler.filters.rowAmount = 30}}
+                                                    class="extra-container-button filter-button row-amount {handler && handler.filters && handler?.filters.rowAmount === 30 ? 'selected' : ''}">
                                                 30
                                             </button>
-                                            <button onclick={() => {if (handler) handler.filters.rowAmount = 45}} class="extra-container-button filter-button row-amount {handler?.filters.rowAmount === 45 ? 'selected' : ''}">
+                                            <button onclick={() => {if (handler && handler.filters) handler.filters.rowAmount = 45}}
+                                                    class="extra-container-button filter-button row-amount {handler && handler.filters && handler?.filters.rowAmount === 45 ? 'selected' : ''}">
                                                 45
                                             </button>
-                                            <button onclick={() => {if (handler) handler.filters.rowAmount = 60}} class="extra-container-button filter-button row-amount {handler?.filters.rowAmount === 60 ? 'selected' : ''}">
+                                            <button onclick={() => {if (handler && handler.filters) handler.filters.rowAmount = 60}}
+                                                    class="extra-container-button filter-button row-amount {handler && handler.filters && handler?.filters.rowAmount === 60 ? 'selected' : ''}">
                                                 60
                                             </button>
                                         </div>
@@ -343,7 +346,7 @@
                                     }
                                 })} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                                     <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                                    <input {...quickAdd.fields.user.as('text')} value="{user?.uuid??'x'}" use:ignorePasswordManagers hidden required/>
+                                    <input {...quickAdd.fields.user.as('text')} value="{user().uuid??'x'}" use:ignorePasswordManagers hidden required/>
                                     <input {...quickAdd.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" use:ignorePasswordManagers hidden required/>
                                     <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
                                         <div class="option-container" style="width:52rem;">
@@ -415,9 +418,9 @@
                             <div class="inventory-header">
                                 <div class="header-items">
                                     <div class="header-item name">
-                                        <button onclick="{() => {handler?.updateFilterOrder('name')}}" class="header-button {handler?.filters.current === 'name' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('name')}}" class="header-button {handler?.filters?.current === 'name' ? 'active' : ''}">
                                             Name
-                                            {#if handler?.filters.current === 'name'}
+                                            {#if handler?.filters?.current === 'name'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
@@ -447,9 +450,9 @@
                                         </button>
                                     </div>
                                     <div class="header-item part-number">
-                                        <button onclick="{() => {handler?.updateFilterOrder('part_number')}}" class="header-button {handler?.filters.current === 'part_number' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('part_number')}}" class="header-button {handler?.filters?.current === 'part_number' ? 'active' : ''}">
                                             Part Nr.
-                                            {#if handler?.filters.current === 'part_number'}
+                                            {#if handler?.filters?.current === 'part_number'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
@@ -479,9 +482,9 @@
                                         </button>
                                     </div>
                                     <div class="header-item updated">
-                                        <button onclick="{() => {handler?.updateFilterOrder('last_update')}}" class="header-button {handler?.filters.current === 'last_update' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('last_update')}}" class="header-button {handler?.filters?.current === 'last_update' ? 'active' : ''}">
                                             Updated
-                                            {#if handler?.filters.current === 'last_update'}
+                                            {#if handler?.filters?.current === 'last_update'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
@@ -511,9 +514,9 @@
                                         </button>
                                     </div>
                                     <div class="header-item price">
-                                        <button onclick="{() => {handler?.updateFilterOrder('price')}}" class="header-button {handler?.filters.current === 'price' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('price')}}" class="header-button {handler?.filters?.current === 'price' ? 'active' : ''}">
                                             Price
-                                            {#if handler?.filters.current === 'price'}
+                                            {#if handler?.filters?.current === 'price'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
@@ -543,9 +546,9 @@
                                         </button>
                                     </div>
                                     <div class="header-item amount">
-                                        <button onclick="{() => {handler?.updateFilterOrder('amount')}}" class="header-button {handler?.filters.current === 'amount' ? 'active' : ''}">
+                                        <button onclick="{() => {handler?.updateFilterOrder('amount')}}" class="header-button {handler?.filters?.current === 'amount' ? 'active' : ''}">
                                             Amount
-                                            {#if handler?.filters.current === 'amount'}
+                                            {#if handler?.filters?.current === 'amount'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M17 4V15M17 15L13 11M17 15L21 11M7 4V20M7 20L3 16M7 20L11 16"
@@ -622,7 +625,7 @@
                                                 </div>
                                                 <div class="quick-delete">
                                                     <button title="Delete Item" onclick="{() => {
-                                                    deleteItem({id: item.uuid, user: user.uuid});
+                                                    deleteItem({id: item.uuid, user: user().uuid});
                                                 }}">
                                                         <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -736,6 +739,8 @@
             margin: 0 calc(50vw - 46rem);
 
             filter: blur(80px) brightness(.7);
+
+            animation: backgroundAnimation 10s infinite ease;
         }
     }
 
@@ -830,7 +835,7 @@
 
                     .primary-inventory-bookmark-icon:hover {
                         svg {
-                            color: var(--theme-text-accent);
+                            color: var(--theme-color-accent);
                         }
                     }
                 }
@@ -841,15 +846,15 @@
                     gap: .5rem;
 
                     .size-switcher {
-                        color: var(--theme-text);
+                        color: var(--theme-color-base);
 
                         gap: 0;
                         padding: 0;
 
                         .size-switcher-button-seperator {
-                            background: var(--theme-border-button);
+                            background: linear-gradient(0deg, rgba(from var(--theme-border-button) r g b / .5) 0%, var(--theme-border-button) 50%, rgba(from var(--theme-border-button) r g b / .5) 100%);
                             opacity: .5;
-                            width: .35rem;
+                            width: 4px;
                             height: 65%;
                             border-radius: .05rem;
                         }
@@ -881,7 +886,7 @@
                         }
 
                         button.selected {
-                            color: var(--theme-text-accent);
+                            color: var(--theme-color-accent);
 
                             svg {
                                 stroke-width: 2.5;
@@ -889,7 +894,7 @@
                         }
 
                         button:hover {
-                            color: var(--theme-text-accent);
+                            color: var(--theme-color-accent);
                         }
                     }
 
@@ -898,7 +903,7 @@
                     }
 
                     .filters-button.open, .create-item-button.open {
-                        color: var(--theme-text-accent);
+                        color: var(--theme-color-accent);
                         fill: var(--theme-color-accent);
 
                         transition: var(--theme-transition-in);
@@ -1667,6 +1672,15 @@
                     }
                 }
             }
+        }
+    }
+
+    @keyframes backgroundAnimation {
+        0%, 100% {
+            opacity: .8;
+        }
+        50% {
+            opacity: .75;
         }
     }
 </style>

@@ -29,8 +29,9 @@
 }
 
 .theme-button:hover, .theme-button:focus {
+    color: var(--theme-color-accent);
     border-color: var(--theme-border-button-hover);
-    filter: drop-shadow(0 0 .4rem rgba(from var(--theme-border-button-hover) r g b / .2)) brightness(1.25);
+    filter: drop-shadow(0 0 .4rem rgba(from var(--theme-border-button-hover) r g b / .2)) brightness(1.25) saturate(1.05);
     transition: var(--theme-transition-in);
 }
 
@@ -40,7 +41,7 @@
 }
 
 .theme-button.green-hover:hover {
-    color: var(--theme-text-accent);
+    color: oklch(84.1% 0.238 128.85);
 }
 
 .theme-button.blue-hover:hover {

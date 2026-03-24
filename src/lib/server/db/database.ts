@@ -95,8 +95,6 @@ export class Database {
                                otp_token         VARCHAR(255)                         NULL,
                                username          VARCHAR(32)                          NOT NULL,
                                profile_picture   TEXT                                 NULL,
-                               primary_inventory CHAR(36)                             NULL,
-                               preferred_theme   VARCHAR(5) DEFAULT 'dark'            NOT NULL,
                                created_at        TIMESTAMP  DEFAULT CURRENT_TIMESTAMP NOT NULL,
                                superuser         TINYINT(1) DEFAULT 0                 NOT NULL,
                                PRIMARY KEY (uuid),
@@ -107,8 +105,21 @@ export class Database {
                                CONSTRAINT users_username_u
                                    UNIQUE (username),
                                CONSTRAINT users_profile_picture_u
-                                   UNIQUE (profile_picture),
-                               CONSTRAINT users_primary_inventory_fk
+                                   UNIQUE (profile_picture)
+                           )`
+            .catch((err: any): void => LOGGER.error(`Failed to create table 'users'. `, err));
+
+        await Database.SQL`CREATE TABLE IF NOT EXISTS user_settings
+                           (
+                               uuid               CHAR(36)                          NOT NULL,
+                               primary_inventory  CHAR(36)                          NULL,
+                               preferred_theme    VARCHAR(5)  DEFAULT 'dark'        NOT NULL,
+                               preferred_order_by VARCHAR(32) DEFAULT 'last_update' NOT NULL,
+                               preferred_ordering VARCHAR(4)  DEFAULT 'desc'        NOT NULL,
+                               PRIMARY KEY (uuid),
+                               CONSTRAINT user_settings_uuid_u
+                                   UNIQUE (uuid),
+                               CONSTRAINT user_settings_primary_inventory_fk
                                    FOREIGN KEY (primary_inventory) REFERENCES inventories (uuid)
                            )`
             .catch((err: any): void => LOGGER.error(`Failed to create table 'users'. `, err));
@@ -469,7 +480,7 @@ export class Users {
 
             return user;
         } else {
-            const result: User[] = await Database.SQL`SELECT *
+            const result: User[] = await Database.SQL`SELECT uuid, username, email, profile_picture, superuser
                                                       FROM users
                                                       WHERE uuid = ${uuid}`
                 .catch((err: any): User[] => {
@@ -648,7 +659,7 @@ export class Users {
      * @param inventory
      */
     static async updatePrimaryInventory(uuid: string, inventory: string | null): Promise<void> {
-        await Database.SQL`UPDATE users
+        await Database.SQL`UPDATE user_settings
                            SET primary_inventory = ${inventory}
                            WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#setPrimaryInventory[0]: Database request failed. `, err));
@@ -661,10 +672,40 @@ export class Users {
      * @param theme
      */
     static async updatePreferredTheme(uuid: string, theme: PageTheme): Promise<void> {
-        await Database.SQL`UPDATE users
+        await Database.SQL`UPDATE user_settings
                            SET preferred_theme = ${theme}
                            WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#updatePreferredTheme[0]: Database request failed. `, err));
+
+        Redis.del(`user:${uuid}`);
+    }
+
+    /**
+     * todo
+     * @param uuid
+     * @param value
+     */
+    static async updatePreferredOrderBy(uuid: string, value: string): Promise<void> {
+        await Database.SQL`UPDATE user_settings
+                           SET preferred_order_by = ${value}
+                           WHERE uuid = ${uuid}`
+            .catch((err: any): void => LOGGER.error(`Users#updatePreferredOrderBy[0]: Database request failed. `, err));
+
+        Redis.del(`user:${uuid}`);
+    }
+
+    /**
+     * todo
+     * @param uuid
+     * @param value
+     */
+    static async updatePreferredOrdering(uuid: string, value: string): Promise<void> {
+        await Database.SQL`UPDATE user_settings
+                           SET preferred_ordering = ${value}
+                           WHERE uuid = ${uuid}`
+            .catch((err: any): void => LOGGER.error(`Users#updatePreferredOrdering[0]: Database request failed. `, err));
+
+        Redis.del(`user:${uuid}`);
     }
 
     /**
@@ -672,43 +713,10 @@ export class Users {
      * @param uuid
      */
     static async getSettings(uuid: string): Promise<UserSettings> {
-        const settings: UserSettings = new UserSettings(uuid);
-
-        const categories: { category: string, category_order: string | number }[] = await Database.SQL`SELECT DISTINCTROW category, category_order
-                                                                                                       FROM user_settings
-                                                                                                       WHERE uuid = ${uuid}
-                                                                                                       ORDER BY category_order`
-            .catch((err: any): [] => {
-                LOGGER.error(`Users#getSettings[0]: Database request failed. `, err);
-                return [];
-            });
-
-        const all_categories: {
-            category: string,
-            category_order: string | number,
-            subcategory: string,
-            subcategory_order: string | number
-        }[] = await Database.SQL`SELECT DISTINCTROW category, category_order, subcategory, subcategory_order
-                                 FROM user_settings
-                                 WHERE uuid = ${uuid}
-                                 ORDER BY category_order, subcategory_order`
-            .catch((err: any): [] => {
-                LOGGER.error(`Users#getSettings[1]: Database request failed. `, err);
-                return [];
-            });
-
-        const setting: Setting[] = await Database.SQL`SELECT *
-                                                      FROM user_settings
-                                                      WHERE uuid = ${uuid}
-                                                      ORDER BY category_order, subcategory_order, setting_order`
-            .catch((err: any): Setting[] => {
-                LOGGER.error(`Users#getSettings[2]: Database request failed. `, err);
-                return [];
-            });
-
-        settings.load(categories, all_categories, setting);
-
-        return settings;
+        return (await Database.SQL`SELECT *
+                                   FROM user_settings
+                                   WHERE uuid = ${uuid}`
+            .catch((err: any): void => LOGGER.error(`Users#getSettings[0]: Database request failed. `, err)))[0] as UserSettings;
     }
 
     /**

@@ -4,7 +4,7 @@
     import type {User} from "$lib/server/db/interfaces";
     import tippy, {animateFill} from "tippy.js";
 
-    const user: User = getContext('user');
+    const user = getContext('user') as Function;
     if (user.primary_inventory && user.primary_inventory !== '') {
         redirect(302, `/inventory/${user.primary_inventory}`);
     }

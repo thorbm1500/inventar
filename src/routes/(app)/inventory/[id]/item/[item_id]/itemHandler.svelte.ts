@@ -5,8 +5,8 @@ import {Filters, type FilterType} from "../../FilterHandler.svelte";
 export class ItemHandler {
 
     private readonly uuid: string;
-    private readonly user: string;
-    readonly filters: Filters = new Filters();
+    private readonly settings: Function;
+    readonly filters: Filters | undefined = undefined;
 
     page: number = $state(1);
 
@@ -14,23 +14,23 @@ export class ItemHandler {
     currentItems: Item[] = $derived(this.paginationItems.get(this.page) ?? []);
     totalItemAmount: number = $state(0);
 
-    maxPages: number = $derived(Math.max(1, Math.ceil(this.totalItemAmount / this.filters.rowAmount)));
+    maxPages: number = $derived(this.filters ? Math.max(1, Math.ceil(this.totalItemAmount / this.filters.rowAmount)) : 1);
     isFirstPage: boolean = $derived(this.page === 1);
     isLastPage: boolean = $derived(this.page === this.maxPages);
 
-    currentItemOffset: number = $derived(this.filters.rowAmount * (this.page - 1));
-    previousPageItemOffset: number = $derived(this.filters.rowAmount * (this.page - 2));
-    nextPageItemOffset: number = $derived(this.filters.rowAmount * (this.page));
+    currentItemOffset: number = $derived(this.filters ? this.filters.rowAmount * (this.page - 1) : 0);
+    previousPageItemOffset: number = $derived(this.filters ? this.filters.rowAmount * (this.page - 2) : -15);
+    nextPageItemOffset: number = $derived(this.filters ? this.filters.rowAmount * (this.page) : 15);
 
     isLoaded: boolean = $derived(this.totalItemAmount > 0 && this.paginationItems.size > 0);
 
-    constructor(uuid: string, user: string) {
+    constructor(uuid: string, settings: Function) {
         this.uuid = uuid;
-        this.user = user;
+        this.settings = settings;
+        this.filters = new Filters(this.settings);
     }
 
     async init(): Promise<void> {
-        await this.filters.init(this.user);
         this.totalItemAmount = await getTotalItemCount(this.uuid);
     }
 
@@ -67,6 +67,8 @@ export class ItemHandler {
     }
 
     async refreshPage(purge: boolean = false): Promise<void> {
+        if (!this.filters) return;
+
         if (purge) this.paginationItems.clear();
 
         if (!this.paginationItems.has(this.page)) {
@@ -94,7 +96,7 @@ export class ItemHandler {
     }
 
     async updateFilterOrder(value: FilterType): Promise<void> {
-        this.filters.update(value);
+        this.filters?.update(value);
         await this.refreshPage(true);
     }
 }
