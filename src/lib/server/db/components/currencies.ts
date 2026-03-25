@@ -63,7 +63,7 @@ export const currencies: Map<string,string> = new Map<string,string>([
     ['EUR', `%value% €`],
     ['FJD', '$%value%'],
     ['FKP', '£%value%'],
-    ['GBP', `£ %value%`],
+    ['GBP', `£%value%`],
     ['GEL', '₾%value%'],
     ['GHS', 'GH₵%value%'],
     ['GIP', '£%value%'],
