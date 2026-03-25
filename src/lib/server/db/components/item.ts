@@ -5,6 +5,7 @@ import {Redis, type RedisKey} from "$lib/server/db/redis";
 import {type Label, Labels} from "$lib/server/db/components/labels";
 import type {UnitType} from "$lib/server/db/components/units";
 import currencies from "$lib/server/db/components/currencies";
+import {getItem} from "../../../../routes/(app)/inventory/[id]/item/[item_id]/data.remote.ts";
 
 export interface Item {
     inventory: string,
@@ -21,7 +22,10 @@ export interface Item {
     unit: string,
     image?: string,
     url?: string,
-    price: number,
+    external_fetch: boolean,
+    last_external_fetch: string | number | Date,
+    current_price: number,
+    previous_price: number,
     currency: string,
     currency_format: string,
     labels: Label[],
@@ -36,18 +40,19 @@ export interface Item {
 export class Items {
     /**
      * todo
-     * @param created_by
+     * @param user
      * @param inventory
      * @param name
      * @param amount
      * @param options
      */
-    static async create(created_by: string, inventory: string, name: string, amount: number = 0, options?: {
+    static async create(user: string, inventory: string, name: string, amount: number = 0, options?: {
         description?: string,
         image?: string,
         unit_type?: string,
         unit?: string,
         url?: string,
+        external_fetch?: boolean,
         price?: number,
         currency?: string,
         labels?: string[]
@@ -55,37 +60,117 @@ export class Items {
         LOGGER.debug(`Creating new Item with name '${name}', for Inventory with UUID '${inventory}'`);
         const uuid: string = Bun.randomUUIDv7();
 
-        await Database.SQL`INSERT INTO items (uuid, created_by, inventory, name, amount, unit_type, unit, description, image, url, price, currency, currency_format)
-                           VALUES (${uuid}, ${created_by}, ${inventory}, ${name}, ${amount}, ${options?.unit_type ?? 'count'}, ${options?.unit ?? 'piece'}, ${options?.description ?? null},
-                                   ${options?.image ?? null}, ${options?.url ?? null}, ${options?.price ?? 0.00},
-                                   ${options?.currency ?? 'N/A'}, ${currencies.get(options?.currency ?? '') ?? '%value%'})`
+        await Database.SQL`INSERT INTO items (uuid, created_by, inventory, name, amount)
+                           VALUES (${uuid}, ${user}, ${inventory}, ${name}, ${amount})`
             .then((): void => {
-                Audit.user(created_by, uuid, 'Creation', `Item created`);
+                Audit.user(user, uuid, 'Creation', `Item created`);
                 Redis.increment(`inventory:${inventory}:total_item_count`);
             })
             .catch((err: any): void => LOGGER.error(`Items#create[0]: Database request failed. ${err.name}`, err));
 
-        if (options && options.labels) await Labels.addLabelsToItem(uuid, options.labels);
+        if (options?.labels) await Labels.addLabelsToItem(uuid, options.labels);
+        if (options?.price) await this.updatePrice(uuid, options.price, options?.currency);
+        if (options?.description) await this.updateDescription(uuid, options.description);
+        if (options?.image) await this.updateImage(uuid, options.image);
+        if (options?.unit_type && options?.unit) await this.updateUnits(uuid, options.unit_type, options.unit);
+        if (options?.url) await this.updateExternal(uuid, options.url, options?.external_fetch);
 
-        const item: Item | undefined = (await Database.SQL`SELECT *
-                                                           FROM items
-                                                           WHERE uuid = ${uuid}
-                                                           LIMIT 1`
-            .catch((err: any): Item[] => {
-                LOGGER.error(`Items#create[1]: Database request failed. `, err)
-                return [];
-            }))[0] as Item ?? undefined;
+        const item: Item | undefined = await this.getItem(uuid);
 
         if (!item) {
             LOGGER.error(`Failed to retrieve newly created Item with UUID '${uuid}' from database.`);
             return undefined;
         }
 
-        // noinspection ES6MissingAwait
-        Redis.setObj(`item:${uuid}`, item);
-
         return item;
     }
+
+    static async updatePrice(uuid: string, price: number, currency?: string): Promise<void> {
+        // noinspection ES6MissingAwait
+        Redis.del(`item:${uuid}`);
+
+        await Database.SQL`UPDATE items
+                           SET price=${price}
+                           WHERE uuid = ${uuid}`
+            .catch((err: any): [] => {
+                LOGGER.error(`Items#updatePrice[0]: Database request failed. `, err)
+                return [];
+            });
+
+        if (currency) {
+            await Database.SQL`UPDATE items
+                               SET currency=${currency}
+                               WHERE inventory = ${uuid}`
+                .catch((err: any): [] => {
+                    LOGGER.error(`Items#updatePrice[1]: Database request failed. `, err)
+                    return [];
+                });
+        }
+    }
+
+    static async updateDescription(uuid: string, description: string): Promise<void> {
+        // noinspection ES6MissingAwait
+        Redis.del(`item:${uuid}`);
+
+        await Database.SQL`UPDATE items
+                           SET description=${description}
+                           WHERE uuid = ${uuid}`
+            .catch((err: any): [] => {
+                LOGGER.error(`Items#updateDescription[0]: Database request failed. `, err)
+                return [];
+            });
+    }
+
+    static async updateImage(uuid: string, image: string): Promise<void> {
+        // noinspection ES6MissingAwait
+        Redis.del(`item:${uuid}`);
+
+        await Database.SQL`UPDATE items
+                           SET image=${image}
+                           WHERE uuid = ${uuid}`
+            .catch((err: any): [] => {
+                LOGGER.error(`Items#updateImage[0]: Database request failed. `, err)
+                return [];
+            });
+    }
+
+    static async updateUnits(uuid: string, unit_type: string, unit: string): Promise<void> {
+        // noinspection ES6MissingAwait
+        Redis.del(`item:${uuid}`);
+
+        await Database.SQL`UPDATE items
+                           SET unit_type=${unit_type},
+                               unit=${unit}
+                           WHERE uuid = ${uuid}`
+            .catch((err: any): [] => {
+                LOGGER.error(`Items#updateUnits[0]: Database request failed. `, err)
+                return [];
+            });
+    }
+
+    static async updateExternal(uuid: string, url: string, external_fetch?: boolean): Promise<void> {
+        // noinspection ES6MissingAwait
+        Redis.del(`item:${uuid}`);
+
+        await Database.SQL`UPDATE items
+                           SET url=${url}
+                           WHERE uuid = ${uuid}`
+            .catch((err: any): [] => {
+                LOGGER.error(`Items#updateExternal[0]: Database request failed. `, err)
+                return [];
+            });
+
+        if (external_fetch) {
+            await Database.SQL`UPDATE items
+                               SET url=${external_fetch}
+                               WHERE uuid = ${uuid}`
+                .catch((err: any): [] => {
+                    LOGGER.error(`Items#updateExternal[1]: Database request failed. `, err)
+                    return [];
+                });
+        }
+    }
+
 
     /**
      * todo
@@ -117,7 +202,7 @@ export class Items {
                                               unit,
                                               image,
                                               url,
-                                              price,
+                                              current_price,
                                               currency,
                                               currency_format,
                                               last_update
@@ -171,7 +256,7 @@ export class Items {
                                               unit,
                                               image,
                                               url,
-                                              price,
+                                              current_price,
                                               currency,
                                               currency_format,
                                               last_update

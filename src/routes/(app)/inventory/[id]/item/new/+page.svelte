@@ -6,12 +6,10 @@
     import type {Unit} from "$lib/server/db/components/units";
     import type {Currency} from "$lib/server/db/components/currencies";
 
-    //todo: Cleanup
-
     let {data} = $props();
 
     // svelte-ignore state_referenced_locally
-    const currencies: Currency[] = data.currencies;
+    const currencies = data.currencies;
 
     const units: Unit[] = $derived.by(() => {
         const types: Unit[] = [];
@@ -77,6 +75,8 @@
 
             reader.readAsDataURL(imageField.files[0]);
         })
+
+        createItem.fields.currency.set('EUR');
     });
 
     function removeImage() {
@@ -101,12 +101,12 @@
         <form {...createItem} enctype="multipart/form-data">
             <div class="field">
                 <h1 class="name">Name</h1>
-                <input class="input required{(createItem.fields.name.value()?.length ?? 0) < 3 ? ' notice' : ''}" {...createItem.fields.name.as('text')} placeholder="Required"
+                <input class="input required{(createItem.fields.name.value()?.length ?? 0) < 3 ? ' notice' : ''}" {...createItem.fields.name.as('text')} placeholder="{data.namePlaceholder}"
                        use:ignorePasswordManagers required/>
             </div>
             <div class="field">
                 <h1 class="name">Description</h1>
-                <textarea class="input" {...createItem.fields.description.as('text')} placeholder="Optional" use:ignorePasswordManagers></textarea>
+                <textarea class="input" {...createItem.fields.description.as('text')} placeholder="{data.descriptionPlaceholder}" use:ignorePasswordManagers></textarea>
             </div>
             <div class="multiple-fields">
                 <div class="field">
@@ -133,17 +133,18 @@
             </div>
             <div class="field">
                 <h1 class="name">Part Number</h1>
-                <input class="input" {...createItem.fields.part_number.as('text')} placeholder="Optional" use:ignorePasswordManagers/>
+                <input class="input" {...createItem.fields.part_number.as('text')} placeholder="{data.partNumberPlaceholder}" use:ignorePasswordManagers/>
             </div>
             <div class="multiple-fields">
                 <div class="field">
                     <h1 class="name">Price</h1>
-                    <input class="input required{(createItem.fields.price.value() ?? -1) < 0 ? ' notice' : ''}" {...createItem.fields.price.as('number')} value="0" min="0" step="0.5" required/>
+                    <p class="formatted-price">{currencies.has(createItem.fields.currency.value() ?? 'na') ? currencies.get(createItem.fields.currency.value() ?? 'na')?.replace('%value%', String(createItem.fields.price.value() ?? 0)) : createItem.fields.price.value()}</p>
+                    <input class="input price" {...createItem.fields.price.as('number')} min="0" step="0.5"/>
                 </div>
                 <div class="field">
                     <h1 class="name">Currency</h1>
-                    <select class="input" {...createItem.fields.currency.as('select')} value="EUR">
-                        {#each currencies as {code}}
+                    <select class="input" {...createItem.fields.currency.as('select')}>
+                        {#each currencies.keys() as code}
                             <option value="{code}">{code}</option>
                         {/each}
                     </select>
@@ -151,7 +152,7 @@
             </div>
             <div class="field">
                 <h1 class="name">External URL</h1>
-                <input class="input" {...createItem.fields.url.as('url')} placeholder="Optional" use:ignorePasswordManagers/>
+                <input class="input" {...createItem.fields.url.as('url')} placeholder="{data.urlPlaceholder}" use:ignorePasswordManagers/>
             </div>
             <div class="field">
                 <!--todo: Add image preview, and general styling-->
@@ -160,7 +161,7 @@
                     <div class="image-container">
                         {#if createItem.fields.image.value() !== undefined && fieldFiles > 0}
                             <div class="image-box">
-                                <img  src="{imageSource}" alt="User Upload"/>
+                                <img src="{imageSource}" alt="User Upload"/>
                             </div>
                         {:else}
                             <label for="image-field" class="image-box">
@@ -235,7 +236,6 @@
 
         width: 100vw;
         height: 100vh;
-        box-sizing: border-box;
 
         user-select: none;
     }
@@ -256,7 +256,7 @@
 
         height: fit-content;
 
-        margin-top: 8rem;
+        padding-top: 8rem;
 
         .item-creator-title {
             align-self: flex-start !important;
@@ -347,6 +347,27 @@
 
                 .input.notice {
                     border-bottom-color: var(--theme-color-notice) !important;
+                }
+
+                .formatted-price {
+                    position: absolute;
+
+                    font-family: 'FunnelSans', sans-serif;
+                    font-weight: 600;
+                    color: var(--theme-text);
+                    z-index: 10;
+
+                    transform: translate(1rem, .55rem);
+                }
+
+                .input.price {
+                    color: transparent;
+                    caret-color: transparent;
+                }
+
+                .input.price::selection {
+                    background: transparent;
+                    color: transparent;
                 }
 
                 .image-content {

@@ -66,6 +66,8 @@
 </div>
 
 <section class="main-container {userSettings.preferred_theme}">
+    <div class="page-blur top"></div>
+    <div class="page-blur bottom"></div>
     {@render children()}
 </section>
 
@@ -91,6 +93,29 @@
     .toasts, .toasts * {
         user-select: none;
         pointer-events: none;
+    }
+
+    .page-blur {
+        position: absolute;
+
+        height: 3rem;
+        width: 100vw;
+
+        background: linear-gradient(to top, transparent 0%, rgba(from var(--theme-background) r g b / .25) 100%);
+        mask-image: linear-gradient(to top, transparent 0%, black 50%);
+        backdrop-filter: blur(1px);
+        mask-mode: alpha;
+
+        z-index: 100;
+    }
+
+    .page-blur.top {
+        top:-1rem;
+    }
+
+    .page-blur.bottom {
+        transform: rotate(180deg);
+        bottom: -1rem;
     }
 
     .main-container {

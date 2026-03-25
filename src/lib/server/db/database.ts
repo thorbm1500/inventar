@@ -3,14 +3,12 @@
 import {LOGGER} from "../../../hooks.server";
 import type {Inventory, PageTheme, ResetRequest, Session, User} from "$lib/server/db/interfaces";
 import {UserSettings} from "$lib/components/settings/UserSettings";
-import type {Setting} from "$lib/components/settings/GenericSettings.svelte";
 import {faker} from "@faker-js/faker/locale/en";
 import {env} from "$env/dynamic/private";
 import {Audit} from "$lib/server/db/components/audit";
 import {Redis, type RedisKey} from "$lib/server/db/redis";
 import {Items} from "$lib/server/db/components/item";
 import {Labels} from "$lib/server/db/components/labels";
-import {SimpleFaker} from "@faker-js/faker";
 
 export class Database {
     // noinspection JSUnusedGlobalSymbols
@@ -140,7 +138,10 @@ export class Database {
                                unit                VARCHAR(64)                              NOT NULL,
                                image               TEXT                                     NULL,
                                url                 TEXT                                     NULL,
-                               price               DECIMAL(50, 2) DEFAULT 0.00              NOT NULL,
+                               external_fetch      BOOLEAN        DEFAULT false             NOT NULL,
+                               last_external_fetch TIMESTAMP      DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                               current_price       DECIMAL(50, 2) DEFAULT 0.00              NOT NULL,
+                               previous_price      DECIMAL(50, 2) DEFAULT 0.00              NOT NULL,
                                currency            CHAR(3)        DEFAULT 'N/A'             NOT NULL,
                                currency_format     VARCHAR(32)    DEFAULT '%value%'         NOT NULL,
                                created_by          CHAR(36)                                 NOT NULL,

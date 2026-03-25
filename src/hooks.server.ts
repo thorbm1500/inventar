@@ -8,6 +8,7 @@ import {Logger, LogLevel} from '$lib/server/internal/logger';
 import {type ApplicationSettings, getSettings} from '$lib/server/internal/settings';
 import {Auth, Database, Users} from '$lib/server/db/database';
 import inventar from '$lib/server/internal/inventar';
+import {fetchItemPrice} from "$lib/util/ExternalUtility";
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
@@ -16,6 +17,8 @@ export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
  * Initializes the database, and ensures all tables, and default values are present.
  */
 export const init: ServerInit = async (): Promise<void> => {
+    //await fetchItemPrice('https://www.autozone.com/p/stp-extended-life-engine-oil-filter-element-s9972xl/663650?productPartGroupId=azpg1622&productBrandId=FBRB&productUniqueId=456454654');
+
     await LOGGER.timed('Initializing server...', 'Server initialized.', async (): Promise<void> => {
         // Skip database initialization if project is building.
         if (!building) {
