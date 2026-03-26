@@ -62,4 +62,9 @@ body {
 
     font-family: 'FunnelSans', sans-serif;
     scrollbar-color: var(--theme-color-accent) transparent;
+
+    *::selection {
+        color: var(--theme-color-white);
+        background: var(--theme-color-accent);
+    }
 }

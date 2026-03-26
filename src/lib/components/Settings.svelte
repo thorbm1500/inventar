@@ -277,11 +277,6 @@
                             resize: none;
                         }
 
-                        input::selection {
-                            color: var(--theme-color-black);
-                            background: var(--theme-color-accent);
-                        }
-
                         input:focus, textarea:focus {
                             border-color: var(--theme-border-input-focus);
                             user-select: text;
@@ -323,11 +318,6 @@
                             border-color: var(--theme-border-input-focus);
                             color: var(--theme-text-secondary);
                             transition: border-color var(--theme-transition-in);
-                        }
-
-                        .readonly-container::selection {
-                            color: #141514;
-                            background: var(--theme-color-accent);
                         }
                     }
 

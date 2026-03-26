@@ -101,11 +101,6 @@
             width: fit-content;
             height: fit-content;
 
-            input::selection, textarea::selection {
-                color: var(--theme-color-white);
-                background: var(--theme-color-accent);
-            }
-
             input, textarea {
                 color: var(--theme-text);
                 background: none;

@@ -869,11 +869,6 @@
                             resize: none;
                         }
 
-                        input::selection,select::selection {
-                            color: var(--theme-color-black);
-                            background: var(--theme-color-accent);
-                        }
-
                         select {
                             user-select: none !important;
 
@@ -973,8 +968,6 @@
                     }
 
                     .readonly-container::selection {
-                        color: #141514;
-                        background: var(--theme-color-accent);
                         backdrop-filter: blur(2px);
                     }
                 }
