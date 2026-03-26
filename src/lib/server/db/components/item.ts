@@ -4,7 +4,7 @@ import {Audit} from "$lib/server/db/components/audit";
 import {Redis, type RedisKey} from "$lib/server/db/redis";
 import {type Label, Labels} from "$lib/server/db/components/labels";
 import type {UnitType} from "$lib/server/db/components/units";
-import currencies from "$lib/server/db/components/currencies";
+import {currencies} from "$lib/util/currencies";
 import {getItem} from "../../../../routes/(app)/inventory/[id]/item/[item_id]/data.remote.ts";
 
 export interface Item {
@@ -311,7 +311,7 @@ export class Items {
         const redisKey: RedisKey = `item:${uuid}`;
 
         if (await Redis.has(redisKey)) {
-
+            return await Redis.getObj(redisKey) as Item;
         } else {
             const item: Item | undefined = (await Database.SQL`SELECT *
                                                                FROM items

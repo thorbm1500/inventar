@@ -1,6 +1,6 @@
 export interface Currency {
     code: string,
-    format: string | null
+    format: string
 }
 
 /* Source of ISO 4217: https://en.wikipedia.org/wiki/ISO_4217
@@ -10,7 +10,6 @@ The format property defines how the currency's values are displayed.
 
 Example - For Denmark's currency "Krone" also referred to as "Danish Crowns";
           code: 'DKK'
-          id: '208'
           format: '%value% kr.'
 
           Would be display like so: '206,65 kr.'
@@ -174,4 +173,16 @@ export const currencies: Map<string,string> = new Map<string,string>([
     ['ZMW', '%value% kwacha'],
     ['ZWG', 'ZWG%value%']]);
 
-export default currencies;
+export function hasCurrency(currency: string): boolean {
+    return currencies.has(currency);
+}
+
+export function getCurrency(currency: string, defaultValue?: any): Currency | any {
+    if (currencies.has(currency)) return currencies.get(currency);
+    return defaultValue || undefined;
+}
+
+export function getCurrencyFormat(currency: string, defaultValue?: any): string {
+    if (currencies.has(currency)) return currencies.get(currency) ?? '%value%';
+    return defaultValue ?? '%value%';
+}

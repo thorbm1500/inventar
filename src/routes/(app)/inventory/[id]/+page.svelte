@@ -36,14 +36,15 @@
 </script>
 
 <script lang="ts">
-    import {getContext, hasContext, onDestroy, onMount} from "svelte";
+    import {getContext, onDestroy, onMount} from "svelte";
     import {page} from "$app/state";
-    import type {Inventory, User, UserSettings} from "$lib/server/db/interfaces";
+    import type {Inventory} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/util/utilities'
-    import {getInventory, quickAdd, createItem, deleteItem, updatePrimaryInventory} from "./data.remote";
+    import {getInventory, quickAdd, createItem, deleteItem} from "./data.remote";
     import {ignorePasswordManagers} from "$lib/util/utilities";
     import {blur} from "svelte/transition";
-    import {ItemHandler} from "./item/[item_id]/itemHandler.svelte.ts";
+    import {ItemHandler} from "./item/[item_id]/itemHandler.svelte";
+    import {getCurrencyFormat} from "$lib/util/currencies";
 
     const user = getContext('user') as Function;
     let userSettings: Function = getContext('user_settings') as Function;
@@ -632,7 +633,7 @@
                                                     {item?.last_update ? parseTimestamp(item.last_update instanceof Date ? item.last_update.getTime() : Date.parse(String(item.last_update))) : 'Unknown'}
                                                 </div>
                                                 <div class="entry-item price">
-                                                    {item.currency_format.replace('%value%', String(item.current_price ?? 0))}
+                                                    {getCurrencyFormat(item.currency).replace('%value%', String(item.current_price ?? 0))}
                                                 </div>
                                                 <div class="entry-item amount">
                                                     {item.amount.toLocaleString('da-DK')}
@@ -944,7 +945,7 @@
 
                             filter: blur(2px) brightness(2) contrast(1.25) saturate(1.15);
 
-                            animation: buttonBorderRotationAnim 1.5s infinite linear;
+                            animation: buttonBorderRotationAnim 1.5s infinite linear, buttonBorderGrayscaleAnim 4s infinite ease;
 
                             z-index: 320;
 
@@ -952,11 +953,12 @@
                                 justify-self: center;
                                 width: 8rem !important;
                                 height: 2.6rem !important;
-                                border: .1rem solid color-mix(var(--theme-border-button) 25%, var(--theme-color-white) 75%);
+                                border: .1rem solid;
                                 border-radius: var(--theme-border-radius);
                                 filter: blur(1px) brightness(2) contrast(2) saturate(1.25);
+                                border-color: oklch(58.6% 0.253 17.585);
 
-                                animation: buttonBorderRotationAnim 1.5s infinite linear reverse, buttonBorderColorAnim 2s infinite ease;
+                                animation: buttonBorderRotationAnim 1.5s infinite linear reverse, buttonBorderColorAnim 2.5s infinite ease;
                             }
                         }
                     }
@@ -1749,21 +1751,23 @@
         }
     }
 
-    @keyframes buttonBorderColorAnim {
-        0% {
-            border-color: oklch(58.6% 0.253 17.585);
-        }
-        25% {
-            border-color: oklch(90.5% 0.182 98.111);
+    @keyframes buttonBorderGrayscaleAnim {
+        0%,20%,80%,100% {
+            filter: grayscale(0%) brightness(2);
         }
         50% {
-            border-color: oklch(55.8% 0.288 302.321);
+            filter: grayscale(100%) brightness(2);
         }
-        75% {
-            border-color: oklch(84.1% 0.238 128.85);
+    }
+
+    @keyframes buttonBorderColorAnim {
+        0%,100% {
+            filter: blur(1px) brightness(2) contrast(2) saturate(1.25) hue-rotate(0deg) brightness(2);
+            /*border-color: oklch(58.6% 0.253 17.585);*/
         }
-        100% {
-            border-color: oklch(62.3% 0.214 259.815);
+        50% {
+            filter: blur(1px) brightness(2) contrast(2) saturate(1.25) hue-rotate(360deg) brightness(2);
+            /*border-color: oklch(55.8% 0.288 302.321);*/
         }
     }
 

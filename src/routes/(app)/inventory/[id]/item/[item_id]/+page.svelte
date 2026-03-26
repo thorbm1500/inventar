@@ -6,11 +6,16 @@
 
     //todo - Add settings page for changing item details
 
-    const item: Item | null = $derived(await getItem(String(page.params.item_id)));
+    const item: Item | null = await getItem(String(page.params.item_id)).then((res: Item | null) => {
+        if (res === null) {
+            window.location.href = `/inventory/${page.params.id}`;
+            return null; // lol
+        }
+        else return res;
+    })
 
     onMount(() => {
         // Return the user to the inventory, if the item loading fails.
-        if (item === null) window.location.href = `/inventory/${page.params.id}`;
         if (hasContext('set_page_title')) (getContext('set_page_title') as Function)(item?.name);
         const resetPageInfo: Function | undefined = getContext('reset_page_info');
         if (resetPageInfo) onDestroy(() => resetPageInfo());
@@ -64,9 +69,9 @@
         return dataList = [...dataList.slice(1), next()];
     }
 
-    function scale(domain, range) {
+    function scale(domain: [number,number], range: [number,number]) {
         const m = (range[1] - range[0]) / (domain[1] - domain[0]);
-        return (value) => range[0] + m * (value - domain[0]);
+        return (value: number) => range[0] + m * (value - domain[0]);
     }
 </script>
 
@@ -194,6 +199,10 @@
                             font-family: 'FunnelDisplay', sans-serif;
                             font-size: 2.15rem;
                             font-weight: 800;
+
+                            background-image: var(--theme-text-gradient);
+                            background-clip: text;
+                            color: transparent;
                         }
 
                         .uuid {
