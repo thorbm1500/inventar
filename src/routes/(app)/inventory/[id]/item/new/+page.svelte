@@ -10,9 +10,12 @@
 
     // svelte-ignore state_referenced_locally
     const currencies = data.currencies;
+
+    let currentAmount: number = $state(0);
+
     let currentCurrency: string = $state('DKK');
-    let currentPriceFormat = $derived(currencies.get(currentCurrency) ?? '%value%');
-    let currentPrice = $derived(createItem.fields.price.value() ?? 0);
+    let currentPriceFormat: string = $derived(currencies.get(currentCurrency) ?? '%value%');
+    let currentPrice: number = $state(0);
 
     const units: Unit[] = $derived.by(() => {
         const types: Unit[] = [];
@@ -31,10 +34,8 @@
         return types;
     });
 
-    // svelte-ignore state_referenced_locally
-    let selectedUnitType: string = $state(unit_types[0]);
-    // svelte-ignore state_referenced_locally
-    let selectedUnit: string = $state(units[0].unit);
+    let selectedUnitType: string = $state('Count');
+    let selectedUnit: string = $state('Unit');
 
     $effect(() => {
         for (const unit of units) {
@@ -53,11 +54,6 @@
     for (const label of data.labels) {
         inventoryLabels.push({...label, selected: false});
     }
-
-    createItem.fields.set({
-        amount: 0,
-        price: 0.0
-    });
 
     let imageSource = $state('');
     let fieldFiles = $state(0);
@@ -78,6 +74,10 @@
 
             reader.readAsDataURL(imageField.files[0]);
         })
+
+        // Fixes fields showing as empty after initial load
+        currentAmount = 0;
+        currentPrice = 0;
     });
 
     function removeImage() {
@@ -102,22 +102,22 @@
         <form {...createItem} enctype="multipart/form-data">
             <div class="field">
                 <h1 class="name">Name</h1>
-                <input class="input required{(createItem.fields.name.value()?.length ?? 0) < 3 ? ' notice' : ''}" {...createItem.fields.name.as('text')} placeholder="{data.namePlaceholder}"
+                <input {...createItem.fields.name.as('text')} class="input required{(createItem.fields.name.value()?.length ?? 0) < 3 ? ' notice' : ''}" placeholder="{data.namePlaceholder}"
                        use:ignorePasswordManagers required/>
             </div>
             <div class="field">
                 <h1 class="name">Description</h1>
-                <textarea class="input" {...createItem.fields.description.as('text')} placeholder="{data.descriptionPlaceholder}" use:ignorePasswordManagers></textarea>
+                <textarea {...createItem.fields.description.as('text')} class="input" placeholder="{data.descriptionPlaceholder}" use:ignorePasswordManagers></textarea>
             </div>
             <div class="multiple-fields">
                 <div class="field">
                     <h1 class="name">Amount</h1>
-                    <input class="input required{createItem.fields.amount.value() === undefined ? ' notice' : ''}" {...createItem.fields.amount.as('number')} min="0" value="0" placeholder="Required"
+                    <input {...createItem.fields.amount.as('number')} class="input required {currentAmount === undefined ? 'notice' : ''}" min="0" bind:value={currentAmount}
                            required/>
                 </div>
                 <div class="field">
                     <h1 class="name">Type</h1>
-                    <select class="input required" {...createItem.fields.unit_type.as('select')} bind:value={selectedUnitType} required>
+                    <select {...createItem.fields.unit_type.as('select')} class="input clickable required" bind:value={selectedUnitType} required>
                         {#each unit_types as type}
                             <option value="{type}">{type}</option>
                         {/each}
@@ -125,7 +125,7 @@
                 </div>
                 <div class="field">
                     <h1 class="name">Unit</h1>
-                    <select class="input required" {...createItem.fields.unit.as('select')} bind:value={selectedUnit} required>
+                    <select {...createItem.fields.unit.as('select')} class="input clickable required" bind:value={selectedUnit} required>
                         {#each units as {unit}}
                             <option value="{unit}">{unit}</option>
                         {/each}
@@ -134,7 +134,7 @@
             </div>
             <div class="field">
                 <h1 class="name">Part Number</h1>
-                <input class="input" {...createItem.fields.part_number.as('text')} placeholder="{data.partNumberPlaceholder}" use:ignorePasswordManagers/>
+                <input {...createItem.fields.part_number.as('text')} class="input" placeholder="{data.partNumberPlaceholder}" use:ignorePasswordManagers/>
             </div>
             <div class="multiple-fields">
                 <div class="field">
@@ -143,11 +143,11 @@
                         <p class="hidden-text">{currentPrice}</p>
                         <p class="format">{currentPriceFormat.replace('%value%', '')}</p>
                     </div>
-                    <input class="input price" {...createItem.fields.price.as('number')} min="0" step="0.5" bind:value={currentPrice}/>
+                    <input {...createItem.fields.price.as('number')} class="input price" min="0" step="0.5" bind:value={currentPrice}/>
                 </div>
                 <div class="field">
                     <h1 class="name">Currency</h1>
-                    <select class="input" {...createItem.fields.currency.as('select')} bind:value={currentCurrency}>
+                    <select {...createItem.fields.currency.as('select')} class="input clickable" bind:value={currentCurrency}>
                         {#each currencies.keys() as code}
                             <option value="{code}">{code}</option>
                         {/each}
@@ -156,7 +156,7 @@
             </div>
             <div class="field">
                 <h1 class="name">External URL</h1>
-                <input class="input" {...createItem.fields.url.as('url')} placeholder="{data.urlPlaceholder}" use:ignorePasswordManagers/>
+                <input {...createItem.fields.url.as('url')} class="input" placeholder="{data.urlPlaceholder}" use:ignorePasswordManagers/>
             </div>
             <div class="field">
                 <!--todo: Add image preview, and general styling-->
@@ -198,25 +198,14 @@
                         </div>
                     </div>
                 </div>
-                <input id="image-field" {...createItem.fields.image.as('file')} accept="image/*" hidden/>
+                <input {...createItem.fields.image.as('file')} id="image-field" accept="image/*" hidden/>
             </div>
             <div class="field">
-                <!--todo: Add box for adding from existing labels-->
-                <!--todo: General layout and styling-->
                 <h1 class="name">Labels</h1>
                 <div class="label-container">
                     {#if inventoryLabels.length === 0}
                         <p class="empty-label-container">This inventory does not have any labels yet.</p>
                     {:else}
-                        <button class="add-label-button" title="" type="button">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                 stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/>
-                                <path d="M9 12h6"/>
-                                <path d="M12 9v6"/>
-                            </svg>
-                        </button>
                         {#each inventoryLabels as label}
                             <button type="button" onclick="{() => label.selected = !label.selected}"
                                     class="label {label.color}{label.selected ? ' selected' : ''}">{label.name}</button>
@@ -224,7 +213,7 @@
                     {/if}
                 </div>
             </div>
-            <button class="theme-button" type="submit">Create</button>
+            <button class="theme-button accent-hover create-item-button" type="submit">Create</button>
         </form>
     </section>
 </section>
@@ -291,8 +280,10 @@
 
             padding: 4rem 0;
 
-            button {
+            .create-item-button {
+                margin-top: 1rem;
                 align-self: start;
+                font-size: 1.1rem;
             }
 
             .field {
@@ -325,9 +316,15 @@
 
                     resize: none;
                     appearance: none;
+                    -webkit-appearance: none;
+                    -moz-appearance: none;
                     user-select: none;
 
                     transition: border-bottom-color 200ms ease;
+                }
+
+                .input::-ms-expand {
+                    display: none;
                 }
 
                 .input:focus {
@@ -345,6 +342,10 @@
                     opacity: 0;
 
                     transition: opacity 50ms ease;
+                }
+
+                .input.clickable {
+                    cursor: pointer;
                 }
 
                 .input.notice {
@@ -407,6 +408,8 @@
                             font-weight: 650;
                             color: var(--theme-color-second);
 
+                            cursor: pointer;
+
                             svg {
                                 width: 2rem;
                                 height: 2rem;
@@ -464,31 +467,18 @@
                     justify-content: flex-start;
                     gap: .5rem;
 
-                    padding: 1rem;
-
-                    .add-label-button {
-                        cursor: pointer;
-
-                        svg {
-                            color: var(--theme-color-second);
-                        }
-                    }
-
-                    .add-label-button:hover {
-                        svg {
-                            color: var(--theme-color-base);
-                        }
-                    }
+                    padding: .5rem;
 
                     .label {
                         font-size: .9rem;
-                        filter: brightness(.5);
+                        cursor: pointer;
 
+                        filter: brightness(.5) grayscale(.25);
                         transition: filter 100ms ease;
                     }
 
                     .label.selected {
-                        filter: brightness(1);
+                        filter: brightness(1) grayscale(0);
 
                         transition: filter 40ms ease;
                     }

@@ -1,3 +1,7 @@
+//todo: Add increment amount
+//todo: Add SI-Unit or Symbol
+//todo: Allow for custom unit
+
 export type UnitType = 'Weight' | 'Liquid' | 'Count' | 'Energy' | 'Storage';
 
 export interface Unit {

@@ -29,7 +29,6 @@
 }
 
 .theme-button:hover, .theme-button:focus {
-    color: var(--theme-color-accent);
     border-color: var(--theme-border-button-hover);
     filter: drop-shadow(0 0 .4rem rgba(from var(--theme-border-button-hover) r g b / .2)) brightness(1.25) saturate(1.05);
     transition: var(--theme-transition-in);
@@ -40,12 +39,15 @@
     outline: none;
 }
 
+.theme-button.accent-hover:hover {
+    color: var(--theme-color-accent);
+}
+
 .theme-button.green-hover:hover {
     color: oklch(84.1% 0.238 128.85);
 }
 
 .theme-button.blue-hover:hover {
-    background: color-mix(var(--theme-background-button) 65%, transparent);
     color: oklch(62.3% 0.214 259.815);
 }
 
