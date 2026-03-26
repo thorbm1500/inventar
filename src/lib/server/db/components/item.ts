@@ -8,8 +8,8 @@ import currencies from "$lib/server/db/components/currencies";
 import {getItem} from "../../../../routes/(app)/inventory/[id]/item/[item_id]/data.remote.ts";
 
 export interface Item {
-    inventory: string,
-    uuid: string,
+    readonly inventory: string,
+    readonly uuid: string,
     name: string,
     description?: string,
     amount: number,

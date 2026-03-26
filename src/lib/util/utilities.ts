@@ -75,3 +75,8 @@ export const ignorePasswordManagers: Action = (node: HTMLElement) => {
 
     return { destroy() {} };
 }
+
+export function capitalizeFirstLetter(text: string): string {
+    if (text.length === 0) return '';
+    else return text.charAt(0).toUpperCase() + text.slice(1);
+}

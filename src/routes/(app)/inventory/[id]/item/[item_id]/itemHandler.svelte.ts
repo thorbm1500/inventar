@@ -23,6 +23,7 @@ export class ItemHandler {
     nextPageItemOffset: number = $derived(this.filters ? this.filters.rowAmount * (this.page) : 15);
 
     isLoaded: boolean = $derived(this.totalItemAmount > 0 && this.paginationItems.size > 0);
+    partialFill: boolean = $derived(this.isLoaded && this.filters !== undefined && this.currentItems.length % this.filters?.rowAmount !== 0);
 
     constructor(uuid: string, settings: Function) {
         this.uuid = uuid;

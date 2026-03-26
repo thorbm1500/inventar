@@ -2,11 +2,23 @@
     import {createItem} from './data.remote';
     import {ignorePasswordManagers} from '$lib/util/utilities';
     import type {Label} from '$lib/server/db/components/labels';
-    import {onMount} from "svelte";
+    import {getContext, hasContext, onDestroy, onMount} from "svelte";
     import type {Unit} from "$lib/server/db/components/units";
     import {blur} from "svelte/transition";
 
     let {data} = $props();
+
+    let pillTitle: string | undefined = $derived(createItem.fields.name.value());
+    let currentTitle: string = $state('');
+
+    const updatePillTitle: Function | undefined = getContext('set_pill_title');
+
+    $effect(() => {
+        if (currentTitle !== createItem.fields.name.value()) {
+            currentTitle = pillTitle ?? '';
+            if (updatePillTitle) updatePillTitle(currentTitle === '' ? 'Create Item' : currentTitle);
+        }
+    })
 
     // svelte-ignore state_referenced_locally
     const currencies = data.currencies;
@@ -78,6 +90,11 @@
         // Fixes fields showing as empty after initial load
         currentAmount = 0;
         currentPrice = 0;
+
+        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)('Item Creator');
+
+        const resetPageInfo: Function | undefined = getContext('reset_page_info');
+        if (resetPageInfo) onDestroy(() => resetPageInfo());
     });
 
     function removeImage() {

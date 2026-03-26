@@ -6,7 +6,9 @@
     import Toast from '$lib/components/toast.svelte';
     import {blur, slide} from 'svelte/transition';
     import {updateTheme} from "./data.remote.ts";
-    import {updatePrimaryInventory} from "./inventory/[id]/data.remote.ts";
+    import {updatePrimaryInventory} from "./inventory/[id]/data.remote";
+    import FaviconDark from "$lib/assets/icons/favicon-dark.svg";
+    import FaviconLight from "$lib/assets/icons/favicon-light.svg";
 
     let {children, data} = $props();
 
@@ -18,10 +20,40 @@
 
     setContext('user', () => user);
     setContext('user_settings', () => userSettings);
+
+    // svelte-ignore state_referenced_locally
     let savedSettings = data.userSettings;
 
+    interface PageInfo {
+        title: string,
+        pillTitle: string,
+        backButton?: string | undefined
+    }
+
+    let pageInfo: PageInfo = $state({
+        title: 'inventar',
+        pillTitle: 'inventar',
+        backButton: undefined
+    });
+
+    setContext('set_page_title', (title: string | undefined) => {
+        if (!title || title === '') pageInfo.title = 'inventar';
+        else pageInfo.title = title;
+    });
+    setContext('reset_page_title', () => {pageInfo.title = 'inventar';});
+    setContext('get_pill_title', () => pageInfo.pillTitle);
+    setContext('set_pill_title', (title: string | undefined) => {
+        if (!title || title === '') pageInfo.pillTitle = 'inventar';
+        else pageInfo.pillTitle = title;
+    });
+    setContext('reset_page_info', () => {
+        pageInfo.title = 'inventar';
+        pageInfo.pillTitle = 'inventar';
+    });
+    setContext('get_page_back_button', () => pageInfo.backButton);
+    setContext('set_page_back_button', (value: string) => {pageInfo.backButton = value});
+
     $effect(() => {
-        console.log('now', userSettings.preferred_theme !== savedSettings.preferred_theme);
         let changes: boolean = false;
 
         if (userSettings.preferred_theme !== savedSettings.preferred_theme) {
@@ -53,6 +85,11 @@
     setContext('toasts', toastHandler);
 </script>
 
+<svelte:head>
+    <title>{pageInfo.title === 'inventar' ? pageInfo.title : 'inventar ▪ ' + pageInfo.title}</title>
+    <link rel="icon" type="image/svg" href="{theme==='dark'?FaviconLight:FaviconDark}" />
+</svelte:head>
+
 <section class="header {theme}">
     <Header/>
 </section>
@@ -65,7 +102,7 @@
     {/each}
 </div>
 
-<section class="main-container {userSettings.preferred_theme}">
+<section class="main-container {theme}">
     <div class="page-blur top"></div>
     <div class="page-blur bottom"></div>
     {@render children()}

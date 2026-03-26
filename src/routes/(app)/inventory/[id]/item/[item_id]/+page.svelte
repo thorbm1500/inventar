@@ -2,7 +2,7 @@
     import type {Item} from "$lib/server/db/components/item";
     import {getItem} from "./data.remote.ts";
     import {page} from "$app/state";
-    import {onMount} from "svelte";
+    import {getContext, hasContext, onDestroy, onMount} from "svelte";
 
     //todo - Add settings page for changing item details
 
@@ -11,6 +11,9 @@
     onMount(() => {
         // Return the user to the inventory, if the item loading fails.
         if (item === null) window.location.href = `/inventory/${page.params.id}`;
+        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)(item?.name);
+        const resetPageInfo: Function | undefined = getContext('reset_page_info');
+        if (resetPageInfo) onDestroy(() => resetPageInfo());
     })
 
     let previous = 50;

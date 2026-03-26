@@ -1,15 +1,18 @@
 <script lang="ts">
     import Logs from "$lib/components/settings/Logs.svelte";
     import {generateNewRegistrationToken} from "../../data.remote";
-    import {getContext, onMount} from "svelte";
+    import {getContext, hasContext, onDestroy, onMount} from "svelte";
     import {page} from "$app/state";
     import type {ApplicationSettings} from "$lib/server/internal/settings";
-    import {ignorePasswordManagers} from "$lib/util/utilities";
+    import {capitalizeFirstLetter, ignorePasswordManagers} from "$lib/util/utilities";
     import type {User} from "$lib/server/db/interfaces";
 
     let {data} = $props();
 
     const user = getContext('user') as Function;
+
+    let currentPageTitle: string = $state('');
+    const updatePageTitle: Function = getContext('set_page_title') as Function;
 
     // svelte-ignore state_referenced_locally
     let applicationSettings: ApplicationSettings = $state(data.settings);
@@ -29,11 +32,19 @@
 
     function updateView(category?: string, subcategory?: string): void {
         if (category) currentView.category = category;
-        if (subcategory) currentView.subcategory = subcategory;
+        if (subcategory) {
+            currentView.subcategory = subcategory;
+            if (currentPageTitle !== subcategory) {
+                currentPageTitle = subcategory;
+                updatePageTitle(capitalizeFirstLetter(subcategory));
+            }
+        }
 
         window?.history.replaceState(null, currentView.category, `/settings/${currentView.category}/${currentView.subcategory}`);
         applicationSettings = savedSettings;
     }
+
+    updatePageTitle(capitalizeFirstLetter($state.eager(currentView.subcategory)));
 
     function isViewing(category: string, subcategory: string): boolean {
         return currentView.category === category && currentView.subcategory === subcategory;
@@ -41,7 +52,11 @@
 
     onMount(() => {
         updateView();
-    })
+        updatePageTitle(capitalizeFirstLetter(currentView.subcategory));
+        currentPageTitle = currentView.subcategory;
+        const resetPageInfo: Function | undefined = getContext('reset_page_info');
+        if (resetPageInfo) onDestroy(() => resetPageInfo());
+    });
 </script>
 
 <section class="inventory-settings-page">

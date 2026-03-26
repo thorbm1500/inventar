@@ -1,23 +1,28 @@
 <script lang="ts">
-    import {getContext, onMount, setContext} from 'svelte';
+    import {getContext, onMount} from 'svelte';
+    import {blur} from "svelte/transition";
+    import type {Attachment} from "svelte/attachments";
 
-    const pageInfo = {
-        title: undefined
-    }
-
-    setContext('pageInfo', pageInfo);
     const user = getContext('user') as Function;
-    //const updateTheme: Function = getContext('update_theme');
     const userSettings: Function = getContext('user_settings');
 
     let sidebar = $state(false);
     let isOnline = $state(true);
 
-    onMount(() => {
-        document.getElementById('pill')?.addEventListener('click', () => {
-            sidebar = !sidebar;
-        });
+    let pillTitle: string = $derived((getContext('get_pill_title') as Function)());
 
+    const handlePillEvent: EventListener = (event: Event) => {
+        sidebar = !sidebar;
+    }
+
+    const pillEventListener: Attachment = (element) => {
+        element.addEventListener('click', handlePillEvent);
+        return () => {
+            element.removeEventListener('click', handlePillEvent)
+        };
+    };
+
+    onMount(() => {
         document.querySelectorAll('#pill-action').forEach(element => element.addEventListener('click', () => sidebar = false))
 
         document.addEventListener('click', (event: MouseEvent) => {
@@ -35,12 +40,10 @@
 
                 sidebar = false;
             }
-        })
+        });
     });
 
-    setInterval((): void => {
-        isOnline = navigator.onLine
-    }, 2000)
+    setInterval((): boolean => isOnline = navigator.onLine, 2000)
 </script>
 
 <section class="offline-pill {isOnline ? 'online' : 'offline'}">
@@ -54,7 +57,7 @@
     </svg>
 </section>
 
-<section class="pill" id="pill" style="{sidebar?'border-bottom-left-radius:0 !important;border-bottom-right-radius:0 !important;':''}">
+<section {@attach pillEventListener} transition:blur|global class="pill {sidebar ? 'open' : ''}" id="pill">
     <div class="header-logo">
         <a href="/" title="inventar header logo">
             <svg class="inventar-logo" width="1500" height="1500" viewBox="0 0 1500 1500">
@@ -66,12 +69,10 @@
                 <rect x="500" y="1000" width="500" height="500" style="fill:currentColor; opacity:.75;"/>
             </svg>
         </a>
-        <div class="page-meta">
-            {pageInfo.title ?? 'inventar'}
-        </div>
+        <div transition:blur|global class="page-meta">{pillTitle}</div>
     </div>
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-         class="chevron-down {sidebar?'open':'closed'}">
+    <svg transition:blur|global class="chevron-down {sidebar?'open':'closed'}" width="24" height="24" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
         <path d="M6 9l6 6l6 -6"/>
     </svg>
@@ -110,7 +111,7 @@
             </svg>
             Inventory
         </a>
-        <a id="pill-action" data-sveltekit-preload-code="hover" href="/inventory">
+        <a id="pill-action" data-sveltekit-preload-code="hover" href="/projects">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                         d="M12 4C10.6193 4 9.5 5.11929 9.5 6.5C9.5 7.88071 10.6193 9 12 9C13.3807 9 14.5 7.88071 14.5 6.5C14.5 5.11929 13.3807 4 12 4ZM12 4V2M21 14.9375C18.8012 17.4287 15.5841 19 12 19C8.41592 19 5.19883 17.4287 3 14.9375M10.7448 8.66169L3 22M13.2552 8.66169L21 22"
@@ -233,6 +234,12 @@
         transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
     }
 
+    .pill.open {
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        transition: border 250ms ease;
+    }
+
     .pill {
         position: absolute;
         top: 2rem;
@@ -246,15 +253,17 @@
         width: 16rem;
         height: 3rem;
         padding: 1rem;
+        overflow: hidden;
 
         background: var(--theme-background-header);
 
         border-radius: .75rem;
         border: var(--theme-border-width) solid var(--theme-border-header);
 
-        z-index: 99999;
+        z-index: 99997;
 
-        cursor: pointer;
+        cursor: pointer !important;
+        pointer-events: all !important;
         user-select: none;
 
         transition: 100ms,
@@ -282,20 +291,36 @@
         }
 
         .page-meta {
+            width: 11rem;
+
             align-self: center;
             font-family: 'FunnelDisplay', sans-serif;
             font-size: 1.2rem;
             font-weight: 600;
+
+            line-clamp: 1 !important;
+            text-wrap: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+
+            z-index: 99998;
+
+            pointer-events: none;
         }
 
         .chevron-down {
-            justify-self: flex-end;
+            position: absolute;
+            right: 1rem;
             height: 1rem;
             width: 1rem;
             stroke-width: 3;
             margin-left: 1rem;
 
-            color: var(--theme-text-secondary);
+            color: var(--theme-color-third);
+
+            z-index: 99999;
+
+            pointer-events: none;
 
             transition: 150ms;
             transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
@@ -307,17 +332,16 @@
 
         .chevron-down.closed {
             transform: rotate(0deg);
-            opacity: .5;
 
-            transition: opacity 250ms ease;
+            transition: color 250ms ease;
         }
     }
 
     .pill:hover {
         .chevron-down.closed {
-            opacity: 1;
+            color: color-mix(var(--theme-color-base) 75%, var(--theme-color-second) 25%);
 
-            transition: opacity 100ms ease;
+            transition: opacity 75ms ease;
         }
     }
 
@@ -344,7 +368,7 @@
         border-radius: .75rem;
         border: var(--theme-border-width) solid var(--theme-border-header);
 
-        z-index: 99998;
+        z-index: 99996;
 
         transition: 100ms;
         transition-timing-function: cubic-bezier(0.57, 0.1, 0.25, 1.5) !important;
@@ -362,7 +386,7 @@
             width: 100%;
             background: var(--theme-text-third);
             opacity: .075;
-            margin: .5rem 0;
+            margin: .5rem 0 .75rem 0;
             border-radius: 100%;
         }
 
@@ -405,6 +429,7 @@
         background: transparent;
         backdrop-filter: blur(3px) brightness(1.5);
         opacity: 0;
+        pointer-events: none !important;
 
 
         transition: 400ms,

@@ -2,6 +2,7 @@
     import {getInventories} from './data.remote.ts';
     import type {Inventory} from '$lib/server/db/interfaces';
     import {parseTimestamp} from '$lib/util/utilities';
+    import {getContext, hasContext, onDestroy, onMount} from "svelte";
 
     let order_by = $state('name');
     let order = $state('');
@@ -10,6 +11,12 @@
 
     let inventories: Inventory[] = $state.raw([]);
     await refresh();
+
+    onMount(() => {
+        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)('Browse');
+        const resetPageInfo: Function | undefined = getContext('reset_page_info');
+        if (resetPageInfo) onDestroy(() => resetPageInfo());
+    });
 
     async function refresh(pageChange: number = 0) {
         currentPage += pageChange;
@@ -114,7 +121,7 @@
             {:else if viewType === 'list'}
                 <div class="inventory-list list">
                     {#each inventories as {uuid, name, description, item_amount, last_update}}
-                        <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="list-entry">
+                        <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="theme-container clickable list-entry">
                             <div class="entry-item inventory-meta">
                                 <div class="inventory-image">
                                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
@@ -145,7 +152,7 @@
                 <div class="inventory-list card">
                     <div class="cards">
                         {#each inventories as {uuid, name, description, item_amount, last_update}}
-                            <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="card-entry">
+                            <a data-sveltekit-preload-data="hover" href='/inventory/{uuid}' target='_parent' class="theme-container clickable card-entry">
                                 <div class="inventory-image">
                                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="size-6">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>
@@ -479,10 +486,6 @@
                         align-items: center;
                         align-content: center;
 
-                        background: var(--theme-background-container);
-                        border: var(--theme-border-width) solid var(--theme-border-container);
-                        border-radius: var(--theme-border-radius);
-
                         padding: 2.5rem 0 1.5rem 0;
 
                         svg {
@@ -549,13 +552,6 @@
                     }
 
                     .card-entry:hover {
-                        background: var(--theme-background-button-hover);
-
-                        svg {
-                            stroke: var(--theme-color-accent);
-                            transition: 50ms ease-in-out;
-                        }
-
                         .inventory-meta {
                             span {
                                 color: var(--theme-text-accent);

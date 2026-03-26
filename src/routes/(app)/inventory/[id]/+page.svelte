@@ -36,7 +36,7 @@
 </script>
 
 <script lang="ts">
-    import {getContext, onMount} from "svelte";
+    import {getContext, hasContext, onDestroy, onMount} from "svelte";
     import {page} from "$app/state";
     import type {Inventory, User, UserSettings} from "$lib/server/db/interfaces";
     import {parseTimestamp} from '$lib/util/utilities'
@@ -58,6 +58,7 @@
     let tableType: string = $state('table');
 
     let isLoaded: boolean = $derived(handler?.isLoaded ?? false);
+    const updatePageTitle: Function | undefined = getContext('set_page_title') as Function;
 
     onMount(() => {
         const openItemCreatorButtonElement = document.getElementById('create-item-button');
@@ -72,6 +73,10 @@
         handler = new ItemHandler(inventory.uuid, userSettings);
         await handler.init();
         await handler.refreshPage();
+
+        if (updatePageTitle) updatePageTitle(inventory.name);
+        const resetPageInfo: Function | undefined = getContext('reset_page_info');
+        if (resetPageInfo) onDestroy(() => resetPageInfo());
     });
 </script>
 
@@ -583,7 +588,7 @@
                                 {#if isLoaded }
                                     {#if handler && handler.currentItems.length > 0 }
                                         {#each handler?.currentItems as item}
-                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry">
+                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry {handler.partialFill ? '' : 'no-bottom-border'}">
                                                 <div class="entry-item meta">
                                                     <div class="name-label">
                                                         <h1 class="name">{item.name}</h1>
@@ -618,7 +623,7 @@
                                                     {item?.last_update ? parseTimestamp(item.last_update instanceof Date ? item.last_update.getTime() : Date.parse(String(item.last_update))) : 'Unknown'}
                                                 </div>
                                                 <div class="entry-item price">
-                                                    {item.currency_format.replace('%value%', String(item.price ?? 0))}
+                                                    {item.currency_format.replace('%value%', String(item.current_price ?? 0))}
                                                 </div>
                                                 <div class="entry-item amount">
                                                     {item.amount.toLocaleString('da-DK')}
@@ -1305,8 +1310,8 @@
                         background: rgba(from var(--theme-background-list-odd) r g b / .25);
                     }
 
-                    .inventory-table-entry:first-child {
-                        border-top-color: transparent;
+                    .inventory-table-entry.no-bottom-border:last-child {
+                        border-bottom-color: transparent;
                     }
 
                     .inventory-table-entry {
@@ -1322,11 +1327,7 @@
                         overflow: hidden;
 
                         background: rgba(from var(--theme-background-list-even) r g b / .25);
-                        border: var(--theme-border-width) solid var(--theme-border-container);
-
-                        border-left-color: transparent;
-                        border-right-color: transparent;
-                        border-top-color: transparent;
+                        border-bottom: var(--theme-border-width) solid var(--theme-border-container);
 
                         .image {
                             visibility: hidden;

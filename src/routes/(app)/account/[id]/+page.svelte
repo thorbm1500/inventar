@@ -2,11 +2,18 @@
     import type {PageProps} from './$types';
     import DefaultProfilePicture from '$lib/assets/images/Default_Profile_Picture.png'
     import type {User} from "$lib/server/db/interfaces";
+    import {getContext, hasContext, onDestroy, onMount} from "svelte";
 
     let {data}: PageProps = $props();
 
     // svelte-ignore state_referenced_locally
     const userProfile: User = data.user;
+
+    onMount(() => {
+        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)('Account');
+        const resetPageInfo: Function | undefined = getContext('reset_page_info');
+        if (resetPageInfo) onDestroy(() => resetPageInfo());
+    });
 </script>
 
 <section class="profile-page-content">

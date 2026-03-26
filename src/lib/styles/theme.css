@@ -27,6 +27,7 @@
     --theme-background-header: #f5f5f5;
     --theme-background-sidebar: #e2e2e8;
     --theme-background-container: #dcdee5;
+    --theme-background-container-hover: #ececf6;
     --theme-background-list-even: #d8d8e0;
     --theme-background-list-odd: #e6e6e8;
     --theme-background-button: #e2e2e8;
@@ -79,7 +80,8 @@
     --theme-background: #0a0a0c;
     --theme-background-header: #131317;
     --theme-background-sidebar: #17171f;
-    --theme-background-container: #15151a;
+    --theme-background-container: #14161e;
+    --theme-background-container-hover: #1b1d28;
     --theme-background-list-even: #212126;
     --theme-background-list-odd: #131318;
     --theme-background-button: #14141c;
@@ -89,7 +91,7 @@
     --theme-background-tooltip: rgba(15, 15, 17, 0.25);
 
     --theme-border-header: #1a1d23;
-    --theme-border-container: #2E323D;
+    --theme-border-container: #484d6c;
     --theme-border-button: #505779;
     --theme-border-button-hover: #5d658b;
     --theme-border-input: #393d47;

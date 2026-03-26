@@ -1,6 +1,6 @@
 <script lang="ts">
     import {createInventory} from "./data.remote.ts";
-    import {getContext} from "svelte";
+    import {getContext, hasContext, onDestroy, onMount} from "svelte";
     import type {User} from "$lib/server/db/interfaces";
     import tippy, {animateFill} from "tippy.js";
     import 'tippy.js/dist/tippy.css';
@@ -13,6 +13,12 @@
     let toast: Toast = getContext('toasts') as Toast
 
     let value = $state('');
+
+    onMount(() => {
+        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)('New Inventory');
+        const resetPageInfo: Function | undefined = getContext('reset_page_info');
+        if (resetPageInfo) onDestroy(() => resetPageInfo());
+    });
 
     function validateSubmission(): boolean {
         if (value.length === 0) {

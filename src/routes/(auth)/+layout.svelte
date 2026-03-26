@@ -1,8 +1,13 @@
 <script lang="ts">
-    import '$lib/styles/index.css';
+    import "$lib/styles/index.css";
+    import FaviconDark from "$lib/assets/icons/favicon-dark.svg";
 
     let { children } = $props();
 </script>
+
+<svelte:head>
+    <link rel="icon" type="image/svg" href="{FaviconDark}" />
+</svelte:head>
 
 <div class="background"></div>
 

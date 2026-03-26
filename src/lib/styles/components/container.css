@@ -1,0 +1,27 @@
+.theme-container {
+    background: color-mix(var(--theme-background-container) 65%, transparent);
+
+    border: var(--theme-border-width) solid var(--theme-border-container);
+    border-radius: var(--theme-border-radius);
+
+    transition: var(--theme-transition-out);
+
+    svg {
+        stroke: var(--theme-icon);
+        transition: var(--theme-transition-out);
+    }
+}
+
+.theme-container.clickable:hover {
+    filter: drop-shadow(0 0 .4rem rgba(from var(--theme-border-button-hover) r g b / .2));
+    background: color-mix(var(--theme-background-container-hover) 65%, transparent);
+
+    cursor: pointer;
+
+    svg {
+        stroke: var(--theme-color-accent);
+        transition: var(--theme-transition-in);
+    }
+
+    transition: var(--theme-transition-in);
+}
