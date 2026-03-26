@@ -64,6 +64,9 @@
         const openItemCreatorButtonElement = document.getElementById('create-item-button');
         openItemCreatorButtonElement?.addEventListener('mouseover', () => addItemHover = true);
         openItemCreatorButtonElement?.addEventListener('mouseout', () => addItemHover = false);
+
+        const resetPageInfo: Function | undefined = getContext('reset_page_info');
+        if (resetPageInfo) onDestroy(() => resetPageInfo());
     })
 
     onMount(async () => {
@@ -75,8 +78,6 @@
         await handler.refreshPage();
 
         if (updatePageTitle) updatePageTitle(inventory.name);
-        const resetPageInfo: Function | undefined = getContext('reset_page_info');
-        if (resetPageInfo) onDestroy(() => resetPageInfo());
     });
 </script>
 
@@ -180,7 +181,7 @@
                                 </svg>
                                 Filters
                             </button>
-                            <button id="create-item-button" class="theme-button create-item-button {isItemCreatorOpen?'open':''}" onclick={() => {
+                            <button id="create-item-button" class="theme-button create-item-button {handler && handler.isEmpty ? 'no-items' : ''} {isItemCreatorOpen?'open':''}" onclick={() => {
                                 isFilterContainerOpen = false;
                                 isItemCreatorOpen = !isItemCreatorOpen;
 
@@ -219,6 +220,13 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
                                 </svg>
                             </button>
+                            {#if handler && handler.isEmpty}
+                                <div id="create-item-button-no-items">
+                                    <div id="create-item-button-no-items-mask">
+                                        <div id="child"></div>
+                                    </div>
+                                </div>
+                            {/if}
                         </div>
                     </div>
                 </section>
@@ -586,9 +594,10 @@
                             </div>
                             <div class="inventory-table">
                                 {#if isLoaded }
-                                    {#if handler && handler.currentItems.length > 0 }
+                                    {#if handler && !handler.isEmpty }
                                         {#each handler?.currentItems as item}
-                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}' class="inventory-table-entry {handler.partialFill ? '' : 'no-bottom-border'}">
+                                            <a data-sveltekit-preload-data="tap" href='{window.location.href}/item/{item.uuid}'
+                                               class="inventory-table-entry {handler.partialFill ? '' : 'no-bottom-border'}">
                                                 <div class="entry-item meta">
                                                     <div class="name-label">
                                                         <h1 class="name">{item.name}</h1>
@@ -815,7 +824,7 @@
 
                     h1 {
                         font-family: 'FunnelDisplay', sans-serif;
-                        font-size: 2.35rem;
+                        font-size: 2.5rem;
                         font-weight: 900;
 
                         background-image: var(--theme-text-gradient);
@@ -901,6 +910,61 @@
                         button:hover {
                             color: var(--theme-color-accent);
                         }
+                    }
+
+                    #create-item-button-no-items {
+                        position: relative;
+                        pointer-events: none !important;
+
+                        align-self: center;
+                        transform: translateX(-14.75rem);
+
+                        overflow: visible;
+
+                        height: 0 !important;
+                        width: 0 !important;
+
+                        z-index: 500;
+
+                        #create-item-button-no-items-mask {
+
+                            position: absolute;
+                            content: '';
+
+                            overflow: hidden;
+
+                            align-self: center;
+                            align-content: center;
+
+                            mask-image: linear-gradient(to right ,black 0%, white 45%, white 55%, black 100%);
+                            mask-mode: luminance;
+
+                            height: 12rem;
+                            width: 4rem;
+
+                            filter: blur(2px) brightness(2) contrast(1.25) saturate(1.15);
+
+                            animation: buttonBorderRotationAnim 1.5s infinite linear;
+
+                            z-index: 320;
+
+                            #child {
+                                justify-self: center;
+                                width: 8rem !important;
+                                height: 2.6rem !important;
+                                border: .1rem solid color-mix(var(--theme-border-button) 25%, var(--theme-color-white) 75%);
+                                border-radius: var(--theme-border-radius);
+                                filter: blur(1px) brightness(2) contrast(2) saturate(1.25);
+
+                                animation: buttonBorderRotationAnim 1.5s infinite linear reverse, buttonBorderColorAnim 2s infinite ease;
+                            }
+                        }
+                    }
+
+                    .create-item-button {
+                        width: 8rem;
+                        height: 2.6rem;
+
                     }
 
                     .refresh-button, .inventory-settings-button {
@@ -1280,7 +1344,7 @@
                         align-content: center;
                         align-items: center;
                         justify-content: center;
-                        height: 12rem;
+                        height: 100%;
 
                         span {
                             margin: auto;
@@ -1682,6 +1746,42 @@
         }
         50% {
             opacity: .75;
+        }
+    }
+
+    @keyframes buttonBorderColorAnim {
+        0% {
+            border-color: oklch(58.6% 0.253 17.585);
+        }
+        25% {
+            border-color: oklch(90.5% 0.182 98.111);
+        }
+        50% {
+            border-color: oklch(55.8% 0.288 302.321);
+        }
+        75% {
+            border-color: oklch(84.1% 0.238 128.85);
+        }
+        100% {
+            border-color: oklch(62.3% 0.214 259.815);
+        }
+    }
+
+    @keyframes buttonBorderRotationAnim {
+        0% {
+            transform: rotate(0deg);
+        }
+        25% {
+            transform: rotate(110deg);
+        }
+        50% {
+            transform: rotate(180deg);
+        }
+        75% {
+            transform: rotate(250deg);
+        }
+        100% {
+            transform: rotate(360deg);
         }
     }
 </style>

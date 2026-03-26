@@ -12,7 +12,7 @@ export class ItemHandler {
 
     paginationItems: Map<number, Item[]> = $state.raw(new Map<number, Item[]>());
     currentItems: Item[] = $derived(this.paginationItems.get(this.page) ?? []);
-    totalItemAmount: number = $state(0);
+    totalItemAmount: number = $state(-1);
 
     maxPages: number = $derived(this.filters ? Math.max(1, Math.ceil(this.totalItemAmount / this.filters.rowAmount)) : 1);
     isFirstPage: boolean = $derived(this.page === 1);
@@ -22,7 +22,9 @@ export class ItemHandler {
     previousPageItemOffset: number = $derived(this.filters ? this.filters.rowAmount * (this.page - 2) : -15);
     nextPageItemOffset: number = $derived(this.filters ? this.filters.rowAmount * (this.page) : 15);
 
-    isLoaded: boolean = $derived(this.totalItemAmount > 0 && this.paginationItems.size > 0);
+    initialLoad: boolean = $state(false);
+    isLoaded: boolean = $derived(this.initialLoad && this.totalItemAmount > -1);
+    isEmpty: boolean = $derived(this.isLoaded && this.totalItemAmount === 0);
     partialFill: boolean = $derived(this.isLoaded && this.filters !== undefined && this.currentItems.length % this.filters?.rowAmount !== 0);
 
     constructor(uuid: string, settings: Function) {
@@ -94,6 +96,7 @@ export class ItemHandler {
         }
 
         this.paginationItems = structuredClone(this.paginationItems);
+        this.initialLoad = true;
     }
 
     async updateFilterOrder(value: FilterType): Promise<void> {
