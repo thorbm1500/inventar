@@ -1,21 +1,25 @@
 <script lang="ts">
     import {createInventory} from "./data.remote.ts";
     import {getContext, hasContext, onDestroy, onMount} from "svelte";
-    import type {User} from "$lib/server/db/interfaces";
     import tippy, {animateFill} from "tippy.js";
     import 'tippy.js/dist/tippy.css';
     import 'tippy.js/dist/backdrop.css';
     import 'tippy.js/animations/shift-away.css';
     import Toast from "$lib/components/toast.svelte";
     import {ignorePasswordManagers} from "$lib/util/utilities";
+    import type {User} from "$lib/server/db/interfaces";
+    import {ContextHandler} from "$lib/util/ContextHandler.svelte";
+    import type {ApplicationLocale} from "$lib/server/internal/locales";
 
-    const user = getContext('user') as Function;
+    let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
+
+    const user: User = $derived(ContextHandler.getUser());
     let toast: Toast = getContext('toasts') as Toast
 
     let value = $state('');
 
     onMount(() => {
-        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)('New Inventory');
+        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)(locale.inventory.new.title);
         const resetPageInfo: Function | undefined = getContext('reset_page_info');
         if (resetPageInfo) onDestroy(() => resetPageInfo());
     });
@@ -62,28 +66,28 @@
         if (createInventory.result?.success) {
             window.location.href = createInventory.result.redirect;
         } else {
-            toast?.addErrorToast('Something went wrong!');
+            toast?.addErrorToast(locale.errors.generic);
         }
     })} id="create-inventory-form" encType="multipart/form-data" use:ignorePasswordManagers>
         <input {...createInventory.fields.owner.as('text')} value="{user?.uuid}" hidden>
         <div class="field-container name">
-            <input {...createInventory.fields.name.as('text')} bind:value class="field inventory-name" placeholder="Inventory Name..." spellcheck="false" required>
+            <input {...createInventory.fields.name.as('text')} bind:value class="field inventory-name" placeholder="{locale.inventory.new.form_inventory_name}" spellcheck="false" required>
             <div style="display:flex;flex-flow:row nowrap;align-items:center;gap:.5rem;">
                 <svg use:tooltip={`Once created, all settings will be available to customize.`} class="information-icon name" width="24" height="24" viewBox="0 0 24 24">
                     <path fill="currentColor"
                           d="M14.6 8.075q0-1.075-.712-1.725T12 5.7q-.725 0-1.312.313t-1.013.912q-.4.575-1.088.663T7.4 7.225q-.35-.325-.387-.8t.237-.9q.8-1.2 2.038-1.862T12 3q2.425 0 3.938 1.375t1.512 3.6q0 1.125-.475 2.025t-1.75 2.125q-.925.875-1.25 1.363T13.55 14.6q-.1.6-.513 1t-.987.4t-.987-.387t-.413-.963q0-.975.425-1.787T12.5 11.15q1.275-1.125 1.688-1.737t.412-1.338M12 22q-.825 0-1.412-.587T10 20t.588-1.412T12 18t1.413.588T14 20t-.587 1.413T12 22"/>
                 </svg>
-                <button type="submit" class="theme-button">Create</button>
+                <button type="submit" class="theme-button">{locale.generics.create}</button>
             </div>
         </div>
         <div class="field-container description">
-            <h1 style="pointer-events:none;user-select:none;">Description</h1>
+            <h1 style="pointer-events:none;user-select:none;">{locale.inventory.new.form_inventory_description}</h1>
             <textarea {...createInventory.fields.description.as('text')} placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam commodo at lacus a rhoncus. Sed in magna nisi..."
                       spellcheck="false"></textarea>
         </div>
         <div class="field-container icon">
-            <h1>Icon</h1>
-            <p>Coming Soon</p>
+            <h1>{locale.inventory.new.form_inventory_icon}</h1>
+            <p>{locale.generics.coming_soon}</p>
         </div>
     </form>
 </section>

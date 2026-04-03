@@ -173,10 +173,6 @@ export const currencies: Map<string,string> = new Map<string,string>([
     ['ZMW', '%value% kwacha'],
     ['ZWG', 'ZWG%value%']]);
 
-export function hasCurrency(currency: string): boolean {
-    return currencies.has(currency);
-}
-
 export function getCurrency(currency: string, defaultValue?: any): Currency | any {
     if (currencies.has(currency)) return currencies.get(currency);
     return defaultValue || undefined;

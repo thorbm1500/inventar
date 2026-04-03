@@ -4,8 +4,6 @@ import {Audit} from "$lib/server/db/components/audit";
 import {Redis, type RedisKey} from "$lib/server/db/redis";
 import {type Label, Labels} from "$lib/server/db/components/labels";
 import type {UnitType} from "$lib/server/db/components/units";
-import {currencies} from "$lib/util/currencies";
-import {getItem} from "../../../../routes/(app)/inventory/[id]/item/[item_id]/data.remote.ts";
 
 export interface Item {
     readonly inventory: string,

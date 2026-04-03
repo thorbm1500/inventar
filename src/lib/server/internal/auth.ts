@@ -8,7 +8,7 @@ import {Auth, Users} from "$lib/server/db/database";
 import inventar from "$lib/server/internal/inventar";
 import {LOGGER} from "../../../hooks.server";
 import {Secret, TOTP} from "otpauth";
-import {randomBytes, createCipheriv, createDecipheriv, type Cipher, type Decipher} from "node:crypto";
+import {type Cipher, createCipheriv, createDecipheriv, type Decipher, randomBytes} from "node:crypto";
 
 declare interface CryptoOptions {
     encoding?: Bun.DigestEncoding,

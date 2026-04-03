@@ -1,0 +1,152 @@
+{
+  // The locale identifier
+  locale: 'en-GB',
+  generics: {
+    see: "See",
+    sort_by: "Sort By",
+    view: "View",
+    optional: "Optional",
+    unsaved_changes: "Unsaved changes",
+    saving_changes: "Saving...",
+    changes_saved: "Changes saved",
+    save: "Save",
+    create: "Create",
+    loading: "Loading...",
+    coming_soon: "Coming Soon",
+    no_description_set: "No description has been set",
+    browser_offline: "Browser Offline",
+    name: "Name",
+    part_number_short: "Part Nr.",
+    updated: "Updated",
+    price: "Price",
+    amount: "Amount"
+  },
+  errors: {
+    generic: "Something went wrong!"
+  },
+  header: {
+    home: "Home",
+    browse: "Browse",
+    inventory: "Inventory",
+    projects: "Projects",
+    settings: "Settings"
+  },
+  browse: {
+    add_inventory: "Add Inventory",
+    no_inventory: "No inventories found",
+    create_first_inventory: "Create your first inventory now!",
+    no_internet: "No internet found. Reconnect to browse inventories"
+  },
+  inventory: {
+    no_bookmark: "You don't have a bookmarked inventory. Bookmark one now, to enable this quick travel link!",
+    no_bookmark_tip_a: "Tip: When browsing an inventory, click the bookmark icon next to the inventory's name, to bookmark the inventory",
+    no_bookmark_tip_b: "To remove a bookmark from an inventory, simply click the bookmark icon again. You can also bookmark other inventories directly without having to remove an existing bookmark first",
+    new: {
+      title: "New Inventory",
+      form_inventory_name: "Inventory Name...",
+      form_inventory_description: "Description",
+      form_inventory_icon: "Icon"
+    },
+    id: {
+      filters: "Filters",
+      add_item: "Add Item",
+      no_internet: "No internet found. Reconnect to browse inventory",
+      create_first_item: "There are no items in this inventory yet. Add your first item now!",
+      item_creator: {
+        name_placeholder: "Item Name...",
+        amount: "Amount",
+        open_creator: "Open Creator",
+        quick_add: "Quick Add"
+      }
+    }
+  },
+  settings: {
+    general: {
+      title: "GENERAL",
+      basics: {
+        title: "General",
+        application_id: "Application ID",
+        application_id_description: "Your application's unique identifier. Used for things like Daily Usage Ping, if enabled",
+        data_directory: "Data Directory",
+        logs_directory: "Logs Directory",
+        log_level: "Log Level"
+      },
+      mail: {
+        title: "Mail",
+        subtitle: "New to sending mail? inventar recommends",
+        host: "Host",
+        port: "Port",
+        port_description: "For encrypted/TLS connections use 587, 2465, 2587",
+        user: "User",
+        password: "Password",
+        sender_mail: "Sender Mail",
+        sender_name: "Sender Name"
+      }
+    },
+    security: {
+      title: "SECURITY",
+      general: {
+        title: "General",
+        allow_registration: "Allow Registration",
+        allow_registration_description: "Allow people to register a new account. Disabling this will remove the 'Register' button from the login page",
+        require_registration_token: "Require Registration Token",
+        require_registration_token_description: "Require the the user to provide the registration token, to register an account. It is highly recommended to ot disable this setting, as this would make your server open to abuse!",
+        registration_token: "Registration Token",
+        registration_token_description: "A unique token, used to verify the user's access & permission, when registering a new account.",
+        registration_token_regeneration: "Regenerating..."
+      },
+      accounts: {
+        title: "Accounts"
+      },
+      privacy: {
+        title: "Privacy",
+        subtitle_a: "Telemetry is used to observe the usage of inventar. It can be toggled on and off, as you please, and is 100% voluntary. Telemetry helps us get a better understanding of how inventar is used, but it is simply also fascinating, and rewarding to see the statistics of inventar",
+        subtitle_b: "Got any questions regarding your privacy and/or the use of your telemetry?",
+        subtitle_c: "This instance has shared its telemetry a total of %value% times. Telemetry is collected and sent every midnight",
+        enable_telemetry: "Enable Telemetry",
+        enable_telemetry_description: "This option enables the sending of your instance's telemetry data. Turning it off will completely disable the sending of any telemetry data, making the application 100% private",
+        instance_identifier: "Instance Identifier",
+        instance_identifier_description_a: "Required. This options enables sending this instance's identifier, along with its telemetry data, and is required, when telemetry is enabled",
+        instance_identifier_description_b: "Note: All instance identifiers are generated randomly, and thus makes each instance anonymous. This means, even if all telemetry options are enabled, it would be impossible to identify any specific instance",
+        telemetry_options: "Telemetry Options",
+        telemetry_options_country: "Country",
+        telemetry_options_region: "Region",
+        telemetry_options_inventories: "Inventories",
+        telemetry_options_unique_items: "Unique Items",
+        telemetry_options_total_items: "Total Items",
+        request_removal: "Request Removal",
+        request_removal_description_a: "Wish to have your data deleted? inventar believes in the right to own your own data, and thus also the right to erasure ('the right to be forgotten'), even if your data is already fully anonymous. Your data, is your data",
+        request_removal_description_b: "When inventar receives a new request, the request is automatically accepted, and the process of deleting your data, permanently, starts right away. The entire process is 100% automatic, and no requests are denied",
+        request_removal_limit: "Requests are limited to one a day",
+        request_removal_submit: "Submit"
+      },
+      api: {
+        title: "API"
+      }
+    },
+    system: {
+      title: "SYSTEM",
+      audit_logs: {
+        title: "Audit Logs"
+      },
+      logs: {
+        title: "Logs"
+      },
+      tasks: {
+        title: "Tasks"
+      }
+    },
+    other: {
+      title: "OTHER",
+      feedback: {
+        title: "Feedback"
+      },
+      faq: {
+        title: "FAQ"
+      },
+      about: {
+        title: "About"
+      }
+    }
+  }
+}

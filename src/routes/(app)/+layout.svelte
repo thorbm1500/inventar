@@ -9,17 +9,20 @@
     import {updatePrimaryInventory} from "./inventory/[id]/data.remote";
     import FaviconDark from "$lib/assets/icons/favicon-dark.svg";
     import FaviconLight from "$lib/assets/icons/favicon-light.svg";
+    import {ContextHandler} from "$lib/util/ContextHandler.svelte";
 
     let {children, data} = $props();
 
+    //svelte-ignore state_referenced_locally
+    ContextHandler.setLocale(data.locale);
+    //svelte-ignore state_referenced_locally
+    ContextHandler.setUser(data.user);
     // svelte-ignore state_referenced_locally
-    let user: User = $state(data.user);
-    // svelte-ignore state_referenced_locally
-    let userSettings: UserSettings = $state(data.userSettings as UserSettings);
-    let theme: PageTheme = $derived(userSettings.preferred_theme);
+    ContextHandler.setUserSettings(data.userSettings);
 
-    setContext('user', () => user);
-    setContext('user_settings', () => userSettings);
+    let user: User = $derived(ContextHandler.getUser());
+    let userSettings: UserSettings = $derived(ContextHandler.getUserSettings());
+    let theme: PageTheme = $derived(userSettings.preferred_theme);
 
     // svelte-ignore state_referenced_locally
     let savedSettings = data.userSettings;
@@ -72,9 +75,7 @@
         }
     });
 
-    setContext('update_theme', () => {
-        updateTheme({id: user.uuid, theme: userSettings.preferred_theme});
-    });
+    setContext('update_theme', () => updateTheme({id: user.uuid, theme: userSettings.preferred_theme}));
 
     onMount(() => {
         if (!user) window.location.href = "/logout";

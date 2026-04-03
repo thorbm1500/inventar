@@ -8,10 +8,11 @@ import {Logger, LogLevel} from '$lib/server/internal/logger';
 import {type ApplicationSettings, getSettings} from '$lib/server/internal/settings';
 import {Auth, Database, Users} from '$lib/server/db/database';
 import inventar from '$lib/server/internal/inventar';
-import {fetchItemPrice} from "$lib/util/ExternalUtility";
+import {type ApplicationLocale, getCurrentLocale} from "$lib/server/internal/locales";
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
+export let APPLICATION_LOCALE: ApplicationLocale = await getCurrentLocale();
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.

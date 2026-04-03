@@ -30,7 +30,7 @@ export interface User {
 export interface UserSettings {
     uuid: string,
     preferred_theme: PageTheme,
-    primary_inventory: string,
+    primary_inventory: string | undefined,
     preferred_order_by: string,
     preferred_ordering: string
 }

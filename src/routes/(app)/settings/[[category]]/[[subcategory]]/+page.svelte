@@ -1,15 +1,18 @@
 <script lang="ts">
     import Logs from "$lib/components/settings/Logs.svelte";
     import {generateNewRegistrationToken} from "../../data.remote";
-    import {getContext, hasContext, onDestroy, onMount} from "svelte";
+    import {getContext, onDestroy, onMount} from "svelte";
     import {page} from "$app/state";
     import type {ApplicationSettings} from "$lib/server/internal/settings";
     import {capitalizeFirstLetter, ignorePasswordManagers} from "$lib/util/utilities";
     import type {User} from "$lib/server/db/interfaces";
+    import {ContextHandler} from "$lib/util/ContextHandler.svelte";
+    import type {ApplicationLocale} from "$lib/server/internal/locales";
 
     let {data} = $props();
 
-    const user = getContext('user') as Function;
+    let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
+    const user: User = $derived(ContextHandler.getUser());
 
     let currentPageTitle: string = $state('');
     const updatePageTitle: Function = getContext('set_page_title') as Function;
@@ -62,14 +65,14 @@
 <section class="inventory-settings-page">
     <div class="sidebar">
         <nav class="inventory-settings-nav">
-            <p class="nav-category">GENERAL</p>
+            <p class="nav-category">{locale.settings.general.title}</p>
             <button class="nav-link {isViewing('general','basics') ?'selected':''}" onclick="{() => updateView('general','basics')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                     <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065"/>
                     <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>
                 </svg>
-                Basics
+                {locale.settings.general.basics.title}
             </button>
             <button class="nav-link {isViewing('general','mail') ?'selected':''}" onclick="{() => updateView('general','mail')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -77,15 +80,15 @@
                     <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10"/>
                     <path d="M3 7l9 6l9 -6"/>
                 </svg>
-                Mail
+                {locale.settings.general.mail.title}
             </button>
-            <p class="nav-category">SECURITY</p>
+            <p class="nav-category">{locale.settings.security.title}</p>
             <button class="nav-link {isViewing('security','general') ?'selected':''}" onclick="{() => updateView('security','general')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                     <path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/>
                 </svg>
-                General
+                {locale.settings.security.general.title}
             </button>
             <button class="nav-link {isViewing('security','accounts') ?'selected':''}" onclick="{() => updateView('security','accounts')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -97,7 +100,7 @@
                     <path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/>
                     <path d="M3 13v-1a2 2 0 0 1 2 -2h2"/>
                 </svg>
-                Accounts
+                {locale.settings.security.accounts.title}
             </button>
             <button class="nav-link {isViewing('security','privacy') ?'selected':''}" onclick="{() => updateView('security','privacy')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -108,7 +111,7 @@
                     <path d="M14 17a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/>
                     <path d="M10 17h4"/>
                 </svg>
-                Privacy
+                {locale.settings.security.privacy.title}
             </button>
             <button class="nav-link {isViewing('security','api') ?'selected':''}" onclick="{() => updateView('security','api')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -118,9 +121,9 @@
                     <path d="M12 9h6.5a2.5 2.5 0 1 1 0 5h-.5"/>
                     <path d="M9 12v-6.5a2.5 2.5 0 0 1 5 0v.5"/>
                 </svg>
-                API
+                {locale.settings.security.api.title}
             </button>
-            <p class="nav-category">SYSTEM</p>
+            <p class="nav-category">{locale.settings.system.title}</p>
             <button class="nav-link {isViewing('system','audit') ?'selected':''}" onclick="{() => updateView('system','audit')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -130,7 +133,7 @@
                     <path d="M4 12h4"/>
                     <path d="M4 18h4"/>
                 </svg>
-                Audit Logs
+                {locale.settings.system.audit_logs.title}
             </button>
             <button class="nav-link {isViewing('system','logs') ?'selected':''}" onclick="{() => updateView('system','logs')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -141,7 +144,7 @@
                     <path d="M11 10h6"/>
                     <path d="M11 13h3"/>
                 </svg>
-                Logs
+                {locale.settings.system.logs.title}
             </button>
             <button class="nav-link {isViewing('system','tasks') ?'selected':''}" onclick="{() => updateView('system','tasks')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -149,9 +152,9 @@
                     <path d="M12 8l0 4l2 2"/>
                     <path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/>
                 </svg>
-                Tasks
+                {locale.settings.system.tasks.title}
             </button>
-            <p class="nav-category">OTHER</p>
+            <p class="nav-category">{locale.settings.other.title}</p>
             <button class="nav-link {isViewing('other','feedback') ?'selected':''}" onclick="{() => updateView('other','feedback')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -161,7 +164,7 @@
                     <path d="M19 22v.01"/>
                     <path d="M19 19a2.003 2.003 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483"/>
                 </svg>
-                Feedback
+                {locale.settings.other.feedback.title}
             </button>
             <button class="nav-link {isViewing('other','faq') ?'selected':''}" onclick="{() => updateView('other','faq')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -170,7 +173,7 @@
                     <path d="M19 16h-12a2 2 0 0 0 -2 2"/>
                     <path d="M9 8h6"/>
                 </svg>
-                FAQ
+                {locale.settings.other.faq.title}
             </button>
             <button class="nav-link {isViewing('other','about') ?'selected':''}" onclick="{() => updateView('other','about')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -185,19 +188,19 @@
                     <path d="M10 8v.01"/>
                     <path d="M14 8v.01"/>
                 </svg>
-                About
+                {locale.settings.other.about.title}
             </button>
         </nav>
     </div>
     <div class="settings-container">
         {#if currentView.category === 'general' && currentView.subcategory === 'basics' }
             <div class="settings-category-header">
-                <h1 class="header-title">General</h1>
+                <h1 class="header-title">{locale.settings.general.basics.title}</h1>
             </div>
             <div class="setting-item">
                 <div class="option text readonly">
                     <div class="top-section">
-                        <h1>Application ID</h1>
+                        <h1>{locale.settings.general.basics.application_id}</h1>
                         <div class="readonly-container select-all">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -207,8 +210,8 @@
                         </div>
                     </div>
                     <div class="bottom-section">
-                        <h3>Your application's unique identifier. Used for things like <strong>Daily Usage Ping</strong>, if enabled.
-                            <button onclick="{() => updateView('security','privacy')}">See Security#privacy</button>
+                        <h3>{locale.settings.general.basics.application_id_description}.
+                            <button onclick="{() => updateView('security','privacy')}">{locale.generics.see} {locale.settings.security.title}#{locale.settings.security.privacy.title}</button>
                         </h3>
                     </div>
                 </div>
@@ -216,7 +219,7 @@
             <div class="setting-item">
                 <div class="option text readonly">
                     <div class="top-section">
-                        <h1>Data Directory</h1>
+                        <h1>{locale.settings.general.basics.data_directory}</h1>
                         <div class="readonly-container select-all">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -233,7 +236,7 @@
             <div class="setting-item">
                 <div class="option text readonly">
                     <div class="top-section">
-                        <h1>Logs Directory</h1>
+                        <h1>{locale.settings.general.basics.logs_directory}</h1>
                         <div class="readonly-container select-all">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -253,6 +256,7 @@
                         <h1>Log Level</h1>
                         <select id="log_level" name="log_level" size="1" bind:value={applicationSettings.general.basics.log_level}>
                             <option value="debug">
+                                <!--suppress HtmlUnknownTag -->
                                 <div class="custom-option">
                                     <span>Debug</span>
                                 </div>
@@ -270,8 +274,8 @@
         {/if}
         {#if currentView.category === 'general' && currentView.subcategory === 'mail' }
             <div class="settings-category-header">
-                <h1 class="header-title">Mail</h1>
-                <h3 class="header-subtitle">New to sending mail? inventar recommends
+                <h1 class="header-title">{locale.settings.general.mail.title}</h1>
+                <h3 class="header-subtitle">{locale.settings.general.mail.subtitle}
                     <a href="https://resend.com/home" target="_blank" rel="external">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                             <path fill="currentColor"
@@ -283,7 +287,7 @@
             <div class="setting-item">
                 <div class="option text">
                     <div class="top-section">
-                        <h1>Host</h1>
+                        <h1>{locale.settings.general.mail.host}</h1>
                         <input name="mail_host" id="mail_host" placeholder="smtp.inventar.dev" bind:value={applicationSettings.general.mail.host} use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
@@ -294,19 +298,19 @@
             <div class="setting-item">
                 <div class="option text">
                     <div class="top-section">
-                        <h1>Port</h1>
+                        <h1>{locale.settings.general.mail.port}</h1>
                         <input name="mail_port" id="mail_port" placeholder="587"
                                value="{applicationSettings.general.mail.port}" use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
-                        <h3>For encrypted/TLS connections use 587, 2465, 2587.</h3>
+                        <h3>{locale.settings.general.mail.subtitle}.</h3>
                     </div>
                 </div>
             </div>
             <div class="setting-item">
                 <div class="option text">
                     <div class="top-section">
-                        <h1>User</h1>
+                        <h1>{locale.settings.general.mail.user}</h1>
                         <input name="mail_user" id="mail_user" placeholder="inventar"
                                value="{applicationSettings.general.mail.user}" use:ignorePasswordManagers spellcheck="false">
                     </div>
@@ -318,7 +322,7 @@
             <div class="setting-item">
                 <div class="option text">
                     <div class="top-section">
-                        <h1>Password</h1>
+                        <h1>{locale.settings.general.mail.password}</h1>
                         <input type="password" name="mail_password" id="mail_password" placeholder="Enter Password..."
                                value="{applicationSettings.general.mail.password}" use:ignorePasswordManagers spellcheck="false">
                     </div>
@@ -330,7 +334,7 @@
             <div class="setting-item">
                 <div class="option text">
                     <div class="top-section">
-                        <h1>Sender Mail</h1>
+                        <h1>{locale.settings.general.mail.sender_mail}</h1>
                         <input name="mail_sender_mail" id="mail_sender_mail" placeholder="inventar@prodzeus.dev"
                                value="{applicationSettings.general.mail.sender_mail}" use:ignorePasswordManagers spellcheck="false">
                     </div>
@@ -342,54 +346,54 @@
             <div class="setting-item">
                 <div class="option text">
                     <div class="top-section">
-                        <h1>Sender Name</h1>
+                        <h1>{locale.settings.general.mail.sender_name}</h1>
                         <input name="mail_sender_name" id="mail_sender_name" placeholder="zeus"
                                value="{applicationSettings.general.mail.sender_name}" use:ignorePasswordManagers spellcheck="false">
                     </div>
                     <div class="bottom-section">
-                        <h3>Optional</h3>
+                        <h3>{locale.generics.optional}</h3>
                     </div>
                 </div>
             </div>
         {/if}
         {#if currentView.category === 'security' && currentView.subcategory === 'general' }
             <div class="settings-category-header">
-                <h1 class="header-title">General</h1>
+                <h1 class="header-title">{locale.settings.security.general.title}</h1>
             </div>
             <div class="setting-item">
                 <div class="option toggle">
                     <div class="top-section">
-                        <h1>Allow Registration</h1>
+                        <h1>{locale.settings.security.general.allow_registration}</h1>
                         <label class="toggle-container {applicationSettings.security.general.allow_registration ? 'on' : ''}">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.general.allow_registration} hidden>
                         </label>
                     </div>
                     <div class="bottom-section">
-                        <h3>Allow people to register a new account.</h3>
+                        <h3>{locale.settings.security.general.allow_registration_description}.</h3>
                     </div>
                 </div>
             </div>
             <div class="setting-item">
                 <div class="option toggle">
                     <div class="top-section">
-                        <h1>Require Registration Token</h1>
+                        <h1>{locale.settings.security.general.require_registration_token}</h1>
                         <label class="toggle-container {applicationSettings.security.general.require_token ? 'on' : ''}">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.general.require_token} hidden>
                         </label>
                     </div>
                     <div class="bottom-section">
-                        <h3>Require the the user to provide the registration token, to register an account. <strong style="color:var(--theme-text-danger);font-weight:700;">It is highly recommended
-                            to <i>not</i>
-                            disable this setting, as this would make your server open to abuse!</strong></h3>
+                        <h3>{locale.settings.security.general.require_registration_token_description}</h3>
                     </div>
                 </div>
             </div>
             <div class="setting-item">
                 <div class="option text readonly">
                     <div class="top-section">
-                        <h1>Registration Token</h1>
+                        <h1>{locale.settings.security.general.registration_token}</h1>
                         <div class="readonly-container token select-all">
                             <div style="display:flex;flex-flow:row nowrap;align-items:center;justify-content:flex-start;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -402,7 +406,7 @@
                             </div>
                             <button title="Regenerate" onclick="{async () => {
                                     if (isRegenerating) return;
-                                    applicationSettings.security.general.registration_token = 'Regenerating....';
+                                    applicationSettings.security.general.registration_token = locale.settings.security.general.registration_token_regeneration;
                                     applicationSettings.security.general.registration_token = await generateNewRegistrationToken(user.uuid);
                                 }}" class="regenerate-registration-token">
                                 {#if isRegenerating}
@@ -433,66 +437,66 @@
                         </div>
                     </div>
                     <div class="bottom-section">
-                        <h3>A unique token, used to verify the user's access & permission, when registering a new account.</h3>
+                        <h3>{locale.settings.security.general.registration_token_description}</h3>
                     </div>
                 </div>
             </div>
         {/if}
         {#if currentView.category === 'security' && currentView.subcategory === 'accounts' }
             <div class="settings-category-header">
-                <h1 class="header-title">Accounts</h1>
-                <h3 class="header-subtitle">Coming Soon.</h3>
+                <h1 class="header-title">{locale.settings.security.accounts.title}</h1>
+                <h3 class="header-subtitle">{locale.generics.coming_soon}.</h3>
             </div>
         {/if}
         {#if currentView.category === 'security' && currentView.subcategory === 'privacy' }
             <div class="settings-category-header">
-                <h1 class="header-title">Privacy</h1>
+                <h1 class="header-title">{locale.settings.security.privacy.title}</h1>
                 <div class="header-subtitle">
-                    <span>Telemetry is used to observe the usage of <strong>inventar</strong>. It can be toggled on and off, as you please, and is <strong style="color: var(--theme-text-accent);">100% voluntary</strong>. Telemetry helps us get a better understanding of how <strong>inventar</strong> is used, but it is simply also fascinating, and rewarding to see the statistics of <strong>inventar</strong>.</span>
-                    <span>Got any questions regarding your privacy and/or the use of your telemetry?</span>
-                    <button onclick="{() => updateView('other','faq')}">See Other#faq</button>
-                    <span><br>This instance has shared its telemetry a total of <strong style="color: var(--theme-text);">0</strong> times. Telemetry is collected and sent every midnight.</span>
+                    <span>{locale.settings.security.privacy.subtitle_a}.</span>
+                    <span>{locale.settings.security.privacy.subtitle_b}</span>
+                    <button onclick="{() => updateView('other','faq')}">{locale.generics.see} {locale.settings.other.title}#{locale.settings.other.faq.title}</button>
+                    <span><br>{locale.settings.security.privacy.subtitle_c}.</span>
                     <!--todo Get stats from database-->
                 </div>
             </div>
             <div class="setting-item">
                 <div class="option toggle">
                     <div class="top-section">
-                        <h1>Enable Telemetry</h1>
+                        <h1>{locale.settings.security.privacy.enable_telemetry}</h1>
                         <label class="toggle-container {applicationSettings.security.privacy.telemetry_enable ? 'on' : ''}">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_enable} hidden>
                         </label>
                     </div>
                     <div class="bottom-section">
-                        <h3>This option enables the sending of your instance's telemetry data. Turning it off will <strong style="color: var(--theme-text-accent);">completely</strong> disable the
-                            sending of any telemetry data.</h3>
+                        <h3>{locale.settings.security.privacy.enable_telemetry_description}.</h3>
                     </div>
                 </div>
             </div>
             <div class="setting-item">
                 <div class="option toggle">
                     <div class="top-section">
-                        <h1>Instance Identifier</h1>
+                        <h1>{locale.settings.security.privacy.instance_identifier}</h1>
                         <label class="toggle-container on disable">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" checked={true} disabled hidden>
                         </label>
                     </div>
                     <div class="bottom-section">
-                        <h3><i>Required.</i> This options enables sending this instance's identifier, along with its telemetry data, and is required, when telemetry is enabled.</h3>
-                        <h3><i>Note: All instance identifiers are generated randomly, and thus makes each instance anonymous.
-                            This means, even if all telemetry options are enabled, it would be <i style="color: var(--theme-text-accent);text-decoration:underline;">impossible</i> to identify any
-                            specific instance.</i></h3>
+                        <h3>{locale.settings.security.privacy.instance_identifier_description_a}.</h3>
+                        <h3><i>{locale.settings.security.privacy.instance_identifier_description_b}.</i></h3>
                     </div>
                 </div>
             </div>
-            <h4>Telemetry Options</h4>
+            <h4>{locale.settings.security.privacy.telemetry_options}</h4>
             <div class="setting-item">
                 <div class="option toggle">
                     <div class="top-section">
-                        <h1>Country</h1>
+                        <h1>{locale.settings.security.privacy.telemetry_options_country}</h1>
                         <label class="toggle-container {applicationSettings.security.privacy.telemetry_country ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_country}
                                    disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
@@ -503,8 +507,9 @@
             <div class="setting-item">
                 <div class="option toggle">
                     <div class="top-section">
-                        <h1>Region</h1>
+                        <h1>{locale.settings.security.privacy.telemetry_options_region}</h1>
                         <label class="toggle-container {applicationSettings.security.privacy.telemetry_region ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_region}
                                    disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
@@ -515,8 +520,9 @@
             <div class="setting-item">
                 <div class="option toggle {{disable: !applicationSettings.security.privacy.telemetry_enable}}">
                     <div class="top-section">
-                        <h1>Inventories</h1>
+                        <h1>{locale.settings.security.privacy.telemetry_options_inventories}</h1>
                         <label class="toggle-container {applicationSettings.security.privacy.telemetry_inventories ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_inventories}
                                    disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
@@ -527,8 +533,9 @@
             <div class="setting-item">
                 <div class="option toggle">
                     <div class="top-section">
-                        <h1>Unique Items</h1>
+                        <h1>{locale.settings.security.privacy.telemetry_options_unique_items}</h1>
                         <label class="toggle-container {applicationSettings.security.privacy.telemetry_unique_items ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_unique_items}
                                    disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
@@ -539,8 +546,9 @@
             <div class="setting-item">
                 <div class="option toggle">
                     <div class="top-section">
-                        <h1>Total Items</h1>
+                        <h1>{locale.settings.security.privacy.telemetry_options_total_items}</h1>
                         <label class="toggle-container {applicationSettings.security.privacy.telemetry_total_items ? 'on' : ''} {applicationSettings.security.privacy.telemetry_enable ? '' : 'disable'}">
+                            <!--suppress HtmlUnknownTag -->
                             <div id="toggle-slider"></div>
                             <input type="checkbox" class="toggle-button" bind:checked={applicationSettings.security.privacy.telemetry_total_items}
                                    disabled={!applicationSettings.security.privacy.telemetry_enable} hidden>
@@ -551,14 +559,14 @@
         {/if}
         {#if currentView.category === 'security' && currentView.subcategory === 'api' }
             <div class="settings-category-header">
-                <h1 class="header-title">API</h1>
-                <h3 class="header-subtitle">Coming Soon.</h3>
+                <h1 class="header-title">{locale.settings.security.api.title}</h1>
+                <h3 class="header-subtitle">{locale.generics.coming_soon}.</h3>
             </div>
         {/if}
         {#if currentView.category === 'system' && currentView.subcategory === 'audit' }
             <div class="settings-category-header">
-                <h1 class="header-title">Audit Logs</h1>
-                <h3 class="header-subtitle">Coming Soon.</h3>
+                <h1 class="header-title">{locale.settings.system.audit_logs.title}</h1>
+                <h3 class="header-subtitle">{locale.generics.coming_soon}.</h3>
             </div>
         {/if}
         {#if currentView.category === 'system' && currentView.subcategory === 'logs' }
@@ -569,54 +577,54 @@
         {/if}
         {#if currentView.category === 'system' && currentView.subcategory === 'tasks' }
             <div class="settings-category-header">
-                <h1 class="header-title">Tasks</h1>
-                <h3 class="header-subtitle">Coming Soon.</h3>
+                <h1 class="header-title">{locale.settings.system.logs.title}</h1>
+                <h3 class="header-subtitle">{locale.generics.coming_soon}.</h3>
             </div>
         {/if}
         {#if currentView.category === 'other' && currentView.subcategory === 'feedback' }
             <div class="settings-category-header">
-                <h1 class="header-title">Feedback</h1>
-                <h3 class="header-subtitle">Coming Soon.</h3>
+                <h1 class="header-title">{locale.settings.other.feedback.title}</h1>
+                <h3 class="header-subtitle">{locale.generics.coming_soon}.</h3>
             </div>
         {/if}
         {#if currentView.category === 'other' && currentView.subcategory === 'faq' }
             <div class="settings-category-header">
-                <h1 class="header-title">FAQ</h1>
-                <h3 class="header-subtitle">Coming Soon.</h3>
+                <h1 class="header-title">{locale.settings.other.faq.title}</h1>
+                <h3 class="header-subtitle">{locale.generics.coming_soon}.</h3>
             </div>
         {/if}
         {#if currentView.category === 'other' && currentView.subcategory === 'about' }
             <div class="settings-category-header">
-                <h1 class="header-title">About</h1>
-                <h3 class="header-subtitle">Coming Soon.</h3>
+                <h1 class="header-title">{locale.settings.other.about.title}</h1>
+                <h3 class="header-subtitle">{locale.generics.coming_soon}.</h3>
             </div>
         {/if}
         {#if !['audit', 'logs', 'tasks', 'accounts', 'api', 'feedback', 'faq', 'about'].includes(currentView.subcategory)}
             <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
-                <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">Save</button>
+                <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">{locale.generics.save}</button>
                 {#if false}
-                    <p class="form-submission-meta success">Changes saved.</p>
+                    <p class="form-submission-meta success">{locale.generics.changes_saved}.</p>
                 {:else if false }
-                    <p class="form-submission-meta saving">Saving...</p>
+                    <p class="form-submission-meta saving">{locale.generics.saving_changes}</p>
                 {:else if (hasUnsavedChanges) }
-                    <p class="form-submission-meta unsaved">Unsaved changes.</p>
+                    <p class="form-submission-meta unsaved">{locale.generics.unsaved_changes}.</p>
                 {/if}
             </div>
         {/if}
         {#if currentView.category === 'security' && currentView.subcategory === 'privacy' }
             <!--todo - Implement logic-->
             <div class="setting-extra">
-                <h4>Request Removal</h4>
+                <h4>{locale.settings.security.privacy.request_removal}</h4>
                 <div class="description">
-                    <span>Wish to have your data deleted? <strong>inventar</strong> believes in the right to own your own data, and thus also the right to erasure ('the right to be forgotten'), even if your data is already fully anonymous. <strong style="color: var(--theme-text-accent);">Your data, is <i>your</i> data</strong>.</span><br><br>
-                    <span>When <strong>inventar</strong> receives a new request, the request is automatically accepted, and the process of deleting your data, <strong style="color: var(--theme-text-accent);">permanently</strong>, starts right away. The entire process is 100% automatic, and no requests are denied.*</span>
+                    <span>{locale.settings.security.privacy.request_removal_description_a}.</span><br><br>
+                    <span>{locale.settings.security.privacy.request_removal_description_b}.*</span>
                 </div>
                 <p class="footnote">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 4V20M18 6L6 18M20 12H4M18 18L6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <i>Requests are limited to one a day</i></p>
-                <button class="theme-button">Send Request</button>
+                    <i>{locale.settings.security.privacy.request_removal_limit}</i></p>
+                <button class="theme-button">{locale.settings.security.privacy.request_removal_submit}</button>
             </div>
         {/if}
     </div>

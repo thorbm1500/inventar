@@ -3,6 +3,10 @@
     import type {Inventory} from '$lib/server/db/interfaces';
     import {parseTimestamp} from '$lib/util/utilities';
     import {getContext, hasContext, onDestroy, onMount} from "svelte";
+    import type {ApplicationLocale} from "$lib/server/internal/locales";
+    import {ContextHandler} from "$lib/util/ContextHandler.svelte";
+
+    let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
 
     let order_by = $state('name');
     let order = $state('');
@@ -13,7 +17,7 @@
     await refresh();
 
     onMount(() => {
-        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)('Browse');
+        if (hasContext('set_page_title')) (getContext('set_page_title') as Function)(locale.header.browse);
         const resetPageInfo: Function | undefined = getContext('reset_page_info');
         if (resetPageInfo) onDestroy(() => resetPageInfo());
     });
@@ -31,7 +35,7 @@
     <section class="browse-content">
         <section class="browse-header">
             <div class="meta">
-                Browse
+                {locale.header.browse}
             </div>
             <div class="create-inventory-button">
                 <button class="theme-button" onclick="{() => window.location.href='/inventory/new'}" title="">
@@ -45,7 +49,7 @@
                         <path d="M16 19h6"/>
                         <path d="M19 16v6"/>
                     </svg>
-                    Add Inventory
+                    {locale.browse.add_inventory}
                 </button>
             </div>
         </section>
@@ -53,7 +57,7 @@
             <div class="inventory-header">
                 <div class="header-item">
                     <button class="sort-button" title="">
-                        Sort by: Relevance <!--todo-->
+                        {locale.generics.sort_by}: Relevance <!--todo-->
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -61,7 +65,7 @@
                 </div>
                 <div class="header-item">
                     <button class="view-button" title="">
-                        View: 20 <!--todo-->
+                        {locale.generics.view}: 20 <!--todo-->
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -112,10 +116,10 @@
             {#if inventories.length === 0}
                 <div class="empty-inventory-list">
                     {#if navigator.onLine }
-                        <span class="text-theme-text-third">No inventories found.</span>
-                        <a href="/inventory/new">Create your first inventory now!</a>
+                        <span class="text-theme-text-third">{locale.browse.no_inventory}.</span>
+                        <a href="/inventory/new">{locale.browse.create_first_inventory}</a>
                     {:else}
-                        <span class="text-theme-text-third">No internet found. Reconnect to browse inventories.</span>
+                        <span class="text-theme-text-third">{locale.browse.no_internet}.</span>
                     {/if}
                 </div>
             {:else if viewType === 'list'}
@@ -134,7 +138,7 @@
                                     {#if description}
                                         {description}
                                     {:else}
-                                        No description has been set.
+                                        {locale.generics.no_description_set}
                                     {/if}
                                 </span>
                                 </div>
@@ -165,7 +169,7 @@
                                     {#if description}
                                         {description}
                                     {:else}
-                                        No description has been set.
+                                        {locale.generics.no_description_set}
                                     {/if}
                                 </span>
                                     </div>

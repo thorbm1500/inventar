@@ -1,5 +1,18 @@
 <!--suppress ALL -->
 <script module lang="ts">
+    import {getContext, onDestroy, onMount} from "svelte";
+    import {page} from "$app/state";
+    import type {Inventory, User} from "$lib/server/db/interfaces";
+    import {parseTimestamp} from '$lib/util/utilities'
+    import {getInventory, quickAdd, createItem, deleteItem} from "./data.remote";
+    import {ignorePasswordManagers} from "$lib/util/utilities";
+    import {blur} from "svelte/transition";
+    import {ItemHandler} from "./item/[item_id]/itemHandler.svelte";
+    import {getCurrencyFormat} from "$lib/util/currencies";
+    import {ContextHandler} from "$lib/util/ContextHandler.svelte";
+    import type {UserSettings} from "$lib/server/db/interfaces";
+    import type {ApplicationLocale} from "$lib/server/internal/locales";
+
     const confirmItemCreationIcons: string[] = [
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M21 12.5v-4.509a1.98 1.98 0 0 0 -1 -1.717l-7 -4.008a2.016 2.016 0 0 0 -2 0l-7 4.007c-.619 .355 -1 1.01 -1 1.718v8.018c0 .709 .381 1.363 1 1.717l7 4.008a2.016 2.016 0 0 0 2 0" /><path d="M12 22v-10" /><path d="M12 12l8.73 -5.04" /><path d="M3.27 6.96l8.73 5.04" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
         `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v13" /><path d="M13.02 21.655a1.7 1.7 0 0 1 -2.04 0l-5.98 -4.485a2.5 2.5 0 0 1 -1 -2v-11.17a1 1 0 0 1 1 -1h14a1 1 0 0 1 1 1v8" /><path d="M4.3 3.3l6.655 5.186a1.7 1.7 0 0 0 2.09 0l6.655 -5.186" /><path d="M16 19h6" /><path d="M19 16v6" /></svg>`,
@@ -31,32 +44,24 @@
         return confirmItemCreationIcons[next];
     }
 
+    let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
+
     let inventory: Inventory | undefined = $state(undefined);
     let handler: ItemHandler | undefined = $state(undefined);
+
+    let itemSize: string = $state('small');
+    let tableType: string = $state('table');
+
+    let addItemHover = $state(false);
+    let isItemCreatorOpen: boolean = $state(false);
+    let isFilterContainerOpen: boolean = $state(false);
 </script>
 
 <script lang="ts">
-    import {getContext, onDestroy, onMount} from "svelte";
-    import {page} from "$app/state";
-    import type {Inventory} from "$lib/server/db/interfaces";
-    import {parseTimestamp} from '$lib/util/utilities'
-    import {getInventory, quickAdd, createItem, deleteItem} from "./data.remote";
-    import {ignorePasswordManagers} from "$lib/util/utilities";
-    import {blur} from "svelte/transition";
-    import {ItemHandler} from "./item/[item_id]/itemHandler.svelte";
-    import {getCurrencyFormat} from "$lib/util/currencies";
+    let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
+    const user: User = $derived(ContextHandler.getUser());
 
-    const user = getContext('user') as Function;
-    let userSettings: Function = getContext('user_settings') as Function;
-    // svelte-ignore state_referenced_locally
-
-    let addItemHover = $state(false);
-    // svelte-ignore state_referenced_locally
-    let isItemCreatorOpen: boolean = $state(false);
-    let isFilterContainerOpen: boolean = $state(false);
-    let itemCreatorConfirmCreationButtonIcon = $state(getRandomIcon());
-    let itemSize: string = $state('small');
-    let tableType: string = $state('table');
+    let userSettings: UserSettings = $derived(ContextHandler.getUserSettings());
 
     let isLoaded: boolean = $derived(handler?.isLoaded ?? false);
     const updatePageTitle: Function | undefined = getContext('set_page_title') as Function;
@@ -72,9 +77,9 @@
 
     onMount(async () => {
         inventory = await getInventory(String(page.params.id));
-        if (!inventory || !inventory.uuid) return;
+        if (!inventory.uuid) return;
 
-        handler = new ItemHandler(inventory.uuid, userSettings);
+        handler = new ItemHandler(inventory.uuid, () => userSettings);
         await handler.init();
         await handler.refreshPage();
 
@@ -89,12 +94,12 @@
                 <section class="inventory-header-section">
                     <div class="inventory-header-content">
                         <div class="inventory-name">
-                            <h1>{isLoaded ? inventory?.name : 'Loading...'}</h1>
+                            <h1>{isLoaded ? inventory?.name : locale.generics.loading}</h1>
                             {#if isLoaded}
                                 <button class="primary-inventory-bookmark-icon" onclick={() => {
-                                userSettings().primary_inventory = userSettings().primary_inventory === inventory?.uuid ? undefined : inventory?.uuid;
+                                userSettings.primary_inventory = userSettings.primary_inventory === inventory?.uuid ? undefined : inventory?.uuid;
                             }}>
-                                    {#if userSettings().primary_inventory === inventory?.uuid }
+                                    {#if userSettings.primary_inventory === inventory?.uuid }
                                         <svg style="color:var(--theme-color-accent);" width="24" height="24" viewBox="0 0 24 24">
                                             <path fill="currentColor" fill-rule="evenodd"
                                                   d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098M8.25 6A.75.75 0 0 1 9 5.25h6a.75.75 0 0 1 0 1.5H9A.75.75 0 0 1 8.25 6"
@@ -180,7 +185,7 @@
                                     <path d="M15 12.5v-.5l4.414 -4.414a2 2 0 0 0 .586 -1.414v-2.172h-16v2.227c0 .497 .185 .977 .52 1.345l4.48 4.928v8.5l2 -.667"/>
                                     <path d="M18.5 22a4.75 4.75 0 0 1 3.5 -3.5a4.75 4.75 0 0 1 -3.5 -3.5a4.75 4.75 0 0 1 -3.5 3.5a4.75 4.75 0 0 1 3.5 3.5"/>
                                 </svg>
-                                Filters
+                                {locale.inventory.id.filters}
                             </button>
                             <button id="create-item-button" class="theme-button create-item-button {handler && handler.isEmpty ? 'no-items' : ''} {isItemCreatorOpen?'open':''}" onclick={() => {
                                 isFilterContainerOpen = false;
@@ -205,7 +210,7 @@
                                         <path d="M16 5.25l-8 4.5"/>
                                     </svg>
                                 {/if}
-                                Add Item
+                                {locale.inventory.id.add_item}
                             </button>
                             <button id="refresh-button" class="theme-button refresh-button" title="Refresh" onclick="{async () => await handler?.refreshPage()}">
                                 <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
@@ -360,15 +365,15 @@
                                     }
                                 })} id="item-creator-form" class="item-creator-form" autocomplete="off" enctype="multipart/form-data">
                                     <button type="reset" id="item-creator-form-reset-button" title="Reset form" hidden></button>
-                                    <input {...quickAdd.fields.user.as('text')} value="{user().uuid??'x'}" use:ignorePasswordManagers hidden required/>
+                                    <input {...quickAdd.fields.user.as('text')} value="{user.uuid??'x'}" use:ignorePasswordManagers hidden required/>
                                     <input {...quickAdd.fields.inventoryUuid.as('text')} value="{page.params?.id??'x'}" use:ignorePasswordManagers hidden required/>
                                     <div class="options-top-section" style="display:flex;flex-flow:row nowrap;justify-content:space-between;">
                                         <div class="option-container" style="width:52rem;">
-                                            <h1>Name</h1>
-                                            <input style="width:100%;" {...quickAdd.fields.name.as('text')} placeholder="Item Name..." use:ignorePasswordManagers required/>
+                                            <h1>{locale.generics.name}</h1>
+                                            <input style="width:100%;" {...quickAdd.fields.name.as('text')} placeholder="{locale.inventory.id.item_creator.name_placeholder}" use:ignorePasswordManagers required/>
                                         </div>
                                         <div class="option-container">
-                                            <h1>Amount</h1>
+                                            <h1>{locale.generics.amount}</h1>
                                             <input {...quickAdd.fields.amount.as('number')} value=0 required/>
                                         </div>
                                     </div>
@@ -384,13 +389,13 @@
                                             <path d="M15.75 3.75l-2 7"/>
                                             <path d="M7 10.5c1.667 -.667 3.333 -.667 5 0c1.667 .667 3.333 .667 5 0"/>
                                         </svg>
-                                        Open Creator
+                                        {locale.inventory.id.item_creator.open_creator}
                                     </button>
                                     <button onmouseenter="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
                                             onfocus="{() => itemCreatorConfirmCreationButtonIcon = getRandomIcon() }"
                                             form="item-creator-form" type="submit" class="theme-button confirm-creation-button" id="confirm-creation-button">
                                         {@html itemCreatorConfirmCreationButtonIcon }
-                                        Quick Add
+                                        {locale.inventory.id.item_creator.quick_add}
                                     </button>
                                 </div>
                             </div>
@@ -433,7 +438,7 @@
                                 <div class="header-items">
                                     <div class="header-item name">
                                         <button onclick="{() => {handler?.updateFilterOrder('name')}}" class="header-button {handler?.filters?.current === 'name' ? 'active' : ''}">
-                                            Name
+                                            {locale.generics.name}
                                             {#if handler?.filters?.current === 'name'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -465,7 +470,7 @@
                                     </div>
                                     <div class="header-item part-number">
                                         <button onclick="{() => {handler?.updateFilterOrder('part_number')}}" class="header-button {handler?.filters?.current === 'part_number' ? 'active' : ''}">
-                                            Part Nr.
+                                            {locale.generics.part_number_short}
                                             {#if handler?.filters?.current === 'part_number'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -497,7 +502,7 @@
                                     </div>
                                     <div class="header-item updated">
                                         <button onclick="{() => {handler?.updateFilterOrder('last_update')}}" class="header-button {handler?.filters?.current === 'last_update' ? 'active' : ''}">
-                                            Updated
+                                            {locale.generics.updated}
                                             {#if handler?.filters?.current === 'last_update'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -529,7 +534,7 @@
                                     </div>
                                     <div class="header-item price">
                                         <button onclick="{() => {handler?.updateFilterOrder('price')}}" class="header-button {handler?.filters?.current === 'price' ? 'active' : ''}">
-                                            Price
+                                            {locale.generics.price}
                                             {#if handler?.filters?.current === 'price'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -561,7 +566,7 @@
                                     </div>
                                     <div class="header-item amount">
                                         <button onclick="{() => {handler?.updateFilterOrder('amount')}}" class="header-button {handler?.filters?.current === 'amount' ? 'active' : ''}">
-                                            Amount
+                                            {locale.generics.amount}
                                             {#if handler?.filters?.current === 'amount'}
                                                 {#if handler?.filters.order === 'DESC'}
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -612,7 +617,7 @@
                                                         {#if item.description}
                                                                 {item.description}
                                                             {:else}
-                                                                No description has been set.
+                                                                {locale.generics.no_description_set}
                                                             {/if}
                                                     </span>
                                                 </div>
@@ -640,7 +645,7 @@
                                                 </div>
                                                 <div class="quick-delete">
                                                     <button title="Delete Item" onclick="{() => {
-                                                    deleteItem({id: item.uuid, user: user().uuid});
+                                                    deleteItem({id: item.uuid, user: user.uuid});
                                                 }}">
                                                         <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -654,9 +659,9 @@
                                         <div class="empty-inventory-table">
                                         <span class="text-theme-text-third">
                                             {#if navigator.onLine }
-                                                There are no items in this inventory yet. Add your first item now!
+                                                {locale.inventory.id.create_first_item}
                                             {:else}
-                                                No internet found. Reconnect to browse inventory.
+                                                {locale.inventory.id.no_internet}.
                                             {/if}
                                         </span>
                                         </div>
@@ -1763,11 +1768,9 @@
     @keyframes buttonBorderColorAnim {
         0%,100% {
             filter: blur(1px) brightness(2) contrast(2) saturate(1.25) hue-rotate(0deg) brightness(2);
-            /*border-color: oklch(58.6% 0.253 17.585);*/
         }
         50% {
             filter: blur(1px) brightness(2) contrast(2) saturate(1.25) hue-rotate(360deg) brightness(2);
-            /*border-color: oklch(55.8% 0.288 302.321);*/
         }
     }
 

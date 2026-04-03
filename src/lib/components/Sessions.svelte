@@ -1,24 +1,22 @@
 <script lang="ts">
     import type {Session, User} from "$lib/server/db/interfaces";
-    import {getContext} from "svelte";
     import {endSession, getSessions} from "../../routes/(app)/account/[id]/settings/data.remote.ts";
     import moment from "moment";
+    import {ContextHandler} from "$lib/util/ContextHandler.svelte.ts";
 
-    const user = getContext('user') as Function;
+    const user: User | null = $derived(ContextHandler.getUser());
+    $effect(() => {
+        if (!user) throw new Error('No user context has been set!');
+    });
 
     // svelte-ignore state_referenced_locally
-    const sessions: Session[] = $state(await getSessions(user.uuid));
-    let currentTime = $state(Date.now());
-
-    setTimeout(() => {
-        currentTime = Date.now()
-    }, 30000);
+    const sessions: Session[] = $derived(await getSessions(user?.uuid ?? ''));
 </script>
 
 <section class="sessions-section">
     <div class="session-list">
         <h1>Computer</h1>
-        <div class="header-seperator"></div>
+        <div class="header-separator"></div>
         <div class="sessions computer">
             {#each sessions as session}
                 {#if (session?.device === 'Computer')}
@@ -69,7 +67,7 @@
             {/each}
         </div>
         <h1>Mobile</h1>
-        <div class="header-seperator"></div>
+        <div class="header-separator"></div>
         <div class="sessions mobile">
             {#each sessions as session}
                 {#if (session.device === 'Mobile')}
@@ -152,7 +150,7 @@
                 margin-top: 0;
             }
 
-            .header-seperator {
+            .header-separator {
                 width: 80%;
                 background: var(--theme-border-container);
                 height: .1rem;

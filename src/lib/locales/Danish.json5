@@ -1,0 +1,8 @@
+{
+  // The locale identifier
+  locale: 'da_DK',
+  browse: {
+    title: 'Udforsk',
+    add_inventory: 'Tilføj Inventar'
+  }
+}

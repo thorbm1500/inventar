@@ -3,6 +3,7 @@ import {generateRegistrationToken} from "$lib/server/internal/auth";
 import {LOGGER} from "../../../hooks.server";
 import {applicationVersion} from "./utilities";
 import {building} from "$app/environment";
+import type {LocaleType} from "$lib/server/internal/locales";
 
 const settingsFile: Bun.BunFile = Bun.file('/etc/inventar/settings.json5');
 
@@ -51,6 +52,7 @@ export interface ApplicationSettings {
     general: {
         basics: {
             application_id: string,
+            language: LocaleType,
             log_level: string
         },
         mail: {
@@ -96,6 +98,7 @@ const defaultSettings: ApplicationSettings = {
     general: {
         basics: {
             application_id: Bun.randomUUIDv7(),
+            language: 'English',
             log_level: 'info'
         },
         mail: {

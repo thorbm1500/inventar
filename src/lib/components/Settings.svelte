@@ -1,12 +1,15 @@
 <script lang="ts">
     import {accountSettings, getSettings} from "../../routes/(app)/account/[id]/settings/data.remote";
-    import type {User} from "$lib/server/db/interfaces";
-    import {getContext} from "svelte";
     import type {UserSettings} from "$lib/components/settings/UserSettings";
     import Sessions from "$lib/components/Sessions.svelte";
     import {ignorePasswordManagers} from "$lib/util/utilities";
+    import type {User} from "$lib/server/db/interfaces";
+    import {ContextHandler} from "$lib/util/ContextHandler.svelte.ts";
 
-    const user = getContext('user') as Function;
+    const user: User | null = $derived(ContextHandler.getUser());
+    $effect(() => {
+        if (!user) throw new Error('No user context has been set!');
+    });
 
     let settings: UserSettings = $derived(await getSettings(user.uuid) as UserSettings);
     // svelte-ignore state_referenced_locally
