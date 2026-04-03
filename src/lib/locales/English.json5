@@ -90,7 +90,7 @@
         allow_registration: "Allow Registration",
         allow_registration_description: "Allow people to register a new account. Disabling this will remove the 'Register' button from the login page",
         require_registration_token: "Require Registration Token",
-        require_registration_token_description: "Require the the user to provide the registration token, to register an account. It is highly recommended to ot disable this setting, as this would make your server open to abuse!",
+        require_registration_token_description: "Require the user to provide the registration token, to register an account. It is highly recommended to not disable this setting, as this would make your server open to abuse!",
         registration_token: "Registration Token",
         registration_token_description: "A unique token, used to verify the user's access & permission, when registering a new account.",
         registration_token_regeneration: "Regenerating..."

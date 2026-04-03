@@ -1,8 +1,152 @@
 {
   // The locale identifier
-  locale: 'da_DK',
+  locale: 'da-DK',
+  generics: {
+    see: "Se",
+    sort_by: "Filtrér efter",
+    view: "Se",
+    optional: "Valgfrig",
+    unsaved_changes: "Ugemte ændringer",
+    saving_changes: "Gemmer...",
+    changes_saved: "Ændringer gemt",
+    save: "Gem",
+    create: "Opret",
+    loading: "Indlæser...",
+    coming_soon: "Kommer Snart",
+    no_description_set: "Ingen beskrivelse",
+    browser_offline: "Browser Offline",
+    name: "Navn",
+    part_number_short: "Part Nr.",
+    updated: "Opdateret",
+    price: "Pris",
+    amount: "Mændge"
+  },
+  errors: {
+    generic: "Noget gik galt!"
+  },
+  header: {
+    home: "Hjem",
+    browse: "Udforsk",
+    inventory: "Inventar",
+    projects: "Projekter",
+    settings: "Indstillinger"
+  },
   browse: {
-    title: 'Udforsk',
-    add_inventory: 'Tilføj Inventar'
+    add_inventory: "Tilføj Inventar",
+    no_inventory: "Ingen inventarer fundet",
+    create_first_inventory: "Opret din første inventar nu!",
+    no_internet: "Ingen internet forbindelse fundet. Genopret din forbindelse til internettet for at udforske inventarer"
+  },
+  inventory: {
+    no_bookmark: "Du har ingen bogmærket inventar. Tilføj et bogmærke, for at aktivere dette shortcut!",
+    no_bookmark_tip_a: "Tip: Når du browser en inventar, kan du klikke på bogmærke-ikonet ved siden af inventarets navn, for at bogmærke den",
+    no_bookmark_tip_b: "For at fjerne et bogmærke, kan du blot klikke på bogmærke-ikonet igen. Du kan også bogmærke andre inventarer, uden først at fjerne et eksisterende bogmærke",
+    new: {
+      title: "Ny inventar",
+      form_inventory_name: "Inventar navn...",
+      form_inventory_description: "Beskrivelse",
+      form_inventory_icon: "Ikon"
+    },
+    id: {
+      filters: "Filtrer",
+      add_item: "Tilføj Item",
+      no_internet: "Ingen internet forbindelse fundet. Genopret din forbindelse til internettet for at udforske inventaren",
+      create_first_item: "Der er ingen items i denne inventar endnu. Tilføj dit første item nu!",
+      item_creator: {
+        name_placeholder: "Item navn...",
+        amount: "Mændge",
+        open_creator: "Åben Creator",
+        quick_add: "Hurtig-tilføjelse"
+      }
+    }
+  },
+  settings: {
+    general: {
+      title: "GENEREL",
+      basics: {
+        title: "Generel",
+        application_id: "Applikations ID",
+        application_id_description: "Din applikations unikke identifikation. Dette er brugt til ting som Dagligt-Brugs-Ping",
+        data_directory: "Data Mappe",
+        logs_directory: "Logs Mappe",
+        log_level: "Log Niveau"
+      },
+      mail: {
+        title: "Mail",
+        subtitle: "Ny til at sende mails? inventar anbefaler",
+        host: "Host",
+        port: "Port",
+        port_description: "For krypteret/TLS forbindelser brug 587, 2465, 2587",
+        user: "Bruger",
+        password: "Adgangskode",
+        sender_mail: "Afsender Mail",
+        sender_name: "Afsender Navn"
+      }
+    },
+    security: {
+      title: "SIKKERHED",
+      general: {
+        title: "Generel",
+        allow_registration: "Tillad Oprettelse",
+        allow_registration_description: "Tillad folk at oprette nye brugere. Deaktivering af denne indstilling fjerner 'Registrer' knappen fra login-siden",
+        require_registration_token: "Kræv Registreringsnøgle",
+        require_registration_token_description: "Kræver at nye brugere har registreringsnøglen for at kunne oprette sig. Det er kraftigt anbefalet ikke at deaktivere denne indstlling, da det åbner din server op for misbrug!",
+        registration_token: "Registreringsnøgle",
+        registration_token_description: "En unik nøgle, brugt til at verificere end ny brugers adgang og rettigheder, når de forsøger at oprette sig.",
+        registration_token_regeneration: "Genererer..."
+      },
+      accounts: {
+        title: "Brugere"
+      },
+      privacy: {
+        title: "Privatliv",
+        subtitle_a: "Telemetri er brugt til at observere brugen af inventar. Det kan blive slået til og fra, som du ønsker, og er 100% valgfrit. Telemetri hjælper os med at få en bedre forståelse for hvordan inventar bliver brugt, men det er simpelthen også bare fascinerende at se statestikkerne fra inventar",
+        subtitle_b: "Har du nogle spørgsmål vedrørende brugen af din data?",
+        subtitle_c: "Denne applikation har delt sin telemtri %value% gange. Telemetri er indsamlet og sendt hver midnat",
+        enable_telemetry: "Aktivér Telemetri",
+        enable_telemetry_description: "Denne indstilling aktiverer indsamling af din applikations telemetri data. Deaktivering af denne indstilling deaktiverer al indsamling af telemetri data fra denne applikation, hvilket gør applikation 100% privat",
+        instance_identifier: "Applikationsidentitet",
+        instance_identifier_description_a: "Krævet. Denne indstilling aktiverer indsamling af denne applikations ID. Denne indstilling er krævet for at adskille data fra alle applikationer",
+        instance_identifier_description_b: "OBS: Alle applikationsidentiteter er genereret tilfældigt, hvilket gør alle applikationer anonyme. Dette betyder at selv hvis alle telemetri indstillinger er slået til, ville det være umuligt at identificere applikationerne. Applikationerne vil for altid være anonyme",
+        telemetry_options: "Telemetri Valgmuligheder",
+        telemetry_options_country: "Land",
+        telemetry_options_region: "Region",
+        telemetry_options_inventories: "Inventarer",
+        telemetry_options_unique_items: "Unikke Items",
+        telemetry_options_total_items: "Total Mængde Items",
+        request_removal: "Anmod Fjernelse",
+        request_removal_description_a: "Ønsker du at have din data slettet? inventar tror på retten til at eje sin egen data, og derfor også retten til at blive slettet ('retten til at blive glemt'), selv hvis din data allerede er 100% anonym. Din data, er din data",
+        request_removal_description_b: "Når inventar modtager en ny anmodning, bliver anmodningen automatisk godkendt, og processen for at slette din data permanent, begynder lige med det samme. Hele processen er 100% automatisk, og ingen anmodninger bliver afvist",
+        request_removal_limit: "Anmodninger er begrænset til én om dagen",
+        request_removal_submit: "Anmod"
+      },
+      api: {
+        title: "API"
+      }
+    },
+    system: {
+      title: "SYSTEM",
+      audit_logs: {
+        title: "Revisionlogs"
+      },
+      logs: {
+        title: "Logs"
+      },
+      tasks: {
+        title: "Opgaver"
+      }
+    },
+    other: {
+      title: "ANDET",
+      feedback: {
+        title: "Feedback"
+      },
+      faq: {
+        title: "FAQ"
+      },
+      about: {
+        title: "Omkring"
+      }
+    }
   }
 }
