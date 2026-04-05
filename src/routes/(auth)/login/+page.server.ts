@@ -1,8 +1,8 @@
 import type {PageServerLoad} from './$types';
-import {APPLICATION_SETTINGS} from "../../../hooks.server.ts";
+import {getApplicationSettings} from "../../../hooks.server";
 
 export const load: PageServerLoad = (async() => {
         return {
-            allowRegistration: APPLICATION_SETTINGS.security.general.allow_registration
+            allowRegistration: (await getApplicationSettings()).security.general.allow_registration
         }
 });

@@ -11,30 +11,6 @@ export interface Inventory {
     created_at: number
 }
 
-export type PageTheme = 'light' | 'dark';
-
-/**
- * User interface, to easily handle user data. The User interface should never contain or be able to contain any sensitive data.
- */
-export interface User {
-    uuid: string,
-    email: string,
-    username: string,
-    profile_picture?: string,
-    primary_inventory?: string,
-    preferred_theme: PageTheme,
-    created_at: number,
-    superuser: boolean
-}
-
-export interface UserSettings {
-    uuid: string,
-    preferred_theme: PageTheme,
-    primary_inventory: string | undefined,
-    preferred_order_by: string,
-    preferred_ordering: string
-}
-
 export interface Session {
     uuid: string,
     session_id: string,

@@ -38,8 +38,11 @@
 
         box-sizing: border-box;
 
+        /*noinspection CssOverwrittenProperties*/
         overflow-y: scroll;
+        /*noinspection CssOverwrittenProperties*/
         overflow-x: hidden !important;
+        /*noinspection CssOverwrittenProperties*/
         overflow: auto;
 
         padding: 0 1rem;

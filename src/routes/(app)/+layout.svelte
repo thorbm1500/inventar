@@ -2,7 +2,7 @@
     import '$lib/styles/index.css';
     import Header from './Header.svelte';
     import {onMount, setContext} from 'svelte';
-    import type {PageTheme, User, UserSettings} from '$lib/server/db/interfaces';
+    import type {User, UserSettings} from '$lib/server/db/components/user';
     import Toast from '$lib/components/toast.svelte';
     import {blur, slide} from 'svelte/transition';
     import {updateTheme} from "./data.remote.ts";
@@ -22,7 +22,7 @@
 
     let user: User = $derived(ContextHandler.getUser());
     let userSettings: UserSettings = $derived(ContextHandler.getUserSettings());
-    let theme: PageTheme = $derived(userSettings.preferred_theme);
+    let theme: 'dark' | 'light' = $derived(userSettings.theme);
 
     // svelte-ignore state_referenced_locally
     let savedSettings = data.userSettings;
@@ -57,25 +57,25 @@
     setContext('set_page_back_button', (value: string) => {pageInfo.backButton = value});
 
     $effect(() => {
-        let changes: boolean = false;
+        /*let changes: boolean = false;
 
-        if (userSettings.preferred_theme !== savedSettings.preferred_theme) {
+        if (userSettings.theme !== savedSettings.preferred_theme) {
             changes = true;
             savedSettings.preferred_theme = savedSettings.preferred_theme;
-            updateTheme({id: user.uuid, theme: userSettings.preferred_theme});
+            updateTheme({id: user.uuid, theme: userSettings.theme});
         }
         if (userSettings.primary_inventory !== savedSettings.primary_inventory) {
             changes = true;
             savedSettings.primary_inventory = savedSettings.primary_inventory;
-            updatePrimaryInventory({user: user.uuid, inventory_uuid: userSettings.primary_inventory});
+            updatePrimaryInventory({user: user.uuid, inventory_uuid: userSettings.primary_inventory ?? undefined});
         }
 
         if (changes) {
             savedSettings = userSettings;
-        }
+        }*/
     });
 
-    setContext('update_theme', () => updateTheme({id: user.uuid, theme: userSettings.preferred_theme}));
+    setContext('update_theme', () => updateTheme({id: user.uuid, theme: userSettings.theme}));
 
     onMount(() => {
         if (!user) window.location.href = "/logout";

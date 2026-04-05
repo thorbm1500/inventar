@@ -3,7 +3,7 @@
     import type {Inventory} from '$lib/server/db/interfaces';
     import {parseTimestamp} from '$lib/util/utilities';
     import {getContext, hasContext, onDestroy, onMount} from "svelte";
-    import type {ApplicationLocale} from "$lib/server/internal/locales";
+    import type {ApplicationLocale} from "$lib/locale/locales";
     import {ContextHandler} from "$lib/util/ContextHandler.svelte";
 
     let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
@@ -215,8 +215,11 @@
         width: 100vw;
         height: 100vh;
 
+        /*noinspection CssOverwrittenProperties*/
         overflow-x: hidden !important;
+        /*noinspection CssOverwrittenProperties*/
         overflow-y: scroll;
+        /*noinspection CssOverwrittenProperties*/
         overflow: auto;
 
         box-sizing: border-box;

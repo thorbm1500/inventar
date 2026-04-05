@@ -1,6 +1,6 @@
-import {APPLICATION_SETTINGS} from "../../../hooks.server";
-
 export type LocaleType = 'English' | 'Danish';
+
+export const AVAILABLE_LOCALES: LocaleType[] = ['English', 'Danish'];
 
 export interface ApplicationLocale {
     locale: string,
@@ -69,6 +69,7 @@ export interface ApplicationLocale {
                 title: string,
                 application_id: string,
                 application_id_description: string,
+                language: string,
                 data_directory: string,
                 logs_directory: string,
                 log_level: string
@@ -151,8 +152,4 @@ export interface ApplicationLocale {
             }
         }
     }
-}
-
-export async function getCurrentLocale(): Promise<ApplicationLocale> {
-    return await Bun.file(`src/lib/locales/${APPLICATION_SETTINGS.general.basics.language}.json5`).text().then(res => Bun.JSON5.parse(res)) as ApplicationLocale
 }

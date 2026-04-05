@@ -1,12 +1,13 @@
-import {APPLICATION_SETTINGS, LOGGER} from '../../hooks.server';
+import {getApplicationSettings, LOGGER} from '../../hooks.server';
 import * as v from 'valibot';
 import * as auth from '$lib/server/internal/auth';
 import {form} from '$app/server';
-import type {Session, User} from '$lib/server/db/interfaces';
+import type {Session} from '$lib/server/db/interfaces';
 import {sendPasswordResetLink} from '$lib/server/internal/mail';
 import {error, redirect} from '@sveltejs/kit';
 import {getOTPToken, validateResetRequestToken} from "$lib/server/internal/auth";
 import {Auth, Users} from "$lib/server/db/database";
+import type {User} from "$lib/server/db/components/user";
 
 export const requestReset = form(v.object({email: v.pipe(v.string(), v.nonEmpty())}),
     async ({email}) => {
@@ -78,7 +79,7 @@ export const register = form(
         _repeat_password: v.pipe(v.string(), v.nonEmpty())
     }),
     async ({username, email, _password, _repeat_password}) => {
-        if (!APPLICATION_SETTINGS.security.general.allow_registration) {
+        if (!(await getApplicationSettings()).security.general.allow_registration) {
             LOGGER.warn(`A user-registration form has been submitted, even though 'allow_registration' is disabled!`);
             return;
         }

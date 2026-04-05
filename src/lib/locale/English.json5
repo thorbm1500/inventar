@@ -67,6 +67,7 @@
         title: "General",
         application_id: "Application ID",
         application_id_description: "Your application's unique identifier. Used for things like Daily Usage Ping, if enabled",
+        language: "Language",
         data_directory: "Data Directory",
         logs_directory: "Logs Directory",
         log_level: "Log Level"

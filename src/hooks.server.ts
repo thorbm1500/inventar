@@ -1,23 +1,31 @@
-import type {Session, User} from '$lib/server/db/interfaces';
+import type {Session} from '$lib/server/db/interfaces';
 import * as auth from '$lib/server/internal/auth';
 import {building} from '$app/environment';
 import {type Handle, type HandleServerError, redirect, type ServerInit} from '@sveltejs/kit';
-import utilities from '$lib/server/internal/utilities';
+import utilities, {getCurrentLocale} from '$lib/server/internal/utilities';
 import cron from '$lib/server/internal/cron';
 import {Logger, LogLevel} from '$lib/server/internal/logger';
 import {type ApplicationSettings, getSettings} from '$lib/server/internal/settings';
 import {Auth, Database, Users} from '$lib/server/db/database';
 import inventar from '$lib/server/internal/inventar';
-import {type ApplicationLocale, getCurrentLocale} from "$lib/server/internal/locales";
+import {type ApplicationLocale} from "$lib/locale/locales";
+import type {User} from "$lib/server/db/components/user";
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
-export const APPLICATION_SETTINGS: ApplicationSettings = await getSettings();
+let applicationSettings: ApplicationSettings = await getSettings();
 export let APPLICATION_LOCALE: ApplicationLocale = await getCurrentLocale();
+
+export async function getApplicationSettings(forceUpdate?: true): Promise<ApplicationSettings> {
+    if (forceUpdate || !applicationSettings) applicationSettings = await getSettings();
+    return applicationSettings;
+}
 
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
 export const init: ServerInit = async (): Promise<void> => {
+    if (applicationSettings.general.basics.log_level) LOGGER.setLevel(applicationSettings.general.basics.log_level);
+
     //await fetchItemPrice('https://www.autozone.com/p/stp-extended-life-engine-oil-filter-element-s9972xl/663650?productPartGroupId=azpg1622&productBrandId=FBRB&productUniqueId=456454654');
 
     await LOGGER.timed('Initializing server...', 'Server initialized.', async (): Promise<void> => {
@@ -33,6 +41,8 @@ export const init: ServerInit = async (): Promise<void> => {
         .then((): void => {
             LOGGER.done(`\nSystem Stats`, `\n Root: `, process.cwd(), `\n Available Memory: `, (process.availableMemory() / 1000 / 1000 / 1000).toFixed(2), 'GB');
         });
+
+    LOGGER.info('System running.');
 }
 
 async function shutdown(reason?: any): Promise<void> {

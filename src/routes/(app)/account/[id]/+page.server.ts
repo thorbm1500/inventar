@@ -1,5 +1,5 @@
 import type {PageServerLoad} from './$types';
-import type {User} from "$lib/server/db/interfaces";
+import type {User} from "$lib/server/db/components/user";
 import {validate} from "uuid";
 import {error} from "@sveltejs/kit";
 import * as db from "$lib/server/db/database";

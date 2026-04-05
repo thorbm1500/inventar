@@ -1,9 +1,7 @@
 <script lang="ts">
-    import Settings from "$lib/components/Settings.svelte";
 </script>
 
 <section class="user-settings-page">
-    <Settings />
 </section>
 
 <style>

@@ -2,9 +2,9 @@
     import {getContext, onMount} from 'svelte';
     import {blur} from "svelte/transition";
     import type {Attachment} from "svelte/attachments";
-    import type {User, UserSettings} from "$lib/server/db/interfaces";
+    import type {User, UserSettings} from "$lib/server/db/components/user";
     import {ContextHandler} from "$lib/util/ContextHandler.svelte";
-    import type {ApplicationLocale} from "$lib/server/internal/locales";
+    import type {ApplicationLocale} from "$lib/locale/locales";
 
     let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
 
@@ -19,9 +19,7 @@
 
     let pillTitle: string = $derived((getContext('get_pill_title') as Function)());
 
-    const handlePillEvent: EventListener = (event: Event) => {
-        sidebar = !sidebar;
-    }
+    const handlePillEvent: EventListener = (event: Event) => sidebar = !sidebar;
 
     const pillEventListener: Attachment = (element) => {
         element.addEventListener('click', handlePillEvent);
@@ -150,9 +148,9 @@
     </div>
     <div class="user-actions">
         <button class="action theme-switcher" title="Change Theme" onclick="{() => {
-            userSettings.preferred_theme = userSettings.preferred_theme === 'dark' ? 'light' : 'dark';
+            userSettings.theme = userSettings.theme === 'dark' ? 'light' : 'dark';
         }}">
-            {#if (user.preferred_theme === 'dark')}
+            {#if (userSettings.theme === 'dark')}
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 2L18.6178 3.23558C18.8833 3.76656 19.016 4.03205 19.1934 4.26211C19.3507 4.46626 19.5337 4.64927 19.7379 4.80664C19.9679 4.98397 20.2334 5.11672 20.7644 5.38221L22 6L20.7644 6.61779C20.2334 6.88328 19.9679 7.01603 19.7379 7.19336C19.5337 7.35073 19.3507 7.53374 19.1934 7.73789C19.016 7.96795 18.8833 8.23344 18.6178 8.76442L18 10L17.3822 8.76442C17.1167 8.23344 16.984 7.96795 16.8066 7.73789C16.6493 7.53374 16.4663 7.35073 16.2621 7.19336C16.0321 7.01603 15.7666 6.88328 15.2356 6.61779L14 6L15.2356 5.38221C15.7666 5.11672 16.0321 4.98397 16.2621 4.80664C16.4663 4.64927 16.6493 4.46626 16.8066 4.26211C16.984 4.03205 17.1167 3.76656 17.3822 3.23558L18 2Z"
                           stroke="currentColor"

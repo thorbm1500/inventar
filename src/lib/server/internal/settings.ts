@@ -3,9 +3,17 @@ import {generateRegistrationToken} from "$lib/server/internal/auth";
 import {LOGGER} from "../../../hooks.server";
 import {applicationVersion} from "./utilities";
 import {building} from "$app/environment";
-import type {LocaleType} from "$lib/server/internal/locales";
+import type {LocaleType} from "$lib/locale/locales";
+import {LogLevel} from "$lib/server/internal/logger";
 
-const settingsFile: Bun.BunFile = Bun.file('/etc/inventar/settings.json5');
+function getSettingsFile(): Bun.BunFile {
+    return Bun.file('/etc/inventar/settings.json5');
+}
+
+async function ensureDirectoriesAndFiles(): Promise<void> {
+    await ensureDirectories();
+    await ensureSettingsFile();
+}
 
 /**
  * todo
@@ -13,10 +21,20 @@ const settingsFile: Bun.BunFile = Bun.file('/etc/inventar/settings.json5');
 export async function getSettings(): Promise<ApplicationSettings> {
     if (building) return defaultSettings;
 
-    await ensureDirectories();
-    await ensureSettingsFile();
+    await ensureDirectoriesAndFiles();
 
-    return Bun.JSON5.parse(await settingsFile.text()) as ApplicationSettings;
+    return Bun.JSON5.parse(await getSettingsFile().text()) as ApplicationSettings;
+}
+
+export async function updateSettings(settings: ApplicationSettings): Promise<void> {
+    if (building) return;
+
+    await ensureDirectoriesAndFiles();
+
+    const text: string | undefined = Bun.JSON5.stringify(settings, null, 2);
+    if (!text) return;
+
+    await getSettingsFile().write(text);
 }
 
 /**
@@ -53,7 +71,7 @@ export interface ApplicationSettings {
         basics: {
             application_id: string,
             language: LocaleType,
-            log_level: string
+            log_level: LogLevel
         },
         mail: {
             host: string,
@@ -99,7 +117,7 @@ const defaultSettings: ApplicationSettings = {
         basics: {
             application_id: Bun.randomUUIDv7(),
             language: 'English',
-            log_level: 'info'
+            log_level: LogLevel.INFO
         },
         mail: {
             host: '',

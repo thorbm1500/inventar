@@ -7,9 +7,9 @@
     import 'tippy.js/animations/shift-away.css';
     import Toast from "$lib/components/toast.svelte";
     import {ignorePasswordManagers} from "$lib/util/utilities";
-    import type {User} from "$lib/server/db/interfaces";
+    import type {User} from "$lib/server/db/components/user";
     import {ContextHandler} from "$lib/util/ContextHandler.svelte";
-    import type {ApplicationLocale} from "$lib/server/internal/locales";
+    import type {ApplicationLocale} from "$lib/locale/locales";
 
     let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
 

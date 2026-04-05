@@ -1,18 +1,16 @@
 <script lang="ts">
     import Logs from "$lib/components/settings/Logs.svelte";
-    import {generateNewRegistrationToken} from "../../data.remote";
+    import {generateNewRegistrationToken, getSettings, saveSettings} from "../../data.remote";
     import {getContext, onDestroy, onMount} from "svelte";
     import {page} from "$app/state";
     import type {ApplicationSettings} from "$lib/server/internal/settings";
     import {capitalizeFirstLetter, ignorePasswordManagers} from "$lib/util/utilities";
-    import type {User} from "$lib/server/db/interfaces";
     import {ContextHandler} from "$lib/util/ContextHandler.svelte";
-    import type {ApplicationLocale} from "$lib/server/internal/locales";
+    import {type ApplicationLocale, AVAILABLE_LOCALES} from "$lib/locale/locales";
 
     let {data} = $props();
 
     let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
-    const user: User = $derived(ContextHandler.getUser());
 
     let currentPageTitle: string = $state('');
     const updatePageTitle: Function = getContext('set_page_title') as Function;
@@ -20,14 +18,17 @@
     // svelte-ignore state_referenced_locally
     let applicationSettings: ApplicationSettings = $state(data.settings);
     // svelte-ignore state_referenced_locally
-    let savedSettings: ApplicationSettings = data.settings;
+    let savedSettings: ApplicationSettings = $state(data.settings);
+
+    let isSaving: boolean = $state(saveSettings.pending > 0);
+    let hasSaved: boolean = $state(false);
 
     const currentView = $state({
         category: 'general',
         subcategory: 'basics'
     });
 
-    let isRegenerating: boolean = $derived(applicationSettings.security.general.registration_token === 'Regenerating....');
+    let isRegenerating: boolean = $derived(applicationSettings.security.general.registration_token === locale.settings.security.general.registration_token_regeneration);
     let hasUnsavedChanges: boolean = $derived(JSON.stringify(applicationSettings) !== JSON.stringify(savedSettings));
 
     if (page.params.category) currentView.category = page.params.category;
@@ -45,6 +46,7 @@
 
         window?.history.replaceState(null, currentView.category, `/settings/${currentView.category}/${currentView.subcategory}`);
         applicationSettings = savedSettings;
+        hasSaved = false;
     }
 
     updatePageTitle(capitalizeFirstLetter($state.eager(currentView.subcategory)));
@@ -217,6 +219,18 @@
                 </div>
             </div>
             <div class="setting-item">
+                <div class="option text">
+                    <div class="top-section">
+                        <h1>{locale.settings.general.basics.language}</h1>
+                        <select id="language" name="language" size="1" bind:value={applicationSettings.general.basics.language}>
+                            {#each AVAILABLE_LOCALES as localeOption}
+                                <option value={localeOption}>{localeOption}</option>
+                            {/each}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-item">
                 <div class="option text readonly">
                     <div class="top-section">
                         <h1>{locale.settings.general.basics.data_directory}</h1>
@@ -253,7 +267,7 @@
             <div class="setting-item">
                 <div class="option text">
                     <div class="top-section">
-                        <h1>Log Level</h1>
+                        <h1>{locale.settings.general.basics.log_level}</h1>
                         <select id="log_level" name="log_level" size="1" bind:value={applicationSettings.general.basics.log_level}>
                             <option value="debug">
                                 <!--suppress HtmlUnknownTag -->
@@ -407,7 +421,7 @@
                             <button title="Regenerate" onclick="{async () => {
                                     if (isRegenerating) return;
                                     applicationSettings.security.general.registration_token = locale.settings.security.general.registration_token_regeneration;
-                                    applicationSettings.security.general.registration_token = await generateNewRegistrationToken(user.uuid);
+                                    applicationSettings.security.general.registration_token = await generateNewRegistrationToken().then(res => res);
                                 }}" class="regenerate-registration-token">
                                 {#if isRegenerating}
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -601,12 +615,16 @@
         {/if}
         {#if !['audit', 'logs', 'tasks', 'accounts', 'api', 'feedback', 'faq', 'about'].includes(currentView.subcategory)}
             <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
-                <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button">{locale.generics.save}</button>
-                {#if false}
+                <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button"
+                onclick="{async () => {
+                    await saveSettings(applicationSettings).then(() => hasSaved = true);
+                    applicationSettings = await getSettings().then(res => res);
+                }}">{locale.generics.save}</button>
+                {#if hasSaved}
                     <p class="form-submission-meta success">{locale.generics.changes_saved}.</p>
-                {:else if false }
+                {:else if isSaving }
                     <p class="form-submission-meta saving">{locale.generics.saving_changes}</p>
-                {:else if (hasUnsavedChanges) }
+                {:else if hasUnsavedChanges }
                     <p class="form-submission-meta unsaved">{locale.generics.unsaved_changes}.</p>
                 {/if}
             </div>
@@ -646,8 +664,11 @@
         width: 100vw;
 
         box-sizing: border-box;
+        /*noinspection CssOverwrittenProperties*/
         overflow-y: scroll;
+        /*noinspection CssOverwrittenProperties*/
         overflow-x: hidden;
+        /*noinspection CssOverwrittenProperties*/
         overflow: auto;
 
         padding-top: 6rem;

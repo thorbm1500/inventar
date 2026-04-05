@@ -1,7 +1,8 @@
-import {LOGGER} from "../../../hooks.server";
+import {getApplicationSettings, LOGGER} from "../../../hooks.server";
 import {get, type IncomingMessage} from "node:http";
 import type {RequestEvent} from "@sveltejs/kit";
 import {Auth} from "$lib/server/db/database";
+import type {ApplicationLocale} from "$lib/locale/locales";
 
 const BROWSER_OFFLINE_RESPONSE = "Error! The browser is offline.";
 /** @author https://stackoverflow.com/a/201378 */
@@ -97,6 +98,7 @@ function extractHeaderData(header: string | null, options?: HeaderExtractionOpti
 async function handleSessionInformation(session_id: string, event: RequestEvent): Promise<void> {
     if (!(await Auth.isSessionInformationMissing(session_id))) return;
 
+    // noinspection HttpUrlsUsage
     get(`http://ip-api.com/json/${event.getClientAddress() === '::1' ? '' : event.getClientAddress()}?fields=1056793`,(res: IncomingMessage): void => {
         res.setEncoding('utf8');
         let rawData: string = '';
@@ -115,6 +117,10 @@ async function handleSessionInformation(session_id: string, event: RequestEvent)
             }
         });
     });
+}
+
+export async function getCurrentLocale(): Promise<ApplicationLocale> {
+    return await Bun.file(`src/lib/locale/${(await getApplicationSettings()).general.basics.language}.json5`).text().then(res => Bun.JSON5.parse(res)) as ApplicationLocale
 }
 
 export default {isOffline, isCrawler, handleSessionInformation, BROWSER_OFFLINE_RESPONSE, EMAIL_REGEX};

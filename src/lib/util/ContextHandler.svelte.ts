@@ -1,5 +1,5 @@
-import type {User, UserSettings} from "$lib/server/db/interfaces";
-import type {ApplicationLocale} from "$lib/server/internal/locales";
+import type {User, UserSettings} from "$lib/server/db/components/user";
+import type {ApplicationLocale} from "$lib/locale/locales";
 
 export class ContextHandler {
 

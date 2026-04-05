@@ -67,6 +67,7 @@
         title: "Generel",
         application_id: "Applikations ID",
         application_id_description: "Din applikations unikke identifikation. Dette er brugt til ting som Dagligt-Brugs-Ping",
+        language: "Sprog",
         data_directory: "Data Mappe",
         logs_directory: "Logs Mappe",
         log_level: "Log Niveau"

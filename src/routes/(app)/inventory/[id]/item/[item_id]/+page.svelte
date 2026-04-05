@@ -137,6 +137,7 @@
                     <line x2={w} />
                 </g>
 
+                <!--suppress HtmlUnknownAttribute -->
                 <polyline pathLength="100px" points="50,50 100,100 150,150 1450,200" />
             </svg>
         </div>
@@ -153,8 +154,11 @@
         height: 100vh;
         width: 100vw;
 
+        /*noinspection CssOverwrittenProperties*/
         overflow-x: hidden;
+        /*noinspection CssOverwrittenProperties*/
         overflow-y: scroll;
+        /*noinspection CssOverwrittenProperties*/
         overflow: auto;
 
         box-sizing: border-box;

@@ -1,7 +1,7 @@
 <script lang="ts">
     import {getContext} from "svelte";
     import tippy, {animateFill} from "tippy.js";
-    import type {ApplicationLocale} from "$lib/server/internal/locales";
+    import type {ApplicationLocale} from "$lib/locale/locales";
     import {ContextHandler} from "$lib/util/ContextHandler.svelte";
 
     let locale: ApplicationLocale = $derived(ContextHandler.getLocale());

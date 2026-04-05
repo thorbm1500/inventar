@@ -1,14 +1,14 @@
 // noinspection DuplicatedCode
 
 import {LOGGER} from "../../../hooks.server";
-import type {Inventory, PageTheme, ResetRequest, Session, User} from "$lib/server/db/interfaces";
-import {UserSettings} from "$lib/components/settings/UserSettings";
+import type {Inventory, ResetRequest, Session} from "$lib/server/db/interfaces";
 import {faker} from "@faker-js/faker/locale/en";
 import {env} from "$env/dynamic/private";
 import {Audit} from "$lib/server/db/components/audit";
 import {Redis, type RedisKey} from "$lib/server/db/redis";
 import {Items} from "$lib/server/db/components/item";
 import {Labels} from "$lib/server/db/components/labels";
+import type {User, UserSettings} from "$lib/server/db/components/user";
 
 export class Database {
     // noinspection JSUnusedGlobalSymbols
@@ -111,9 +111,9 @@ export class Database {
                            (
                                uuid               CHAR(36)                          NOT NULL,
                                primary_inventory  CHAR(36)                          NULL,
-                               preferred_theme    VARCHAR(5)  DEFAULT 'dark'        NOT NULL,
-                               preferred_order_by VARCHAR(32) DEFAULT 'last_update' NOT NULL,
-                               preferred_ordering VARCHAR(4)  DEFAULT 'desc'        NOT NULL,
+                               theme    VARCHAR(5)  DEFAULT 'dark'        NOT NULL,
+                               default_order_by VARCHAR(32) DEFAULT 'last_update' NOT NULL,
+                               default_ordering VARCHAR(4)  DEFAULT 'desc'        NOT NULL,
                                PRIMARY KEY (uuid),
                                CONSTRAINT user_settings_uuid_u
                                    UNIQUE (uuid),
@@ -664,6 +664,8 @@ export class Users {
                            SET primary_inventory = ${inventory}
                            WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#setPrimaryInventory[0]: Database request failed. `, err));
+
+        // noinspection ES6MissingAwait
         Redis.del(`user:${uuid}`);
     }
 
@@ -672,12 +674,13 @@ export class Users {
      * @param uuid
      * @param theme
      */
-    static async updatePreferredTheme(uuid: string, theme: PageTheme): Promise<void> {
+    static async updatePreferredTheme(uuid: string, theme: 'dark' | 'light'): Promise<void> {
         await Database.SQL`UPDATE user_settings
                            SET preferred_theme = ${theme}
                            WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#updatePreferredTheme[0]: Database request failed. `, err));
 
+        // noinspection ES6MissingAwait
         Redis.del(`user:${uuid}`);
     }
 
@@ -692,6 +695,7 @@ export class Users {
                            WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#updatePreferredOrderBy[0]: Database request failed. `, err));
 
+        // noinspection ES6MissingAwait
         Redis.del(`user:${uuid}`);
     }
 
@@ -706,6 +710,7 @@ export class Users {
                            WHERE uuid = ${uuid}`
             .catch((err: any): void => LOGGER.error(`Users#updatePreferredOrdering[0]: Database request failed. `, err));
 
+        // noinspection ES6MissingAwait
         Redis.del(`user:${uuid}`);
     }
 
@@ -739,7 +744,8 @@ export class Users {
 
             const superuser: any = result[0].superuser ?? 0;
 
-            await Redis.set(redisKey, superuser ? 'true' : 'false', 3600);
+            // noinspection ES6MissingAwait
+            Redis.set(redisKey, superuser ? 'true' : 'false', 3600);
 
             return superuser;
         }
