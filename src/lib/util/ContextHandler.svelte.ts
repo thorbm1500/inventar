@@ -3,7 +3,7 @@ import type {ApplicationLocale} from "$lib/locale/locales";
 
 export class ContextHandler {
 
-    private static instance: ContextHandler;
+    private static instance: ContextHandler = new ContextHandler();
 
     private user: User | null = $state(null);
     private userSettings: UserSettings | null = $state(null);
@@ -12,14 +12,6 @@ export class ContextHandler {
     static getInstance(): ContextHandler {
         if (!ContextHandler.instance) ContextHandler.instance = new ContextHandler();
         return ContextHandler.instance;
-    }
-
-    static setLocale(locale: ApplicationLocale): void {
-        ContextHandler.getInstance().locale = locale;
-    }
-
-    static getLocale(): ApplicationLocale {
-        return <ApplicationLocale>ContextHandler.getInstance().locale;
     }
 
     static setUser(user: User): void {
@@ -36,5 +28,13 @@ export class ContextHandler {
 
     static getUserSettings(): UserSettings {
         return <UserSettings>ContextHandler.getInstance().userSettings;
+    }
+
+    static getLocale(): ApplicationLocale {
+        return <ApplicationLocale>ContextHandler.getInstance().locale;
+    }
+
+    static setLocale(locale: ApplicationLocale): void {
+        ContextHandler.getInstance().locale = locale;
     }
 }

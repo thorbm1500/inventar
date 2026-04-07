@@ -59,6 +59,7 @@
 
 <script lang="ts">
     let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
+
     const user: User = $derived(ContextHandler.getUser());
 
     let userSettings: UserSettings = $derived(ContextHandler.getUserSettings());

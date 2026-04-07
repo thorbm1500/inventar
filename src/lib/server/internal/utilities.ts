@@ -31,6 +31,14 @@ export async function applicationVersion(): Promise<string> {
 
 /**
  * todo
+ * @param path
+ */
+export async function loadLocale(path: string | URL): Promise<ApplicationLocale> {
+    return await Bun.JSON5.parse(await Bun.file(path).text()) as ApplicationLocale;
+}
+
+/**
+ * todo
  * @param logOnFailure
  */
 function isOffline(logOnFailure: boolean = false): boolean {

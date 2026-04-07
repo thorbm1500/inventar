@@ -14,11 +14,11 @@
     let {children, data} = $props();
 
     //svelte-ignore state_referenced_locally
-    ContextHandler.setLocale(data.locale);
-    //svelte-ignore state_referenced_locally
     ContextHandler.setUser(data.user);
     // svelte-ignore state_referenced_locally
     ContextHandler.setUserSettings(data.userSettings);
+    //svelte-ignore state_referenced_locally
+    ContextHandler.setLocale(data.locale);
 
     let user: User = $derived(ContextHandler.getUser());
     let userSettings: UserSettings = $derived(ContextHandler.getUserSettings());

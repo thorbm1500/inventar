@@ -478,6 +478,7 @@ export class Users {
 
             const user = redisObj as User;
             user.created_at = Number.parseInt(String(user.created_at));
+            if (user.settings && typeof user.settings === 'string') user.settings = Bun.JSON5.parse(String(user.settings)) as UserSettings;
 
             return user;
         } else {

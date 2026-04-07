@@ -23,7 +23,7 @@ export async function getSettings(): Promise<ApplicationSettings> {
 
     await ensureDirectoriesAndFiles();
 
-    return Bun.JSON5.parse(await getSettingsFile().text()) as ApplicationSettings;
+    return Bun.JSON5.parse(await Bun.file('/etc/inventar/settings.json5').text()) as ApplicationSettings;
 }
 
 export async function updateSettings(settings: ApplicationSettings): Promise<void> {

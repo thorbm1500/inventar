@@ -2,35 +2,44 @@ import type {Session} from '$lib/server/db/interfaces';
 import * as auth from '$lib/server/internal/auth';
 import {building} from '$app/environment';
 import {type Handle, type HandleServerError, redirect, type ServerInit} from '@sveltejs/kit';
-import utilities, {getCurrentLocale} from '$lib/server/internal/utilities';
+import utilities, {loadLocale} from '$lib/server/internal/utilities';
 import cron from '$lib/server/internal/cron';
 import {Logger, LogLevel} from '$lib/server/internal/logger';
 import {type ApplicationSettings, getSettings} from '$lib/server/internal/settings';
 import {Auth, Database, Users} from '$lib/server/db/database';
 import inventar from '$lib/server/internal/inventar';
-import {type ApplicationLocale} from "$lib/locale/locales";
 import type {User} from "$lib/server/db/components/user";
+import type {ApplicationLocale} from "$lib/locale/locales";
+
+const isProduction: boolean = process.env.NODE_ENV !== 'production';
 
 export const LOGGER: Logger = new Logger(LogLevel.DEBUG);
 let applicationSettings: ApplicationSettings = await getSettings();
-export let APPLICATION_LOCALE: ApplicationLocale = await getCurrentLocale();
 
 export async function getApplicationSettings(forceUpdate?: true): Promise<ApplicationSettings> {
     if (forceUpdate || !applicationSettings) applicationSettings = await getSettings();
     return applicationSettings;
 }
 
+export async function loadApplicationLocale(): Promise<ApplicationLocale> {
+    await getApplicationSettings(true);
+    const locale: ApplicationLocale = await loadLocale(process.cwd() + `/src/lib/locale/${applicationSettings.general.basics.language}.json5`);
+    new inventar.Instance(locale);
+    return locale;
+}
+
 /**
  * Initializes the database, and ensures all tables, and default values are present.
  */
 export const init: ServerInit = async (): Promise<void> => {
-    if (applicationSettings.general.basics.log_level) LOGGER.setLevel(applicationSettings.general.basics.log_level);
-
-    //await fetchItemPrice('https://www.autozone.com/p/stp-extended-life-engine-oil-filter-element-s9972xl/663650?productPartGroupId=azpg1622&productBrandId=FBRB&productUniqueId=456454654');
-
     await LOGGER.timed('Initializing server...', 'Server initialized.', async (): Promise<void> => {
         // Skip database initialization if project is building.
         if (!building) {
+            //todo: Implement in inventar.ts
+            if (!isProduction && applicationSettings.general.basics.log_level) LOGGER.setLevel(applicationSettings.general.basics.log_level);
+
+            await loadApplicationLocale();
+
             process.once('SIGINT', shutdown);
             LOGGER.debug('Shutdown hooks registered.');
 

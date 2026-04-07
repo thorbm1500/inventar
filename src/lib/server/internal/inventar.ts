@@ -1,3 +1,5 @@
+import type {ApplicationLocale} from "$lib/locale/locales";
+
 /**
  * `inventar.ts` is a utility file, combining all utility-type classes in a single file.
  * This might seem atypical, but was done after the utility file `Cookies.ts` was created;
@@ -11,4 +13,12 @@ class Cookies {
     static readonly Session: 'auth-session' = 'auth-session';
 }
 
-export default { Cookies };
+class Instance {
+    static locale: ApplicationLocale;
+
+    constructor(locale: ApplicationLocale) {
+        Instance.locale = locale;
+    }
+}
+
+export default { Cookies, Instance };

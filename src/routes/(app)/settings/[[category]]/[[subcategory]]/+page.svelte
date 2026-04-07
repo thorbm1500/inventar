@@ -1,16 +1,16 @@
 <script lang="ts">
     import Logs from "$lib/components/settings/Logs.svelte";
-    import {generateNewRegistrationToken, getSettings, saveSettings} from "../../data.remote";
+    import {generateNewRegistrationToken, getCurrentLocale, getSettings, saveSettings} from "../../data.remote";
     import {getContext, onDestroy, onMount} from "svelte";
     import {page} from "$app/state";
     import type {ApplicationSettings} from "$lib/server/internal/settings";
     import {capitalizeFirstLetter, ignorePasswordManagers} from "$lib/util/utilities";
-    import {ContextHandler} from "$lib/util/ContextHandler.svelte";
     import {type ApplicationLocale, AVAILABLE_LOCALES} from "$lib/locale/locales";
+    import {ContextHandler} from "$lib/util/ContextHandler.svelte";
 
     let {data} = $props();
 
-    let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
+    let locale: ApplicationLocale = $derived.by(ContextHandler.getLocale);
 
     let currentPageTitle: string = $state('');
     const updatePageTitle: Function = getContext('set_page_title') as Function;
@@ -18,7 +18,7 @@
     // svelte-ignore state_referenced_locally
     let applicationSettings: ApplicationSettings = $state(data.settings);
     // svelte-ignore state_referenced_locally
-    let savedSettings: ApplicationSettings = $state(data.settings);
+    let savedSettings: ApplicationSettings = $state.raw(data.settings);
 
     let isSaving: boolean = $state(saveSettings.pending > 0);
     let hasSaved: boolean = $state(false);
@@ -62,6 +62,18 @@
         const resetPageInfo: Function | undefined = getContext('reset_page_info');
         if (resetPageInfo) onDestroy(() => resetPageInfo());
     });
+
+    async function execSaving(): Promise<void> {
+        const hasLocaleChanged = applicationSettings.general.basics.language !== savedSettings.general.basics.language;
+        await saveSettings(applicationSettings);
+
+        savedSettings = await getSettings().run();
+        if (hasLocaleChanged) {
+            ContextHandler.setLocale(await getCurrentLocale().run());
+        }
+
+        hasSaved = true;
+    }
 </script>
 
 <section class="inventory-settings-page">
@@ -219,10 +231,10 @@
                 </div>
             </div>
             <div class="setting-item">
-                <div class="option text">
+                <div class="option select">
                     <div class="top-section">
                         <h1>{locale.settings.general.basics.language}</h1>
-                        <select id="language" name="language" size="1" bind:value={applicationSettings.general.basics.language}>
+                        <select id="log_level" name="log_level" size="1" bind:value={applicationSettings.general.basics.language}>
                             {#each AVAILABLE_LOCALES as localeOption}
                                 <option value={localeOption}>{localeOption}</option>
                             {/each}
@@ -616,10 +628,7 @@
         {#if !['audit', 'logs', 'tasks', 'accounts', 'api', 'feedback', 'faq', 'about'].includes(currentView.subcategory)}
             <div class="save-settings-div" style="display:flex;flex-flow:row nowrap;align-items:center;">
                 <button type="{hasUnsavedChanges?'submit':'button'}" class="theme-button"
-                onclick="{async () => {
-                    await saveSettings(applicationSettings).then(() => hasSaved = true);
-                    applicationSettings = await getSettings().then(res => res);
-                }}">{locale.generics.save}</button>
+                        onclick="{async () => await execSaving()}">{locale.generics.save}</button>
                 {#if hasSaved}
                     <p class="form-submission-meta success">{locale.generics.changes_saved}.</p>
                 {:else if isSaving }

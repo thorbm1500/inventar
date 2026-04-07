@@ -8,7 +8,7 @@ import {Auth, Users} from "$lib/server/db/database";
 import inventar from "$lib/server/internal/inventar";
 import {LOGGER} from "../../../hooks.server";
 import {Secret, TOTP} from "otpauth";
-import {type Cipher, createCipheriv, createDecipheriv, type Decipher, randomBytes} from "node:crypto";
+import {type Cipheriv, createCipheriv, createDecipheriv, type Decipheriv, randomBytes} from "node:crypto";
 
 declare interface CryptoOptions {
     encoding?: Bun.DigestEncoding,
@@ -193,7 +193,7 @@ export function encrypt(secret: string, data: string): string {
     const iv = randomBytes(16);
     const key: Buffer = new Bun.CryptoHasher('sha512-256', secret).digest();
 
-    const cipher: Cipher = createCipheriv('aes256', key, iv);
+    const cipher: Cipheriv = createCipheriv('aes256', key, iv);
 
     let encrypted: string = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -211,7 +211,7 @@ export function decrypt(secret: string, data: string): string {
     const key: Buffer = new Bun.CryptoHasher('sha512-256', secret).digest();
 
     const encrypted: string = data.slice(32);
-    const decipher: Decipher = createDecipheriv('aes256', key, Buffer.from(iv, 'hex'));
+    const decipher: Decipheriv = createDecipheriv('aes256', key, Buffer.from(iv, 'hex'));
 
     let decrypted: string = decipher.update(encrypted, 'hex', 'utf8');
     return decrypted + decipher.final('utf8');
