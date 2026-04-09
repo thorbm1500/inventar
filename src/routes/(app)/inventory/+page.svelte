@@ -1,17 +1,19 @@
 <script lang="ts">
-    import {getContext} from "svelte";
     import tippy, {animateFill} from "tippy.js";
     import type {ApplicationLocale} from "$lib/locale/locales";
     import {ContextHandler} from "$lib/util/ContextHandler.svelte";
+    import {onMount} from "svelte";
 
     let locale: ApplicationLocale = $derived(ContextHandler.getLocale());
-
-    const primaryInventory: string | undefined = $state.snapshot((getContext('user_settings') as Function)().primary_inventory);
-    if (primaryInventory !== '') {
-        window.location.href = `/inventory/${primaryInventory}`;
-    }
+    const primaryInventory: string | undefined = $state(ContextHandler.getUserSettings()?.primary_inventory ?? undefined);
 
     let loaded: boolean = $derived(primaryInventory !== undefined);
+
+    onMount(() => {
+        if (window && primaryInventory !== '') {
+            window.location.href = `/inventory/${primaryInventory}`;
+        }
+    });
 
     function tooltip(node: SVGElement, content: string) {
         let tippyObj = tippy(node, {

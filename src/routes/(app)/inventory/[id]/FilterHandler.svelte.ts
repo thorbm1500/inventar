@@ -22,7 +22,7 @@ export class Filters {
     initialPrice: boolean = $state(this.price);
     initialAmount: boolean = $state(this.amount);
 
-    order: OrderType = $derived(this.settings ? this.settings().preferred_ordering.toUpperCase() : 'DESC');
+    order: OrderType = $derived(this.settings ? this.settings().preferred_ordering?.toUpperCase() : 'DESC');
 
     unsavedChanges: boolean = $derived(this.description !== this.initialDescription
         && this.last_updated !== this.initialLast_updated

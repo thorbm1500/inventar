@@ -34,7 +34,7 @@ export class ItemHandler {
     }
 
     async init(): Promise<void> {
-        this.totalItemAmount = await getTotalItemCount(this.uuid);
+        this.totalItemAmount = await getTotalItemCount(this.uuid).run();
     }
 
     previousPage(): void {
@@ -75,21 +75,21 @@ export class ItemHandler {
         if (purge) this.paginationItems.clear();
 
         if (!this.paginationItems.has(this.page)) {
-            let items = await getItems({inventory: this.uuid, amount: this.filters.rowAmount, order: this.filters.order, order_by: this.filters.current, offset: this.currentItemOffset})
+            let items = await getItems({inventory: this.uuid, amount: this.filters.rowAmount, order: this.filters.order, order_by: this.filters.current, offset: this.currentItemOffset}).run();
             if (items.length !== 0) {
                 this.paginationItems.set(this.page, items);
             }
         }
 
         if (!this.isLastPage && !this.paginationItems.has(this.page + 1)) {
-            let items = await getItems({inventory: this.uuid, amount: this.filters.rowAmount, order: this.filters.order, order_by: this.filters.current, offset: this.nextPageItemOffset})
+            let items = await getItems({inventory: this.uuid, amount: this.filters.rowAmount, order: this.filters.order, order_by: this.filters.current, offset: this.nextPageItemOffset}).run();
             if (items.length !== 0) {
                 this.paginationItems.set(this.page + 1, items);
             }
         }
 
         if (!this.isFirstPage && !this.paginationItems.has(this.page - 1)) {
-            let items = await getItems({inventory: this.uuid, amount: this.filters.rowAmount, order: this.filters.order, order_by: this.filters.current, offset: this.previousPageItemOffset})
+            let items = await getItems({inventory: this.uuid, amount: this.filters.rowAmount, order: this.filters.order, order_by: this.filters.current, offset: this.previousPageItemOffset}).run();
             if (items.length !== 0) {
                 this.paginationItems.set(this.page - 1, items);
             }

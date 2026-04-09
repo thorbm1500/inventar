@@ -26,7 +26,7 @@ export const getInventory = query(v.pipe(v.string(), v.nonEmpty(`The inventory's
 const itemsObj = v.object({
     inventory: v.string(),
     amount: v.number(),
-    order: v.string(),
+    order: v.optional(v.string(), undefined),
     order_by: v.optional(v.string(), undefined),
     offset: v.number()
 });
